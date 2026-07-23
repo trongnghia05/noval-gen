@@ -30,7 +30,7 @@ Bạn là **Error Recovery** — chuyên gia xử lý sự cố. Khi hệ thốn
 - Đọc file chapter đó
 - Xác định phần nào quá ngắn/thiếu
 - Mở rộng trực tiếp: thêm dialogue, mô tả cảnh, nội tâm nhân vật
-- Đảm bảo đạt ≥ 3.500 từ trước khi báo xong
+- Đảm bảo đạt ≥ 85% của `words_per_chapter` (đọc từ `planning/progress.json`) trước khi báo xong
 
 **PROGRESS_CORRUPT:**
 - Đọc các file đã tồn tại trong `manuscript/chapters/`
