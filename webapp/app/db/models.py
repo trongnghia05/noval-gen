@@ -123,7 +123,8 @@ class Chapter(Base):
     title = Column(String)
     content = Column(Text)
     word_count = Column(Integer)
-    status = Column(String, default="pending")  # pending | done
+    status = Column(String, default="pending")  # pending | blueprinted | done
+    blueprint = Column(Text)  # JSON — ChapterBlueprintOutput, set by chapter_blueprinter
 
     __table_args__ = (UniqueConstraint("story_id", "number", name="uq_chapter_number"),)
 

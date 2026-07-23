@@ -1,11 +1,15 @@
-"""Deterministic pipeline logic — the Python replacement for CLAUDE.md's
-"LUONG THUC HIEN" section. No LLM call decides what happens next; that's
-plain control flow, same as any other backend job runner.
+"""Deterministic pipeline — one advance() call = one LLM step.
+
+Writing flow per chapter (3 advances):
+  1. blueprint_{N}  — chapter_blueprinter plans structure + scenes
+  2. chapter_{N}    — chapter_writer writes prose, chapter_summarizer updates memory
+  3. checkpoint_{N} — continuity_editor + smart_planner (every 5 chapters or last)
 """
 
 from sqlalchemy.orm import Session
 
 from .agents import (
+    chapter_blueprinter,
     chapter_summarizer,
     chapter_writer,
     character_developer,
@@ -19,10 +23,6 @@ from .db.models import Character, Chapter, Story
 
 
 def advance(session: Session, story: Story) -> dict:
-    """Runs exactly one step and returns a status dict. Safe to call
-    repeatedly (idempotent) — this is the web equivalent of typing
-    "bắt đầu" again to resume an interrupted run.
-    """
     if story.phase == "PLANNING":
         return _advance_planning(session, story)
     if story.phase == "WRITING":
@@ -62,11 +62,8 @@ def _is_checkpoint_chapter(story: Story, chapter_number: int) -> bool:
 
 
 def _advance_writing(session: Session, story: Story) -> dict:
-    # A checkpoint is its own step, run BEFORE looking at what's pending —
-    # this is what makes a failed continuity_editor/smart_planner call
-    # retriable: a plain "any chapters left?" check would otherwise silently
-    # skip the checkpoint for the last chapter once all chapters are marked
-    # done, since nothing would ever ask for it again.
+    # Run checkpoint before scanning pending — makes a failed checkpoint
+    # retriable even after all chapters are marked done.
     last_done = (
         session.query(Chapter)
         .filter_by(story_id=story.id, status="done")
@@ -81,9 +78,13 @@ def _advance_writing(session: Session, story: Story) -> dict:
             session.commit()
             return {"phase": "WRITING", "step": f"checkpoint_{last_done.number}"}
 
+    # Find next chapter that still needs work
     next_chapter = (
         session.query(Chapter)
-        .filter_by(story_id=story.id, status="pending")
+        .filter(
+            Chapter.story_id == story.id,
+            Chapter.status.in_(["pending", "blueprinted"]),
+        )
         .order_by(Chapter.number)
         .first()
     )
@@ -92,6 +93,17 @@ def _advance_writing(session: Session, story: Story) -> dict:
         session.commit()
         return {"phase": "COMPLETE", "step": None}
 
+    # Step 1: blueprint (if not yet done)
+    if next_chapter.status == "pending":
+        chapter_blueprinter.run(session, story, next_chapter)
+        session.commit()
+        return {
+            "phase": "WRITING",
+            "step": f"blueprint_{next_chapter.number}",
+            "chapter_number": next_chapter.number,
+        }
+
+    # Step 2: write + summarize
     chapter_writer.run(session, story, next_chapter)
     session.commit()
 

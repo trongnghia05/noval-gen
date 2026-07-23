@@ -35,11 +35,58 @@ Trả về **DUY NHẤT một object JSON** hợp lệ (không markdown code fen
   ],
   "foreshadowing": [
     {"fid": "F1", "detail": "...", "planted_chapter": 1, "status": "planted|advancing|resolved", "payoff_chapter": null}
-  ]
+  ],
+  "character_updates": [
+    {"id": "C001", "field": "location", "value": "rừng phía bắc"},
+    {"id": "C001", "field": "emotional_state", "value": "sợ hãi, quyết tâm"},
+    {"id": "C001", "field": "goals", "value": "thoát khỏi rừng, tìm bằng chứng"},
+    {"id": "C002", "field": "arc_status", "value": "resolved"}
+  ],
+  "relationship_changes": [
+    {
+      "char_a": "C001", "char_b": "C002",
+      "type": "romantic",
+      "strength": 0.7,
+      "status": "evolving",
+      "event": "C001 cứu C002 khỏi bẫy, C002 lần đầu tin tưởng hoàn toàn"
+    }
+  ],
+  "plot_thread_updates": [
+    {
+      "id": "PT001", "title": "Bí mật nguồn gốc của nhân vật A",
+      "type": "main", "status": "open",
+      "introduced_chapter": 1,
+      "involved_chars": "C001|C003",
+      "hint": "Bức thư chưa được mở",
+      "resolution_note": null
+    },
+    {
+      "id": "PT002", "title": "Âm mưu của Craig",
+      "type": "subplot", "status": "resolved",
+      "introduced_chapter": 2,
+      "involved_chars": "C001|C004",
+      "hint": null,
+      "resolution_note": "Elena tìm ra bằng chứng và nộp cho HR"
+    }
+  ],
+  "timeline_event": {
+    "story_time": "Thứ Hai, buổi sáng",
+    "location": "Văn phòng tầng 8",
+    "characters": "C001|C004",
+    "summary": "Elena đối mặt Craig trong phòng họp, thoát ra và nộp complaint"
+  }
 }
 ```
 
-Mảng nào không có gì để báo cáo thì để rỗng `[]`, không bịa ra để lấp đầy.
+Mảng nào không có gì để báo cáo thì để rỗng `[]`. `timeline_event` có thể là `null` nếu chương không có sự kiện timeline đáng ghi.
+
+**`character_updates`**: Chỉ report các field thực sự THAY ĐỔI trong chương này. Field hợp lệ: `location`, `emotional_state`, `goals`, `secrets`, `arc_status`. Dùng character `id` từ CSV (C001, C002...) không phải tên.
+
+**`relationship_changes`**: `strength` là giá trị tuyệt đối mới (-1.0 đến 1.0), không phải delta. Chỉ report quan hệ thực sự thay đổi.
+
+**`plot_thread_updates`**: Bao gồm cả thread mới (status: "open") lẫn thread cũ thay đổi trạng thái. `involved_chars` dùng pipe-separated character ids.
+
+**`timeline_event`**: Tóm tắt sự kiện chính của chương theo góc nhìn timeline trong truyện (thời gian, địa điểm, ai, chuyện gì).
 
 ## Nguyên tắc
 

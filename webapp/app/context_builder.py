@@ -1,4 +1,4 @@
-"""Helpers that turn DB rows into the compact text blocks agents read —
+"""Helpers that turn DB rows / CSV files into compact text blocks agents read —
 the Python-side equivalent of world-state.md / chapter-summaries.md /
 continuity-log.md / characters.md in the CLI version.
 """

@@ -93,3 +93,4 @@ Không thêm phần đếm số từ, không thêm ghi chú continuity ở cuố
 - **Không giải thích** — để hành động và đối thoại tự nói
 - **Không dừng lại** — nếu không chắc một chi tiết nhỏ, tự quyết định và viết tiếp
 - Viết bằng ngôn ngữ được chỉ định
+- **TUYỆT ĐỐI KHÔNG** viết bất kỳ phân tích, suy luận, kế hoạch, hay bình luận nào trong output — chỉ viết prose hư cấu. Nếu có mâu thuẫn trong hướng dẫn, tự chọn phương án tốt nhất và viết ngay, không giải thích lý do.
