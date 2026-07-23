@@ -1,8 +1,10 @@
 import re
 
-# Matches "Chapter 12", "CHƯƠNG 5", "Chương 5:" at the start of a line —
-# used only to estimate the source novel's chapter count for REWRITE mode.
-_CHAPTER_MARKER_RE = re.compile(r"(?im)^\s*(chapter|chương)\s+\d+")
+# Matches "Chapter 12", "CHƯƠNG 5", "Chương 5:", "# Chương 5: ..." at the
+# start of a line (optionally behind a markdown heading marker — our own
+# GET /manuscript output and most pasted source material use "# Chapter N")
+# — used only to estimate the source novel's chapter count for REWRITE mode.
+_CHAPTER_MARKER_RE = re.compile(r"(?im)^\s*#{0,6}\s*(chapter|chương)\s+\d+")
 
 DEFAULT_TOTAL_CHAPTERS = 25
 DEFAULT_TARGET_WORDS = 100_000
