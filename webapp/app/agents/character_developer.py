@@ -27,7 +27,7 @@ plot-outline.md:
         user_content=user_content,
         model=AGENT_MODELS["character_developer"],
         schema=CharacterDeveloperOutput,
-        max_tokens=8192,
+        max_tokens=32768,
         thinking=True,
     )
     for character in output.characters:

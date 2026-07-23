@@ -9,6 +9,8 @@ Ghi lại để đánh giá trước khi đầu tư thêm vào `webapp/`. Dựa 
 3. **Rate limit free-tier không đoán trước được** (`32/32 worker slots`) — hiện tại chỉ retry thủ công bằng tay, chưa có backoff tự động trong code.
 4. **JSON structured output phụ thuộc hoàn toàn vào chất lượng model** — retry logic chỉ bắt được "JSON sai cú pháp", không bắt được "JSON đúng cú pháp nhưng nội dung tệ" (VD: chỉ tạo 1 nhân vật thay vì 3-6 theo yêu cầu).
 5. **Bug thiết kế checkpoint-retry** (đã sửa) cho thấy: tự viết lại orchestration logic dễ tạo lỗ hổng resume mà CLI gốc không có (vì Claude Code CLI tự quản lý ngữ cảnh/resume theo cách khác).
+6. **Bug tính độ dài cho REWRITE** (đã sửa, commit `0823bda`): regex phát hiện số chương gốc yêu cầu "Chương/Chapter" phải là ký tự đầu dòng, nhưng header thực tế luôn có `#` markdown đứng trước (`# Chương 1: ...`) — không khớp → tưởng nguồn chỉ có 1 chương → `words_per_chapter` bị tính sai gấp 3 lần. Bug loại này (regex/parser giả định sai định dạng input thực tế) rất dễ tái diễn ở những chỗ khác chưa test tới.
+7. **Truncation JSON tái diễn** ở `character_developer` khi rewrite sang tiếng Anh (input dài hơn, output chi tiết hơn) — retry với cùng `max_tokens` vô nghĩa vì cùng nguyên nhân hết ngân sách sẽ lặp lại y hệt. Đã xử lý bằng cách set thẳng `max_tokens=32768` cho toàn bộ agent trả JSON — đây là **giải pháp tạm/không đảm bảo tuyệt đối**, chỉ dời ngưỡng lên cao chứ không loại bỏ khả năng bị cắt về mặt cấu trúc (input/output càng lớn thì ngưỡng nào cũng có thể không đủ).
 
 ## Điểm yếu cấu trúc — chưa giải quyết, cần đánh giá kỹ trước khi build tiếp
 
@@ -27,7 +29,13 @@ Ghi lại để đánh giá trước khi đầu tư thêm vào `webapp/`. Dựa 
 
 ## Tách bạch: lỗi chất lượng văn bản KHÔNG phải lỗi của kiến trúc API
 
-Việc model free (`nvidia/nemotron-3-ultra-550b-a55b:free`) viết lẫn tiếng Trung/Pháp/Nga vào câu tiếng Việt là **đặc tính của model đó**, không phải do việc "chuyển sang gọi API" gây ra. Dùng Claude thật (trả phí) qua chính kiến trúc này nhiều khả năng sẽ hết vấn đề chất lượng — đổi lại là chi phí thật thay vì miễn phí.
+Việc model free (`nvidia/nemotron-3-ultra-550b-a55b:free`) viết lẫn chữ Hán/Hàn vào câu tiếng Việt là **đặc tính của chính model đó với NGÔN NGỮ ĐÍCH cụ thể**, không phải lỗi kiến trúc API, và cũng không phải model "tệ nói chung":
+
+- Tra model card chính thức của NVIDIA: **tiếng Việt không nằm trong danh sách ngôn ngữ được hỗ trợ** của model này (chỉ có English, French, Spanish, Italian, German, Japanese, Korean, Hindi, Brazilian Portuguese, Chinese).
+- Test độc lập (không qua pipeline, chỉ 1 prompt đơn giản) xác nhận: viết **tiếng Việt** → lẫn chữ Hán/Hàn khoảng 50-100% số lần thử, kể cả khi cấm rõ ràng trong system prompt. Viết **tiếng Anh** (ngôn ngữ được hỗ trợ chính thức) → **sạch tuyệt đối 3/3 lần thử**, chất lượng văn học tốt.
+- Đây cũng là lớp lỗi đã biết trong ngành, không riêng Nemotron (xem issue tương tự trên MiniMax-M2 và cả Gemini của Google — lẫn ký tự CJK khi ngôn ngữ đích ngoài phạm vi huấn luyện chính hoặc do tokenizer BPE artifact).
+
+**Kết luận thực dụng**: model free này dùng tốt nếu truyện viết bằng tiếng Anh (hoặc ngôn ngữ khác trong danh sách hỗ trợ). Muốn viết tiếng Việt chất lượng, phải đổi sang model khác có hỗ trợ tiếng Việt chính thức — không phải vấn đề tiền hay kiến trúc, mà là chọn đúng model theo ngôn ngữ đích của truyện.
 
 ## So với CLI gốc
 

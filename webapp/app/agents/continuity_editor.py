@@ -27,7 +27,7 @@ def run(session: Session, story: Story, batch_end: int) -> None:
         user_content=user_content,
         model=AGENT_MODELS["continuity_editor"],
         schema=ContinuityEditorOutput,
-        max_tokens=8192,
+        max_tokens=32768,
         thinking=True,
     )
 

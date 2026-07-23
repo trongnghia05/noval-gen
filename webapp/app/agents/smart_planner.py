@@ -30,7 +30,7 @@ current_words: {story.current_words}
         user_content=user_content,
         model=AGENT_MODELS["smart_planner"],
         schema=SmartPlannerOutput,
-        max_tokens=8192,
+        max_tokens=32768,
         thinking=True,
     )
 

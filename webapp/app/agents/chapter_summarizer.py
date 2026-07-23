@@ -68,7 +68,7 @@ def run(session: Session, story: Story, chapter: Chapter) -> None:
         user_content=user_content,
         model=AGENT_MODELS["chapter_summarizer"],
         schema=ChapterSummaryOutput,
-        max_tokens=4096,
+        max_tokens=32768,
     )
 
     session.add(
