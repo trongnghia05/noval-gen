@@ -1,13 +1,16 @@
-from fastapi import APIRouter, HTTPException
+import logging
+
+from fastapi import APIRouter, BackgroundTasks, HTTPException
 from pydantic import BaseModel
 
-from .. import length_calc, orchestrator
+from .. import graph, length_calc, orchestrator
 from ..config import AGENT_MODELS, PROVIDER
 from ..db.models import Chapter, Story
 from ..db.session import SessionLocal
 from ..slug import generate_title, slugify
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 class CreateStoryRequest(BaseModel):
@@ -82,6 +85,36 @@ def advance_story(story_id: int):
         return orchestrator.advance(session, story)
 
 
+def _run_story_background(story_id: int) -> None:
+    try:
+        graph.run_story_to_completion(story_id)
+    except Exception:
+        logger.exception("Background run failed for story %s", story_id)
+    finally:
+        with SessionLocal() as session:
+            story = session.get(Story, story_id)
+            if story is not None:
+                story.is_running = False
+                session.commit()
+
+
+@router.post("/stories/{story_id}/run")
+def run_story(story_id: int, background_tasks: BackgroundTasks):
+    with SessionLocal() as session:
+        story = session.get(Story, story_id)
+        if not story:
+            raise HTTPException(404, "story not found")
+        if story.is_running:
+            raise HTTPException(409, "story is already running")
+        if story.phase == "COMPLETE":
+            raise HTTPException(409, "story is already complete")
+        story.is_running = True
+        session.commit()
+
+    background_tasks.add_task(_run_story_background, story_id)
+    return {"status": "started", "story_id": story_id}
+
+
 @router.get("/stories")
 def list_stories():
     with SessionLocal() as session:
@@ -103,6 +136,8 @@ def get_story(story_id: int):
             "title": story.title,
             "slug": story.slug,
             "phase": story.phase,
+            "is_running": story.is_running,
+            "planning_verified": story.planning_verified,
             "chapters_done": chapters_done,
             "total_chapters": story.total_chapters,
             "current_words": story.current_words,

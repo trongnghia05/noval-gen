@@ -59,6 +59,7 @@ Trả về **DUY NHẤT một object JSON** hợp lệ (không có markdown code
 - **Không có nhân vật hoàn hảo** — kể cả nhân vật chính phải có khuyết điểm thực sự
 - **Phản diện phải có lý** — họ tin họ đúng, phải có backstory hợp lý
 - **Nhất quán**: mọi hành động của nhân vật phải xuất phát từ tính cách đã xây dựng
+- **REWRITE**: nếu story-bible có mục **"Sơ đồ quan hệ nhân vật gốc"**, GIỮ NGUYÊN cấu trúc quan hệ đó (ai thù/đồng minh/người yêu/thầy trò/gia đình của ai) — chỉ dùng tên/ngoại hình/backstory mới, KHÔNG đổi bản chất và diễn biến quan hệ.
 - Viết `profile_md` bằng ngôn ngữ được chỉ định
 - Không hỏi lại — tự sáng tạo mọi chi tiết
 - Trả về JSON THUẦN TUÝ, có thể parse trực tiếp bằng `json.loads`

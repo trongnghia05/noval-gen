@@ -7,6 +7,9 @@ services:
       - .env
     volumes:
       - novelgen-data:/data
+      # Service-account JSON for Vertex AI (repo-root auth/, read-only).
+      # GOOGLE_APPLICATION_CREDENTIALS in .env points at a file under /auth.
+      - ../auth:/auth:ro
 
 volumes:
   novelgen-data:

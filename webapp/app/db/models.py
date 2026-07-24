@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 
 from sqlalchemy import (
     JSON,
+    Boolean,
     Column,
     DateTime,
     ForeignKey,
@@ -37,6 +38,8 @@ class Story(Base):
 
     phase = Column(String, default="PLANNING")  # PLANNING | WRITING | COMPLETE
     last_checkpoint_chapter = Column(Integer, default=0)  # last chapter continuity_editor/smart_planner actually ran for
+    is_running = Column(Boolean, default=False)  # True while a graph.run_story_to_completion() background run is active
+    planning_verified = Column(Boolean, default=False)  # True once planning_verifier has gated the 4 planning artifacts before WRITING
 
     # Planning-phase outputs. Free-form markdown blobs — chapter_writer just
     # needs them as context, no per-field querying required, so a text
@@ -165,3 +168,38 @@ class SmartPlannerState(Base):
     characters_to_watch = Column(JSON, default=list)
     threads_to_resolve = Column(JSON, default=list)
     outline_adjustments = Column(Text)
+
+
+class ChapterVerifyLog(Base):
+    """Append-only — one row per issue chapter_verifier finds, every chapter.
+    Unlike ContinuityLog (one row/story, overwritten each 5-chapter batch),
+    this keeps the full history since it runs far more often."""
+
+    __tablename__ = "chapter_verify_log"
+
+    id = Column(Integer, primary_key=True)
+    story_id = Column(Integer, ForeignKey("stories.id"), nullable=False)
+    chapter_number = Column(Integer, nullable=False)
+    severity = Column(String)  # critical | minor
+    description = Column(Text)
+    suggestion = Column(Text)
+    action_taken = Column(String)  # rewritten | logged_only
+    created_at = Column(DateTime, default=_utcnow)
+
+
+class PlanningVerifyLog(Base):
+    """Append-only history of what the planning gate caught, one row per issue.
+    Planning verification runs once per story (not per chapter), but issues are
+    kept rather than overwritten so a later audit can see what was flagged and
+    which artifact got regenerated in response."""
+
+    __tablename__ = "planning_verify_log"
+
+    id = Column(Integer, primary_key=True)
+    story_id = Column(Integer, ForeignKey("stories.id"), nullable=False)
+    artifact = Column(String)  # story_bible | plot_outline | characters | world
+    severity = Column(String)  # critical | minor
+    description = Column(Text)
+    suggestion = Column(Text)
+    action_taken = Column(String)  # rewrite_1|2|3 | regenerated_fresh | accepted | logged_only
+    created_at = Column(DateTime, default=_utcnow)

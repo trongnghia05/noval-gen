@@ -2,13 +2,31 @@ import re
 
 # Matches "Chapter 12", "CHƯƠNG 5", "Chương 5:", "# Chương 5: ..." at the
 # start of a line (optionally behind a markdown heading marker — our own
-# GET /manuscript output and most pasted source material use "# Chapter N")
+# GET /manuscript output and most pasted source material use "# Chapter N"),
+# and optionally behind a leading chapter-index number glued to the marker —
+# e.g. scraped sources dumped as "#1 Chapter 1 - Title" rather than "# Chapter 1".
 # — used only to estimate the source novel's chapter count for REWRITE mode.
-_CHAPTER_MARKER_RE = re.compile(r"(?im)^\s*#{0,6}\s*(chapter|chương)\s+\d+")
+_CHAPTER_MARKER_RE = re.compile(r"(?im)^\s*#{0,6}\s*\d*\s*(chapter|chương)\s+\d+")
 
 DEFAULT_TOTAL_CHAPTERS = 25
 DEFAULT_TARGET_WORDS = 100_000
 DEFAULT_WORDS_PER_CHAPTER = 4_000
+
+
+def split_source_chapters(source_content: str) -> list[str]:
+    """Split a source novel into per-chapter chunks by chapter markers, used by
+    quality_reviewer to compare a rewritten chapter against its source chapter.
+    Each chunk is the marker line plus its body up to the next marker. No marker
+    found → one chunk with the whole text (or empty list if the text is blank)."""
+    matches = list(_CHAPTER_MARKER_RE.finditer(source_content))
+    if not matches:
+        stripped = source_content.strip()
+        return [stripped] if stripped else []
+    chunks = []
+    for i, m in enumerate(matches):
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(source_content)
+        chunks.append(source_content[m.start():end].strip())
+    return chunks
 
 
 def compute_length(

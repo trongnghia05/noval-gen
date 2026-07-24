@@ -8,7 +8,7 @@ from ..prompts.loader import load_prompt
 from ..schemas import CharacterDeveloperOutput
 
 
-def run(session: Session, story: Story) -> None:
+def run(session: Session, story: Story, feedback: str | None = None) -> None:
     system = load_prompt("character_developer")
     user_content = f"""Ngôn ngữ: {story.language}
 
@@ -22,6 +22,11 @@ plot-outline.md:
 {story.plot_outline}
 ---
 """
+    if feedback:
+        user_content += (
+            "\n## LỖI TỪ VÒNG KIỂM TRA TRƯỚC — bắt buộc khắc phục, giữ nguyên phần đã đúng\n"
+            f"{feedback}\n"
+        )
     output = generate_structured(
         PROVIDER,
         system=system,

@@ -3,6 +3,8 @@
 chapter_writer stays free-form prose — everything else feeds directly into DB
 tables or CSV files, so it's requested and parsed as JSON.
 """
+from typing import Literal
+
 from pydantic import BaseModel
 
 
@@ -143,3 +145,44 @@ class SmartPlannerOutput(BaseModel):
     characters_to_watch: list[str] = []
     threads_to_resolve: list[str] = []
     outline_adjustments: str = ""
+
+
+# ── chapter_verifier ───────────────────────────────────────────────────────────
+
+class ChapterVerifyIssueOut(BaseModel):
+    description: str
+    suggestion: str
+    severity: Literal["critical", "minor"]
+
+
+class ChapterVerifierOutput(BaseModel):
+    issues: list[ChapterVerifyIssueOut] = []
+    verdict_note: str
+
+
+# ── planning_verifier ──────────────────────────────────────────────────────────
+
+class PlanningVerifyIssueOut(BaseModel):
+    artifact: Literal["story_bible", "plot_outline", "characters", "world"]
+    description: str
+    suggestion: str
+    severity: Literal["critical", "minor"]
+
+
+class PlanningVerifierOutput(BaseModel):
+    issues: list[PlanningVerifyIssueOut] = []
+    verdict_note: str
+
+
+# ── quality_reviewer ───────────────────────────────────────────────────────────
+
+class QualityReviewIssueOut(BaseModel):
+    dimension: Literal["quality", "originality"]
+    description: str
+    suggestion: str
+    severity: Literal["critical", "minor"]
+
+
+class QualityReviewerOutput(BaseModel):
+    issues: list[QualityReviewIssueOut] = []
+    verdict_note: str

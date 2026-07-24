@@ -218,9 +218,15 @@ def _expand_scene(
     return response.text.strip()
 
 
-def run(session: Session, story: Story, chapter: Chapter) -> None:
+_FEEDBACK_HEADER = (
+    "## LỖI CONTINUITY CẦN SỬA KHI VIẾT LẠI (từ verifier) — bắt buộc khắc phục\n"
+)
+
+
+def run(session: Session, story: Story, chapter: Chapter, feedback: str | None = None) -> None:
     system = load_prompt("chapter_writer")
     min_words = int(story.words_per_chapter * MIN_WORD_RATIO)
+    fb_block = f"{_FEEDBACK_HEADER}{feedback}\n\n" if feedback else ""
     title: str | None = None
     content: str | None = None
 
@@ -230,7 +236,7 @@ def run(session: Session, story: Story, chapter: Chapter) -> None:
             bp = json.loads(chapter.blueprint)
             scenes = bp.get("scenes", [])
             if scenes:
-                shared_context = _build_shared_context(session, story)
+                shared_context = fb_block + _build_shared_context(session, story)
                 words_per_scene = max(400, story.words_per_chapter // len(scenes))
                 min_scene_words = int(words_per_scene * MIN_SCENE_WORD_RATIO)
                 scene_texts: list[str] = []
@@ -255,7 +261,7 @@ def run(session: Session, story: Story, chapter: Chapter) -> None:
 
     # --- Fallback: single call (no blueprint or exception in scene loop) ---
     if content is None:
-        base_context = _build_context(session, story, chapter)
+        base_context = fb_block + _build_context(session, story, chapter)
         max_tokens = max(2048, int(story.words_per_chapter * 3))
         response = PROVIDER.generate(
             system=system, user_content=base_context,
