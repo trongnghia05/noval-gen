@@ -13,6 +13,8 @@ through: advance() drives the single-step HTTP API, graph.py drives the
 continuous LangGraph run. Neither duplicates the other's logic.
 """
 
+import logging
+
 from sqlalchemy.orm import Session
 
 from .agents import (
@@ -34,6 +36,8 @@ from .agents import (
     worldbuilder,
 )
 from .db.models import Character, Chapter, ChapterVerifyLog, Story
+
+logger = logging.getLogger(__name__)
 
 
 def _is_checkpoint_chapter(story: Story, chapter_number: int) -> bool:
@@ -137,12 +141,14 @@ def run_graph_extract_step(session: Session, story: Story) -> dict:
 
 
 def run_verify_source_graph_step(session: Session, story: Story) -> dict:
+    logger.info("[%s] START verify_source_graph", story.slug)
     source_graph_verifier.run(session, story)
     session.commit()
     return {"phase": "PLANNING", "step": "verify_source_graph"}
 
 
 def run_new_graph_step(session: Session, story: Story) -> dict:
+    logger.info("[%s] START new_graph", story.slug)
     new_graph_builder.run(session, story)
     session.commit()
     from .db.models import StoryGraphNode
@@ -159,18 +165,21 @@ def run_new_graph_step(session: Session, story: Story) -> dict:
 
 
 def run_verify_graph_step(session: Session, story: Story) -> dict:
+    logger.info("[%s] START verify_graph", story.slug)
     graph_verifier.run(session, story)
     session.commit()
     return {"phase": "PLANNING", "step": "verify_graph"}
 
 
 def run_story_bible_step(session: Session, story: Story) -> dict:
+    logger.info("[%s] START story_bible", story.slug)
     story_analyzer.run(session, story)
     session.commit()
     return {"phase": "PLANNING", "step": "story_bible"}
 
 
 def run_plot_outline_step(session: Session, story: Story) -> dict:
+    logger.info("[%s] START plot_outline", story.slug)
     from . import context_builder
     graph_ctx = context_builder.format_story_graph(session, story.id)
     story.plot_outline = plot_architect.run(story, story_graph=graph_ctx)
@@ -179,12 +188,14 @@ def run_plot_outline_step(session: Session, story: Story) -> dict:
 
 
 def run_characters_step(session: Session, story: Story) -> dict:
+    logger.info("[%s] START characters", story.slug)
     character_developer.run(session, story)
     session.commit()
     return {"phase": "PLANNING", "step": "characters"}
 
 
 def run_world_step(session: Session, story: Story) -> dict:
+    logger.info("[%s] START world", story.slug)
     story.world_bible = worldbuilder.run(story)
     session.commit()
     return {"phase": "PLANNING", "step": "world"}
@@ -204,6 +215,7 @@ def run_planning_complete_step(session: Session, story: Story) -> dict:
 
 
 def run_checkpoint_step(session: Session, story: Story) -> dict:
+    logger.info("[%s] START checkpoint", story.slug)
     last_done = (
         session.query(Chapter)
         .filter_by(story_id=story.id, status="done")
@@ -218,6 +230,7 @@ def run_checkpoint_step(session: Session, story: Story) -> dict:
 
 
 def run_blueprint_step(session: Session, story: Story) -> dict:
+    logger.info("[%s] START blueprint", story.slug)
     next_chapter = (
         session.query(Chapter)
         .filter(Chapter.story_id == story.id, Chapter.status == "pending")
@@ -305,12 +318,14 @@ def _verify_chapter_loop(session: Session, story: Story, chapter: Chapter) -> in
 
 
 def run_write_chapter_step(session: Session, story: Story) -> dict:
+    logger.info("[%s] START write_chapter", story.slug)
     next_chapter = (
         session.query(Chapter)
         .filter(Chapter.story_id == story.id, Chapter.status == "blueprinted")
         .order_by(Chapter.number)
         .first()
     )
+    logger.info("[%s] write_chapter ch%d/%d", story.slug, next_chapter.number, story.total_chapters)
     chapter_writer.run(session, story, next_chapter)
     session.commit()
 

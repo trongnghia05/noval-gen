@@ -11,6 +11,8 @@ issues and moves on (never blocks the pipeline).
 Sets story.source_graph_verified = True when done.
 """
 
+import logging
+
 from sqlalchemy.orm import Session
 
 from .. import context_builder
@@ -22,6 +24,8 @@ from ..schemas import GraphVerifierOutput
 from . import chapter_graph_extractor
 
 MAX_ITERATIONS = 10
+
+logger = logging.getLogger(__name__)
 
 
 def _format_chapter_additions(session: Session, story_id: int, chapter_number: int) -> str:
@@ -82,7 +86,9 @@ def run(session: Session, story: Story) -> None:
     """
     system = load_prompt("graph_verifier")
 
-    for chapter_number in range(1, (story.source_chapter_count or 0) + 1):
+    total = story.source_chapter_count or 0
+    for chapter_number in range(1, total + 1):
+        logger.info("[%s] verify_source_graph ch%d/%d", story.slug, chapter_number, total)
         for iteration in range(MAX_ITERATIONS):
             # Accumulated graph state up to (and including) this chapter.
             accumulated_graph = context_builder.format_story_graph(
@@ -132,7 +138,8 @@ def run(session: Session, story: Story) -> None:
             if not critical:
                 break  # chapter N is consistent — move to chapter N+1
 
-            # Re-extract only chapter N (state from chapters 1..N-1 is untouched).
+            logger.info("[%s] verify_source_graph ch%d critical issues=%d, re-extracting",
+                        story.slug, chapter_number, len(critical))
             chapter_graph_extractor.run_for_chapter(session, story, chapter_number)
             session.flush()
 
