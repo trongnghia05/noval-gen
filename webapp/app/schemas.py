@@ -5,7 +5,7 @@ tables or CSV files, so it's requested and parsed as JSON.
 """
 from typing import Any, Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 
 # ── story_analyzer ─────────────────────────────────────────────────────────────
@@ -89,6 +89,11 @@ class WorldStateRowOut(BaseModel):
     entity_key: str
     field: str
     value: str
+
+    @field_validator("value", mode="before")
+    @classmethod
+    def coerce_value_to_str(cls, v):
+        return str(v) if not isinstance(v, str) else v
 
 
 class ForeshadowingOut(BaseModel):
