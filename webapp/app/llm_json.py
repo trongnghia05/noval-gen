@@ -33,6 +33,7 @@ def generate_structured(
             max_tokens=max_tokens,
             thinking=thinking,
             json_mode=True,
+            response_schema=schema,
         )
         try:
             return schema.model_validate(json.loads(response.text))

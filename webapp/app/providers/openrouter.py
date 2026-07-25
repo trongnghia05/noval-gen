@@ -29,6 +29,7 @@ class OpenRouterProvider(LLMProvider):
         max_tokens: int = 4096,
         thinking: bool = False,
         json_mode: bool = False,
+        response_schema: type | None = None,  # ignored — OpenRouter has no equivalent
     ) -> LLMResponse:
         extra_body: dict = {}
         if thinking:

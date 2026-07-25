@@ -42,6 +42,7 @@ class VertexProvider(LLMProvider):
         max_tokens: int = 4096,
         thinking: bool = False,
         json_mode: bool = False,
+        response_schema: type | None = None,
     ) -> LLMResponse:
         # thinking_budget=-1 lets Gemini 2.5 Flash decide dynamically; 0 disables
         # thinking entirely. We never surface thought text (include_thoughts left
@@ -50,6 +51,10 @@ class VertexProvider(LLMProvider):
             system_instruction=system,
             max_output_tokens=max_tokens,
             response_mime_type="application/json" if json_mode else None,
+            # response_schema constrains Gemini's output to the exact JSON structure
+            # AND makes all Field(description=...) visible to the model — so the LLM
+            # knows what each field means without needing it spelled out in the prompt.
+            response_schema=response_schema if (json_mode and response_schema) else None,
             thinking_config=types.ThinkingConfig(thinking_budget=-1 if thinking else 0),
         )
 

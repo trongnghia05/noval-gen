@@ -1,4 +1,4 @@
-# Agent: Chapter Graph Extractor
+1# Agent: Chapter Graph Extractor
 
 Bạn là **Chapter Graph Extractor** — chuyên gia trích xuất thông tin có cấu trúc từ một chương truyện gốc.
 
@@ -46,22 +46,24 @@ Nhiệm vụ: đọc **một chương gốc duy nhất** và xuất ra JSON mô 
       "target_id": "E005",
       "edge_type": "PARTICIPATES",
       "label": "mô tả ngắn vai trò",
+      "role": "cause|victim|witness|ally|bystander",
       "chapter_from": {chapter_number},
       "chapter_to": null,
       "trigger_event_id": null,
       "condition": null,
-      "properties": { "role": "cause|victim|witness|ally|bystander" }
+      "properties": {}
     },
     {
       "source_id": "E004",
       "target_id": "E005",
       "edge_type": "CAUSES",
       "label": "dẫn đến",
+      "mechanism": "Giải thích tại sao chương trước dẫn đến chương này",
       "chapter_from": null,
       "chapter_to": null,
       "trigger_event_id": null,
       "condition": null,
-      "properties": { "mechanism": "Giải thích tại sao chương trước dẫn đến chương này" }
+      "properties": {}
     }
   ]
 }
@@ -87,11 +89,22 @@ Tham khảo `QUAN HỆ ĐANG HOẠT ĐỘNG` để biết trạng thái quan h�
 - Nếu quan hệ **đã có** nhưng thay đổi (ví dụ: friendship → rivalry) → tạo RELATION edge mới với `chapter_from` = chapter_number
 - Nếu quan hệ **đã có và không đổi** → KHÔNG tạo RELATION edge (tránh duplicate)
 - `chapter_to` của edge mới = null (vẫn hiệu lực cho đến khi có edge tiếp theo thay đổi nó)
+- Bắt buộc có `rel_type` ở top-level (không phải trong `properties`):
+  ```json
+  { "edge_type": "RELATION", "source_id": "C001", "target_id": "C002",
+    "rel_type": "rivalry", "strength": "strong", "chapter_from": 3, "chapter_to": null, "properties": {} }
+  ```
 
 **Về ARC_CHANGE:**
 Tạo khi nhân vật thay đổi trạng thái nội tâm rõ ràng (arc_stage, wants, fears, status).
 - source_id = target_id = node_key của nhân vật (self-loop)
 - `trigger_event_id` = ID của event chương này
+- Bắt buộc có `old_val` và `new_val` ở top-level (không phải trong `properties`). Nếu nhân vật xuất hiện lần đầu, `old_val = "introduction"`:
+  ```json
+  { "edge_type": "ARC_CHANGE", "source_id": "C001", "target_id": "C001",
+    "old_val": "introduction", "new_val": "hoài nghi về hôn nhân",
+    "arc_field": "arc_stage", "trigger_event_id": "E003", "chapter_from": 3, "properties": {} }
+  ```
 
 **Về tên nhân vật:**
 Dùng **tên MỚI** đã tái tạo (có trong ENTITY LIST) — KHÔNG dùng tên gốc từ chương nguồn.

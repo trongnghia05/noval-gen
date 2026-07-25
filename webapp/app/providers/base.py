@@ -27,5 +27,6 @@ class LLMProvider(ABC):
         max_tokens: int = 4096,
         thinking: bool = False,
         json_mode: bool = False,
+        response_schema: type | None = None,
     ) -> LLMResponse:
         ...
