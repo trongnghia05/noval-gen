@@ -174,7 +174,7 @@ def _write_single_scene(
         f"do not restate, re-describe, or echo any of it. Move the story forward.\n"
     )
 
-    max_tokens = max(1024, int(words_per_scene * 3.5))
+    max_tokens = 40000
     response = PROVIDER.generate(
         system=system,
         user_content=user_content,
@@ -207,7 +207,7 @@ def _expand_scene(
         f"Do NOT add a heading unless the original already had one. "
         f"Return the full expanded scene only.\n"
     )
-    max_tokens = max(1024, int(words_per_scene * 3.5))
+    max_tokens = 40000
     response = PROVIDER.generate(
         system=system,
         user_content=user_content,
@@ -262,7 +262,7 @@ def run(session: Session, story: Story, chapter: Chapter, feedback: str | None =
     # --- Fallback: single call (no blueprint or exception in scene loop) ---
     if content is None:
         base_context = fb_block + _build_context(session, story, chapter)
-        max_tokens = max(2048, int(story.words_per_chapter * 3))
+        max_tokens = 40000
         response = PROVIDER.generate(
             system=system, user_content=base_context,
             model=AGENT_MODELS["chapter_writer"],
@@ -277,7 +277,7 @@ def run(session: Session, story: Story, chapter: Chapter, feedback: str | None =
     attempts = 0
     while word_count < min_words and attempts < MAX_EXPAND_ATTEMPTS:
         attempts += 1
-        max_tokens = max(2048, int(story.words_per_chapter * 3))
+        max_tokens = 40000
         expand_content = (
             f"chapter_number: {chapter.number} | language: {story.language} "
             f"| words_per_chapter: {story.words_per_chapter}\n\n"
