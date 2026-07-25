@@ -32,7 +32,7 @@ from .agents import (
     story_analyzer,
     worldbuilder,
 )
-from .db.models import Character, Chapter, Story
+from .db.models import Character, Chapter, ChapterVerifyLog, Story
 
 
 def _is_checkpoint_chapter(story: Story, chapter_number: int) -> bool:
@@ -223,6 +223,77 @@ def run_blueprint_step(session: Session, story: Story) -> dict:
     }
 
 
+_MAX_VERIFY_ITERATIONS = 5
+
+
+def _verify_chapter_loop(session: Session, story: Story, chapter: Chapter) -> int:
+    """Run continuity + quality checks in a loop, rewriting on critical issues.
+
+    Each iteration runs both verifiers and collects all critical issues as
+    accumulated feedback for the next rewrite — so the writer always sees the
+    full history of what went wrong, not just the latest round.
+
+    Graph context (new graph up to current chapter) is passed to
+    chapter_verifier so it can cross-check character arcs, relationships, and
+    causal chains against structured graph state — not just the flat world-state
+    snapshot.
+
+    Returns the number of rewrites performed (0 = clean on first check).
+    """
+    from . import context_builder
+
+    graph_context = ""
+    if story.new_graph_built:
+        graph_context = context_builder.format_story_graph(
+            session, story.id, graph_type="new", chapter_limit=chapter.number
+        )
+
+    accumulated_feedback: list[str] = []
+    rewrites = 0
+
+    for iteration in range(_MAX_VERIFY_ITERATIONS):
+        v_issues = chapter_verifier.check(session, story, chapter, graph_context)
+        q_issues = quality_reviewer.check(session, story, chapter)
+
+        all_issues = v_issues + q_issues
+        critical = [i for i in all_issues if i.severity == "critical"]
+
+        # Log every issue (all severities) to the audit trail.
+        action = f"rewrite_iter_{iteration + 1}" if critical else "logged_only"
+        for issue in all_issues:
+            # QualityReviewIssueOut has a dimension field; ChapterVerifyIssueOut does not.
+            dim = getattr(issue, "dimension", "continuity")
+            session.add(
+                ChapterVerifyLog(
+                    story_id=story.id,
+                    chapter_number=chapter.number,
+                    severity=issue.severity,
+                    description=f"[{dim}] {issue.description}",
+                    suggestion=issue.suggestion,
+                    action_taken=action,
+                )
+            )
+        session.flush()
+
+        if not critical:
+            break
+
+        # Accumulate all critical issues across iterations so each rewrite
+        # knows the full history of what was wrong.
+        for issue in critical:
+            dim = getattr(issue, "dimension", "continuity")
+            accumulated_feedback.append(
+                f"[iter {iteration + 1}][{dim}] {issue.description} → SỬA: {issue.suggestion}"
+            )
+
+        feedback_text = "\n".join(accumulated_feedback)
+        chapter_writer.run(session, story, chapter, feedback=feedback_text)
+        session.flush()
+        rewrites += 1
+
+    return rewrites
+
+
 def run_write_chapter_step(session: Session, story: Story) -> dict:
     next_chapter = (
         session.query(Chapter)
@@ -233,15 +304,11 @@ def run_write_chapter_step(session: Session, story: Story) -> dict:
     chapter_writer.run(session, story, next_chapter)
     session.commit()
 
-    # Verify against established state BEFORE summarizing — summarizing first
-    # would let a wrong chapter taint world-state with its own errors, which
-    # a later verify pass would then wrongly treat as "already agreed truth".
-    chapter_verifier.run(session, story, next_chapter)
-    session.commit()
-
-    # Quality gate (+ originality vs source for REWRITE), also before summarize
-    # so a low-quality/too-similar chapter is fixed before it enters memory.
-    quality_reviewer.run(session, story, next_chapter)
+    # Verify + quality gate before summarizing — a wrong/truncated chapter must
+    # be fixed before it enters memory (world-state, chapter-summaries).
+    # Loop up to _MAX_VERIFY_ITERATIONS times; each rewrite gets accumulated
+    # feedback from all previous iterations.
+    _verify_chapter_loop(session, story, next_chapter)
     session.commit()
 
     chapter_summarizer.run(session, story, next_chapter)

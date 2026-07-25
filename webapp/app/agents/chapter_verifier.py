@@ -2,66 +2,51 @@ from sqlalchemy.orm import Session
 
 from .. import context_builder
 from ..config import AGENT_MODELS, PROVIDER
-from ..db.models import Chapter, ChapterVerifyLog, Story
+from ..db.models import Chapter, Story
 from ..llm_json import generate_structured
 from ..prompts.loader import load_prompt
-from ..schemas import ChapterVerifierOutput
-from . import chapter_writer
+from ..schemas import ChapterVerifierOutput, ChapterVerifyIssueOut
 
 
-def run(session: Session, story: Story, chapter: Chapter) -> bool:
-    """Checks the just-written chapter against established characters/world
-    state. Every issue found is appended to ChapterVerifyLog. A critical
-    issue triggers exactly one automatic rewrite of this chapter (via
-    chapter_writer) before returning — bounded, no re-verify loop.
+def check(
+    session: Session,
+    story: Story,
+    chapter: Chapter,
+    graph_context: str = "",
+) -> list[ChapterVerifyIssueOut]:
+    """Run continuity check on the just-written chapter.
 
-    Returns True if the chapter was rewritten.
+    Returns all issues found (critical + minor). Logging and rewrite logic
+    live in the orchestrator's verification loop — this function only checks.
+
+    graph_context: formatted new-graph text (characters, relations, arc changes,
+    causal chains) so the verifier can cross-check against structured graph state
+    in addition to the flat world-state snapshot.
     """
     system = load_prompt("chapter_verifier")
-    user_content = f"""chapter_number: {chapter.number}
-
-## Nhân vật (đầy đủ)
-{context_builder.format_characters(session, story.id)}
-
-## world-state hiện tại
-{context_builder.format_world_state(session, story.id)}
-
-## Vấn đề continuity đang mở (từ lần rà soát sâu gần nhất, nếu có)
-{context_builder.format_continuity_log(session, story.id)}
-
-## 3 chương gần nhất (bao gồm chương vừa viết, Ch.{max(1, chapter.number - 2)}-{chapter.number})
-{context_builder.last_n_chapters_text(session, story.id, chapter.number, n=3)}
-"""
-    output = generate_structured(
+    graph_section = (
+        f"\n## Story graph (new) — structured state to cross-check against\n{graph_context}\n"
+        if graph_context
+        else ""
+    )
+    user_content = (
+        f"chapter_number: {chapter.number}\n\n"
+        f"## Nhân vật (đầy đủ)\n{context_builder.format_characters(session, story.id)}\n\n"
+        f"## world-state hiện tại\n{context_builder.format_world_state(session, story.id)}\n\n"
+        f"## Vấn đề continuity đang mở (từ lần rà soát sâu gần nhất, nếu có)\n"
+        f"{context_builder.format_continuity_log(session, story.id)}\n"
+        f"{graph_section}\n"
+        f"## 3 chương gần nhất (bao gồm chương vừa viết, "
+        f"Ch.{max(1, chapter.number - 2)}-{chapter.number})\n"
+        f"{context_builder.last_n_chapters_text(session, story.id, chapter.number, n=3)}\n"
+    )
+    output: ChapterVerifierOutput = generate_structured(
         PROVIDER,
         system=system,
         user_content=user_content,
         model=AGENT_MODELS["chapter_verifier"],
         schema=ChapterVerifierOutput,
         max_tokens=8192,
-        thinking=True,
+        thinking=False,
     )
-
-    has_critical = any(issue.severity == "critical" for issue in output.issues)
-    action_taken = "rewritten" if has_critical else "logged_only"
-    for issue in output.issues:
-        session.add(
-            ChapterVerifyLog(
-                story_id=story.id,
-                chapter_number=chapter.number,
-                severity=issue.severity,
-                description=issue.description,
-                suggestion=issue.suggestion,
-                action_taken=action_taken,
-            )
-        )
-
-    if has_critical:
-        feedback = "\n".join(
-            f"- {issue.description} → SỬA THÀNH: {issue.suggestion}"
-            for issue in output.issues
-            if issue.severity == "critical"
-        )
-        chapter_writer.run(session, story, chapter, feedback=feedback)
-
-    return has_critical
+    return output.issues
