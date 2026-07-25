@@ -223,7 +223,8 @@ class TimelineEventOut(BaseModel):
 
 
 class ChapterSummaryOutput(BaseModel):
-    summary: str
+    short_summary: str  # 1-2 câu mô tả sự kiện chính, dùng cho chapter_writer
+    summary: str        # 200-300 từ đầy đủ, dùng cho continuity/verifier
     state_changes: list[StateChangeOut] = []
     world_state_rows: list[WorldStateRowOut] = []
     foreshadowing: list[ForeshadowingOut] = []

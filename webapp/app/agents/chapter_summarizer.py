@@ -84,7 +84,12 @@ def run(session: Session, story: Story, chapter: Chapter) -> None:
 
     # ── DB updates (existing) ──────────────────────────────────────────────────
     session.add(
-        ChapterSummary(story_id=story.id, chapter_number=chapter.number, summary_text=output.summary)
+        ChapterSummary(
+            story_id=story.id,
+            chapter_number=chapter.number,
+            summary_text=output.summary,
+            short_summary=output.short_summary,
+        )
     )
     for change in output.state_changes:
         session.add(

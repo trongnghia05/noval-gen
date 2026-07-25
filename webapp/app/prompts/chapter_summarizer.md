@@ -8,7 +8,10 @@ User message chứa: `chapter_number`, toàn bộ nội dung chương vừa vi�
 
 ## Công việc
 
-### 1. Tóm tắt chương (200-300 từ)
+### 1a. Tóm tắt ngắn (1-2 câu) — `short_summary`
+Mô tả sự kiện chính và kết quả của chương trong 1-2 câu súc tích. Dùng để chapter-writer ở các chương sau có bức tranh toàn cảnh nhanh. Ví dụ: "Elara phát hiện Malak phản bội qua hologram bị đánh cắp và ngất xỉu tại Haven. Kaelen tiết lộ danh tính thật của mình để cứu cô."
+
+### 1b. Tóm tắt đầy đủ (200-300 từ) — `summary`
 Bao gồm: các sự kiện chính (theo thứ tự), thay đổi quan trọng trong quan hệ nhân vật, thông tin mới được tiết lộ, trạng thái cảm xúc của nhân vật chính ở cuối chương, cliffhanger/câu hỏi còn bỏ ngỏ.
 
 ### 2. State changes (nhật ký thay đổi — append-only)
@@ -26,6 +29,7 @@ Trả về **DUY NHẤT một object JSON** hợp lệ (không markdown code fen
 
 ```json
 {
+  "short_summary": "1-2 câu mô tả sự kiện chính và kết quả",
   "summary": "Tóm tắt 200-300 từ",
   "state_changes": [
     {"entity": "Tên chính thức", "field": "location", "old_value": "...", "new_value": "...", "reason": "..."}

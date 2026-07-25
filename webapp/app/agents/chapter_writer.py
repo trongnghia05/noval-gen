@@ -82,8 +82,9 @@ def _build_shared_context(session: Session, story: Story, chapter: "Chapter") ->
     spirit_block = f"\n\n{source_spirit_section}" if source_spirit_section else ""
 
     return (
+        f"## chapter-list (bức tranh toàn cảnh — Ch.{chapter.number} là chương đang viết)\n"
+        f"{context_builder.format_chapter_list(session, story.id, chapter.number)}\n\n"
         f"## world-state.md\n{context_builder.format_world_state(session, story.id)}\n\n"
-        f"## chapter-summaries.md (story so far)\n{context_builder.format_chapter_summaries(session, story.id)}\n\n"
         f"## continuity-log.md\n{context_builder.format_continuity_log(session, story.id)}\n\n"
         f"## Smart-planner adjustments\n{context_builder.format_smart_planner_adjustments(session, story.id)}\n\n"
         f"## plot-outline.md\n{story.plot_outline}\n\n"
@@ -120,8 +121,9 @@ def _build_context(session: Session, story: Story, chapter: Chapter) -> str:
         f"language: {story.language}\n\n"
         f"## CHAPTER BLUEPRINT (follow this structure)\n{_format_blueprint(chapter)}\n"
         f"{graph_section}\n"
+        f"## chapter-list (bức tranh toàn cảnh — Ch.{chapter.number} là chương đang viết)\n"
+        f"{context_builder.format_chapter_list(session, story.id, chapter.number)}\n\n"
         f"## world-state.md (snapshot hiện tại)\n{context_builder.format_world_state(session, story.id)}\n\n"
-        f"## chapter-summaries.md (story so far)\n{context_builder.format_chapter_summaries(session, story.id)}\n\n"
         f"## continuity-log.md\n{context_builder.format_continuity_log(session, story.id)}\n\n"
         f"## Điều chỉnh outline từ smart-planner (nếu có)\n{context_builder.format_smart_planner_adjustments(session, story.id)}\n\n"
         f"## plot-outline.md\n{story.plot_outline}\n\n"
@@ -239,6 +241,38 @@ def _expand_scene(
     return response.text.strip()
 
 
+_SYNTHESIS_SYSTEM = """\
+You are a prose editor. A chapter draft was assembled from independently-written scenes.
+Your job: polish it into one seamless chapter.
+
+Rules:
+1. Remove any verbatim duplicate sentences or paragraphs (keep the first occurrence).
+2. Smooth transitions between scenes — the "---scene-break---" markers show where scenes were joined; replace each marker with natural prose flow (a line break, a transitional sentence, or a section break as fits the tone).
+3. Do NOT add new plot events, characters, or facts not already in the draft.
+4. Do NOT change character names, outcomes, or any established story detail.
+5. Keep the chapter heading on line 1 exactly as written.
+6. Return ONLY the polished chapter text — no commentary, no explanation.
+"""
+
+
+def _synthesize_chapter(story: "Story", chapter: "Chapter", draft: str) -> str:
+    """Polish the scene-assembled draft: remove duplicates, smooth transitions."""
+    user_content = (
+        f"chapter_number: {chapter.number} | language: {story.language} "
+        f"| target_words: ~{story.words_per_chapter}\n\n"
+        f"## DRAFT\n---\n{draft}\n---\n\n"
+        f"Return the complete polished chapter starting with the heading.\n"
+    )
+    response = PROVIDER.generate(
+        system=_SYNTHESIS_SYSTEM,
+        user_content=user_content,
+        model=AGENT_MODELS["chapter_writer"],
+        max_tokens=40000,
+        thinking=False,
+    )
+    return response.text.strip()
+
+
 _FEEDBACK_HEADER = (
     "## LỖI CONTINUITY CẦN SỬA KHI VIẾT LẠI (từ verifier) — bắt buộc khắc phục\n"
 )
@@ -285,7 +319,9 @@ def run(session: Session, story: Story, chapter: Chapter, feedback: str | None =
                         )
                     scene_texts.append(scene_text)
 
-                full_text = "\n\n".join(scene_texts)
+                draft = "\n\n---scene-break---\n\n".join(scene_texts)
+                logger.info("[%s] ch%d synthesizing %d scenes", story.slug, chapter.number, len(scenes))
+                full_text = _synthesize_chapter(story, chapter, draft)
                 title, content = _parse_chapter(full_text, chapter.number)
         except Exception:
             logger.warning("[%s] ch%d scene-by-scene failed, falling back to single call",

@@ -43,6 +43,33 @@ def format_world_state(session: Session, story_id: int) -> str:
     return "\n".join(lines).strip()
 
 
+def format_chapter_list(session: Session, story_id: int, current_chapter: int) -> str:
+    """Compact chapter list for chapter_writer: number + title + 1-2 sentence summary.
+
+    Gives the writer a panoramic view of the story so far and makes clear
+    where the current chapter sits in the overall arc.
+    """
+    rows = (
+        session.query(ChapterSummary)
+        .filter_by(story_id=story_id)
+        .order_by(ChapterSummary.chapter_number)
+        .all()
+    )
+    chapters = session.query(Chapter).filter_by(story_id=story_id).all()
+    title_map = {c.number: c.title for c in chapters if c.title}
+    total = max((c.number for c in chapters), default=current_chapter)
+
+    lines = [f"(Đang viết Ch.{current_chapter}/{total})\n"]
+    for row in rows:
+        title = title_map.get(row.chapter_number, "")
+        title_part = f' "{title}"' if title else ""
+        short = row.short_summary or (row.summary_text or "")[:120].replace("\n", " ")
+        lines.append(f"Ch{row.chapter_number:02d}{title_part}: {short}")
+    if not rows:
+        lines.append("(chưa có chương nào được viết)")
+    return "\n".join(lines)
+
+
 def format_chapter_summaries(session: Session, story_id: int) -> str:
     rows = (
         session.query(ChapterSummary)
@@ -52,7 +79,21 @@ def format_chapter_summaries(session: Session, story_id: int) -> str:
     )
     if not rows:
         return "(chưa có chương nào được viết)"
-    return "\n\n".join(f"## Chương {row.chapter_number}\n{row.summary_text}" for row in rows)
+
+    # Build title lookup from Chapter table
+    chapters = (
+        session.query(Chapter)
+        .filter_by(story_id=story_id)
+        .all()
+    )
+    title_map = {c.number: c.title for c in chapters if c.title}
+
+    parts = []
+    for row in rows:
+        title = title_map.get(row.chapter_number, "")
+        heading = f"## Chương {row.chapter_number}" + (f": {title}" if title else "")
+        parts.append(f"{heading}\n{row.summary_text}")
+    return "\n\n".join(parts)
 
 
 def format_continuity_log(session: Session, story_id: int) -> str:
