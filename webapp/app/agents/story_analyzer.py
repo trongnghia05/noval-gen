@@ -42,7 +42,7 @@ def run(session: Session, story: Story, feedback: str | None = None) -> None:
 
     # REWRITE: no EVENT nodes needed here — just stable entities.
     # IDEA/PREMISE: entities + ~4 arc EVENT nodes → output is small.
-    max_tokens = 16384
+    max_tokens = 65536
 
     output: StoryAnalyzerOutput = generate_structured(
         PROVIDER,

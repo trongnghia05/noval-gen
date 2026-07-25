@@ -156,7 +156,7 @@ def run(session: Session, story: Story, feedback: str | None = None) -> None:
         user_content=user_content,
         model=AGENT_MODELS["new_graph_builder"],
         schema=StoryAnalyzerOutput,
-        max_tokens=16384,
+        max_tokens=65536,
         thinking=True,  # creative transformation needs reasoning
     )
 
