@@ -244,8 +244,8 @@ def _verify_chapter_loop(session: Session, story: Story, chapter: Chapter) -> in
 
     graph_context = ""
     if story.new_graph_built:
-        graph_context = context_builder.format_story_graph(
-            session, story.id, graph_type="new", chapter_limit=chapter.number
+        graph_context = context_builder.format_chapter_subgraph(
+            session, story.id, chapter.number, graph_type="new", max_depth=1
         )
 
     accumulated_feedback: list[str] = []

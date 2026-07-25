@@ -255,6 +255,132 @@ def format_story_graph(session: Session, story_id: int, chapter_limit: int | Non
     return "\n".join(lines)
 
 
+def format_chapter_subgraph(
+    session: Session,
+    story_id: int,
+    chapter_number: int,
+    graph_type: str = "new",
+    max_depth: int = 1,
+) -> str:
+    """BFS subgraph centred on nodes participating in chapter_number.
+
+    Layer 0: EVENT node for this chapter + CHARACTER nodes that PARTICIPATE in it.
+    Layer 1: all edges touching those seed nodes → pulls in directly connected
+             nodes (locations, other characters they relate to, causal events).
+    Layer 2 (max_depth=2): edges of the nodes discovered in Layer 1.
+
+    This keeps the verifier's context small and relevant — only the subgraph
+    reachable from this chapter's participants, not the full story graph.
+    """
+    event_key = f"E{chapter_number:03d}"
+
+    # ── Layer 0: seed nodes ────────────────────────────────────────────────────
+    event_node = (
+        session.query(StoryGraphNode)
+        .filter_by(story_id=story_id, graph_type=graph_type, node_key=event_key)
+        .first()
+    )
+    seed_keys: set[str] = {event_key} if event_node else set()
+
+    part_edges = (
+        session.query(StoryGraphEdge)
+        .filter_by(story_id=story_id, graph_type=graph_type, edge_type="PARTICIPATES",
+                   target_key=event_key)
+        .all()
+    )
+    for e in part_edges:
+        seed_keys.add(e.source_key)
+
+    if not seed_keys:
+        return f"(no graph nodes found for chapter {chapter_number})"
+
+    # ── BFS up to max_depth ────────────────────────────────────────────────────
+    visited_keys: set[str] = set(seed_keys)
+    frontier: set[str] = set(seed_keys)
+    collected_edges: list[StoryGraphEdge] = []
+
+    for _ in range(max_depth):
+        if not frontier:
+            break
+        layer_edges = (
+            session.query(StoryGraphEdge)
+            .filter_by(story_id=story_id, graph_type=graph_type)
+            .filter(
+                StoryGraphEdge.source_key.in_(frontier) |
+                StoryGraphEdge.target_key.in_(frontier)
+            )
+            .all()
+        )
+        new_keys: set[str] = set()
+        for e in layer_edges:
+            collected_edges.append(e)
+            if e.source_key not in visited_keys:
+                new_keys.add(e.source_key)
+            if e.target_key not in visited_keys:
+                new_keys.add(e.target_key)
+        visited_keys |= new_keys
+        frontier = new_keys
+
+    # ── Load all relevant nodes ────────────────────────────────────────────────
+    nodes = (
+        session.query(StoryGraphNode)
+        .filter_by(story_id=story_id, graph_type=graph_type)
+        .filter(StoryGraphNode.node_key.in_(visited_keys))
+        .all()
+    )
+    node_map = {n.node_key: n for n in nodes}
+
+    # Deduplicate edges
+    seen_edge_ids: set[int] = set()
+    unique_edges: list[StoryGraphEdge] = []
+    for e in collected_edges:
+        if e.id not in seen_edge_ids:
+            seen_edge_ids.add(e.id)
+            unique_edges.append(e)
+
+    # ── Render ─────────────────────────────────────────────────────────────────
+    lines: list[str] = [f"## Subgraph for Chapter {chapter_number} (depth={max_depth})"]
+
+    for ntype, header in [
+        ("event", "SỰ KIỆN"), ("character", "NHÂN VẬT"),
+        ("location", "ĐỊA ĐIỂM"), ("faction", "PHE PHÁI"),
+        ("object", "VẬT THỂ"), ("theme", "CHỦ ĐỀ"),
+    ]:
+        grp = [n for n in nodes if n.node_type == ntype]
+        if not grp:
+            continue
+        lines.append(f"\n### {header}")
+        for n in grp:
+            p = n.properties or {}
+            detail_parts = []
+            for key in ("role", "arc_stage", "wants", "fears", "summary",
+                        "description", "goal", "event_type"):
+                if p.get(key):
+                    detail_parts.append(f"{key}: {p[key]}")
+            ch = f" [Ch.{n.chapter_introduced}]" if n.chapter_introduced else ""
+            lines.append(f"  {n.node_key}{ch} {n.label}" +
+                         (f" — {' | '.join(detail_parts)}" if detail_parts else ""))
+
+    if unique_edges:
+        lines.append("\n### QUAN HỆ & NHÂN QUẢ")
+        for e in sorted(unique_edges, key=lambda x: (x.edge_type, x.chapter_from or 0)):
+            src = node_map.get(e.source_key)
+            tgt = node_map.get(e.target_key)
+            src_label = src.label if src else e.source_key
+            tgt_label = tgt.label if tgt else e.target_key
+            p = e.properties or {}
+            detail = p.get("rel_type") or p.get("mechanism") or p.get("role") or e.label or ""
+            ch_info = f"Ch.{e.chapter_from}" if e.chapter_from else ""
+            if e.chapter_to:
+                ch_info += f"→{e.chapter_to}"
+            elif e.chapter_from:
+                ch_info += "→∞"
+            tag = f"[{ch_info}] " if ch_info else ""
+            lines.append(f"  {src_label} ──[{e.edge_type}: {detail}]──► {tgt_label} {tag}")
+
+    return "\n".join(lines)
+
+
 def format_chapter_context_from_graph(session: Session, story_id: int, chapter_number: int) -> str:
     """Build a compact context block for chapter_writer from the new graph.
 
