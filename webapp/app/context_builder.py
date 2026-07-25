@@ -501,6 +501,48 @@ def format_chapter_context_from_graph(session: Session, story_id: int, chapter_n
     return "\n".join(lines).strip()
 
 
+def format_source_spirit_for_chapter(session, story, chapter_number: int) -> str:
+    """Return source spirit block for chapter_writer (REWRITE only).
+
+    Combines:
+    - story.source_spirit: global tone + representative excerpts from the whole source
+    - Per-chapter spirit + excerpts from the source EVENT node's properties
+
+    Returns empty string for IDEA/PREMISE or if no spirit data is available.
+    """
+    if story.input_type != "REWRITE":
+        return ""
+
+    lines: list[str] = ["## Tinh thần truyện gốc (dùng làm chuẩn về tone, nhịp điệu, cảm xúc)"]
+
+    if story.source_spirit:
+        lines.append("\n### Tổng quan tone & phong cách (kèm trích đoạn mẫu)")
+        lines.append(story.source_spirit)
+
+    # Per-chapter spirit from source EVENT node
+    event_key = f"E{chapter_number:03d}"
+    event_node = (
+        session.query(StoryGraphNode)
+        .filter_by(story_id=story.id, graph_type="source", node_key=event_key)
+        .first()
+    )
+    if event_node:
+        p = event_node.properties or {}
+        chapter_spirit = p.get("chapter_spirit", "")
+        chapter_excerpts = p.get("chapter_excerpts", [])
+        if chapter_spirit or chapter_excerpts:
+            lines.append(f"\n### Tinh thần chương {chapter_number} (từ bản gốc — phải tái tạo cảm xúc này, không sao chép nội dung)")
+            if chapter_spirit:
+                lines.append(chapter_spirit)
+            for excerpt in chapter_excerpts:
+                if excerpt and excerpt.strip():
+                    lines.append(f"\n> {excerpt.strip()}")
+
+    if len(lines) == 1:
+        return ""  # only header, no actual data
+    return "\n".join(lines)
+
+
 def last_n_chapters_text(session: Session, story_id: int, up_to_chapter: int, n: int = 5) -> str:
     rows = (
         session.query(Chapter)

@@ -28,6 +28,8 @@ Tôn trọng các chi tiết user đã đưa. Phát triển thêm xung đột v�
 {
   "narrative_summary": "Đoạn tóm tắt ngắn (~300-400 từ) bằng ngôn ngữ được chỉ định. Mô tả premise, nhân vật chính, xung đột trung tâm, arc tổng thể, theme. Đây là văn xuôi để các agent khác đọc làm context — KHÔNG phải danh sách.",
 
+  "source_spirit": "CHỈ điền cho REWRITE — để trống ('') cho IDEA/PREMISE.\n\nMô tả TINH THẦN TỔNG THỂ của truyện gốc gồm 2 phần:\n1. TONE & GENRE (3-5 câu): thể loại cảm xúc chủ đạo (ví dụ: lãng mạn, gay cấn, u ám, hài hước nhẹ nhàng), nhịp điệu viết (chậm/nhanh), điểm nhìn (1st/3rd person), bầu không khí đặc trưng, cách tác giả gốc xây dựng tension và cảm xúc.\n2. SYNTHETIC EXAMPLES (2-3 đoạn văn MẪU do bạn TỰ VIẾT, mỗi đoạn 2-4 câu): KHÔNG copy từ truyện gốc — tự sáng tác những câu văn ngắn thể hiện ĐÚNG tone đó nhưng với nội dung trung tính (không liên quan đến nhân vật/cốt truyện gốc). Mục đích: cho chapter-writer biết phong cách viết cần đạt, không phải nội dung cần sao chép.\n\nFormat:\nTONE: [mô tả 3-5 câu]\n\nSYNTHETIC EXAMPLES:\n---\n[ví dụ mẫu 1 — tự viết, thể hiện đúng tone]\n---\n[ví dụ mẫu 2 — tự viết, ví dụ khác về tone (ví dụ: nếu gốc vừa lãng mạn vừa căng thẳng, ví dụ này thể hiện tone căng thẳng)]\n---\n[ví dụ mẫu 3 nếu có thêm sắc thái nào đó cần làm rõ]\n---",
+
   "nodes": [
     {
       "id": "C001",

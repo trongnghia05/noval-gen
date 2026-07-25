@@ -49,6 +49,7 @@ class Story(Base):
     plot_outline = Column(Text)
     world_bible = Column(Text)
     source_chapter_count = Column(Integer)   # REWRITE only: number of source chapters to graph-extract
+    source_spirit = Column(Text)             # REWRITE only: overall tone + excerpts, passed to chapter_writer
 
     created_at = Column(DateTime, default=_utcnow)
     updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)

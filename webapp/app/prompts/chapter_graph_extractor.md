@@ -23,7 +23,9 @@ Nhiệm vụ: đọc **một chương gốc duy nhất** và xuất ra JSON mô 
     "properties": {
       "summary": "1-3 câu: sự kiện chính + xung đột + bước ngoặt/tiết lộ + hệ quả sang chương sau",
       "event_type": "revelation|conflict|turning_point|consequence|decision",
-      "emotional_weight": "low|medium|high"
+      "emotional_weight": "low|medium|high",
+      "chapter_spirit": "Mô tả TINH THẦN CỦA CHƯƠNG NÀY (2-3 câu): cảm xúc chủ đạo (ví dụ: căng thẳng dồn dập, lãng mạn ngọt ngào, u ám nặng nề, nhẹ nhàng hồi tưởng), nhịp điệu (chậm/nhanh), cung bậc cảm xúc mà chương tạo ra cho nhân vật và người đọc.",
+      "chapter_excerpts": ["Câu văn MẪU do bạn TỰ VIẾT (KHÔNG copy từ chương gốc) — 2-3 câu thể hiện đúng TONE của chương này với nội dung trung tính bất kỳ. Mục đích: chỉ cho chapter-writer biết nhịp điệu và cảm xúc cần đạt, không phải nội dung để sao chép.", "Câu văn mẫu thứ hai nếu chương có thêm một cung bậc cảm xúc khác biệt (ví dụ: chương vừa căng thẳng vừa có khoảnh khắc ấm áp) — để trống nếu không cần"]
     },
     "chapter_introduced": {chapter_number}
   },

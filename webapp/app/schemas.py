@@ -33,6 +33,7 @@ class GraphEdgeOut(BaseModel):
 
 class StoryAnalyzerOutput(BaseModel):
     narrative_summary: str             # short prose summary kept in story.story_bible
+    source_spirit: str = ""            # REWRITE only — overall tone/mood + 2-3 verbatim excerpts from source
     nodes: list[GraphNodeOut]          # CHARACTER, LOCATION, FACTION, THEME, OBJECT
                                        # + key arc EVENT nodes for IDEA/PREMISE
                                        # NO event nodes for REWRITE (those come from chapter_graph_extractor)

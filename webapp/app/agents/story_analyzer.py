@@ -55,6 +55,8 @@ def run(session: Session, story: Story, feedback: str | None = None) -> None:
     )
 
     story.story_bible = output.narrative_summary
+    if output.source_spirit:
+        story.source_spirit = output.source_spirit
 
     # For REWRITE, store source chapter count so orchestrator knows how many
     # graph_extract steps to run. Use the model's self-reported count if given;

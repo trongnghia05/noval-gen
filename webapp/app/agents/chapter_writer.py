@@ -49,7 +49,7 @@ def _format_blueprint(chapter: Chapter) -> str:
         return chapter.blueprint
 
 
-def _build_shared_context(session: Session, story: Story) -> str:
+def _build_shared_context(session: Session, story: Story, chapter: "Chapter") -> str:
     """Heavy reference blocks shared across all per-scene calls (no blueprint section)."""
     graph_section = ""
     if csv_graph.graph_exists(story.id):
@@ -65,6 +65,9 @@ def _build_shared_context(session: Session, story: Story) -> str:
             + "\n"
         )
 
+    source_spirit_section = context_builder.format_source_spirit_for_chapter(session, story, chapter.number)
+    spirit_block = f"\n\n{source_spirit_section}" if source_spirit_section else ""
+
     return (
         f"## world-state.md\n{context_builder.format_world_state(session, story.id)}\n\n"
         f"## chapter-summaries.md (story so far)\n{context_builder.format_chapter_summaries(session, story.id)}\n\n"
@@ -75,6 +78,7 @@ def _build_shared_context(session: Session, story: Story) -> str:
         f"## world.md\n{story.world_bible}\n\n"
         f"## story-bible.md (tone, theme)\n{story.story_bible}\n"
         f"{graph_section}"
+        f"{spirit_block}"
     )
 
 
@@ -94,6 +98,9 @@ def _build_context(session: Session, story: Story, chapter: Chapter) -> str:
             + "\n"
         )
 
+    source_spirit_section = context_builder.format_source_spirit_for_chapter(session, story, chapter.number)
+    spirit_block = f"\n\n{source_spirit_section}" if source_spirit_section else ""
+
     return (
         f"chapter_number: {chapter.number}\n"
         f"words_per_chapter: {story.words_per_chapter}\n"
@@ -108,6 +115,7 @@ def _build_context(session: Session, story: Story, chapter: Chapter) -> str:
         f"## characters.md (full profiles)\n{context_builder.format_characters(session, story.id)}\n\n"
         f"## world.md\n{story.world_bible}\n\n"
         f"## story-bible.md (tone, chủ đề)\n{story.story_bible}\n"
+        f"{spirit_block}"
     )
 
 
@@ -236,7 +244,7 @@ def run(session: Session, story: Story, chapter: Chapter, feedback: str | None =
             bp = json.loads(chapter.blueprint)
             scenes = bp.get("scenes", [])
             if scenes:
-                shared_context = fb_block + _build_shared_context(session, story)
+                shared_context = fb_block + _build_shared_context(session, story, chapter)
                 words_per_scene = max(400, story.words_per_chapter // len(scenes))
                 min_scene_words = int(words_per_scene * MIN_SCENE_WORD_RATIO)
                 scene_texts: list[str] = []
