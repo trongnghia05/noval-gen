@@ -78,8 +78,8 @@ Nhiệm vụ: đọc **một chương gốc duy nhất** và xuất ra JSON mô 
 
 **Về edges bắt buộc:**
 1. **CAUSES** từ `previous_event_key` → event này (nếu `previous_event_key` không null). Giải thích cơ chế nhân quả.
-2. **PARTICIPATES** cho mỗi nhân vật chính có hành động trong chương. `role`: cause (kẻ gây ra), victim (nạn nhân), witness (chứng kiến), ally (hỗ trợ).
-3. **LOCATED_AT** nếu có địa điểm rõ ràng.
+2. **PARTICIPATES** cho mỗi nhân vật chính có hành động trong chương. `role`: cause (kẻ gây ra), victim (nạn nhân), witness (chứng kiến), ally (hỗ trợ). `source_id` = CHARACTER key, `target_id` = EVENT key.
+3. **LOCATED_AT** nếu có địa điểm rõ ràng. **BẮT BUỘC**: `source_id` = EVENT key (E###), `target_id` = LOCATION key (L###). KHÔNG BAO GIỜ đảo ngược.
 
 **Về quan hệ thay đổi (RELATION edge mới):**
 Tham khảo `QUAN HỆ ĐANG HOẠT ĐỘNG` để biết trạng thái quan hệ hiện tại trước khi quyết định:

@@ -22,8 +22,9 @@ User message chứa:
 - KHÔNG flag nếu cùng rel_type xuất hiện lại ở chương khác — đó là cập nhật bình thường
 
 ### 3. ARC_CHANGE — old_val khớp arc_stage hiện tại
-- `old_val` trong ARC_CHANGE phải khớp với `arc_stage` hiện tại của nhân vật trong CONTEXT
-- `old_val='?'` là critical (thiếu dữ liệu)
+- `old_val` trong ARC_CHANGE phải khớp CHÍNH XÁC với `arc_stage` hiện tại của nhân vật trong CONTEXT
+- Nếu `old_val` = `arc_stage` (ví dụ cả hai đều là `'introduction'`) → **hợp lệ, KHÔNG flag**
+- Chỉ flag **critical** khi: `old_val='?'` (thiếu dữ liệu) HOẶC `old_val` rõ ràng KHÁC với `arc_stage` trong CONTEXT
 
 ### 4. Edge direction
 - LOCATED_AT: phải từ EVENT → LOCATION (không phải ngược lại)
