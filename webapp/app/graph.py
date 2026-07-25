@@ -14,6 +14,11 @@ from typing import TypedDict
 from langgraph.graph import END, StateGraph
 from openai import APIError
 
+try:
+    from google.genai.errors import ClientError as GoogleClientError
+except ImportError:
+    GoogleClientError = None
+
 from . import orchestrator
 from .db.models import Story
 from .db.session import SessionLocal
@@ -60,10 +65,14 @@ def _run_step_with_retry(step: str, session, story: Story) -> None:
         try:
             executor(session, story)
             return
-        except APIError as exc:
-            session.rollback()
-            if not remaining:
+        except Exception as exc:
+            is_transient = isinstance(exc, APIError) or (
+                GoogleClientError is not None and isinstance(exc, GoogleClientError)
+                and getattr(exc, "status_code", None) in (429, 500, 502, 503)
+            )
+            if not is_transient or not remaining:
                 raise
+            session.rollback()
             delay = remaining.pop(0)
             logger.warning("Step %s failed (%s), retrying in %ss", step, exc, delay)
             time.sleep(delay)
