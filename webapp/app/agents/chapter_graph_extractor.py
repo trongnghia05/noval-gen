@@ -185,6 +185,31 @@ def _extract_chapter(session: Session, story: Story, chapter_number: int, chapte
     session.flush()
 
     for edge in output.edges:
+        # For RELATION edges: if same pair + same rel_type is already active (chapter_to=null),
+        # just update chapter_from to the current chapter instead of inserting a duplicate.
+        if edge.edge_type == "RELATION" and edge.chapter_to is None:
+            rel_type = (edge.properties or {}).get("rel_type", "")
+            active_same_pair = (
+                session.query(StoryGraphEdge)
+                .filter(
+                    StoryGraphEdge.story_id == story.id,
+                    StoryGraphEdge.graph_type == "source",
+                    StoryGraphEdge.edge_type == "RELATION",
+                    StoryGraphEdge.source_key == edge.source_id,
+                    StoryGraphEdge.target_key == edge.target_id,
+                    StoryGraphEdge.chapter_to.is_(None),
+                )
+                .all()
+            )
+            matched = next(
+                (e for e in active_same_pair if (e.properties or {}).get("rel_type", "") == rel_type),
+                None,
+            )
+            if matched:
+                matched.chapter_from = edge.chapter_from
+                matched.properties = edge.properties or {}
+                continue
+
         session.add(StoryGraphEdge(
             story_id=story.id,
             graph_type="source",

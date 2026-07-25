@@ -15,9 +15,10 @@ User message chứa:
 - Mỗi edge trong ADDITIONS phải trỏ đến node_key tồn tại (trong ADDITIONS hoặc đã có từ trước)
 - Không được reference node chưa được định nghĩa
 
-### 2. RELATION edges — không duplicate
-- Nếu đã có RELATION edge active (chapter_to=∞) cho cùng cặp nhân vật trong CONTEXT, edge mới chỉ hợp lệ nếu edge cũ đã được đóng (chapter_to đặt về chương trước)
-- Không có 2 RELATION edges cùng active (chapter_to=null) cho cùng một cặp
+### 2. RELATION edges — không xung đột
+- Cùng một cặp nhân vật CÓ THỂ có nhiều RELATION edges ở các chương khác nhau (mỗi `chapter_from` ghi nhận thời điểm quan hệ được thiết lập hoặc cập nhật)
+- Chỉ flag **critical** khi cùng một cặp có 2 RELATION edges active (chapter_to=null) với **rel_type KHÁC NHAU** (ví dụ: friendship VÀ rivalry đều active cùng lúc)
+- KHÔNG flag nếu cùng rel_type xuất hiện lại ở chương khác — đó là cập nhật bình thường
 
 ### 3. ARC_CHANGE — old_val khớp arc_stage hiện tại
 - `old_val` trong ARC_CHANGE phải khớp với `arc_stage` hiện tại của nhân vật trong CONTEXT
