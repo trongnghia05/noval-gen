@@ -41,6 +41,7 @@ class Story(Base):
     is_running = Column(Boolean, default=False)  # True while a graph.run_story_to_completion() background run is active
     planning_verified = Column(Boolean, default=False)  # True once planning_verifier has gated the 4 planning artifacts before WRITING
     new_graph_built = Column(Boolean, default=False)    # True once new_graph_builder has built graph_type="new" nodes/edges
+    source_graph_verified = Column(Boolean, default=False)  # True once source_graph_verifier has checked the source graph
 
     # Planning-phase outputs. Free-form markdown blobs — chapter_writer just
     # needs them as context, no per-field querying required, so a text

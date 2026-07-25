@@ -120,21 +120,10 @@ def _sync_arc_change(session: Session, story_id: int, edge_source_key: str, prop
         node.properties = updated
 
 
-def run(session: Session, story: Story) -> int:
-    """Extract graph data for the next unprocessed source chapter.
-    Returns the chapter number just processed.
-    """
-    source_chapters = length_calc.split_source_chapters(story.source_content)
-
-    # Next unprocessed = number of source EVENT nodes already in DB (0-indexed offset).
-    extracted_count = (
-        session.query(StoryGraphNode)
-        .filter_by(story_id=story.id, graph_type="source", node_type="event")
-        .count()
-    )
-    chapter_number = extracted_count + 1   # 1-indexed
-    chapter_text = source_chapters[extracted_count]
-
+def _extract_chapter(session: Session, story: Story, chapter_number: int, chapter_text: str) -> None:
+    """Core extraction logic for one source chapter. Assumes the EVENT node for
+    chapter_number does NOT exist yet — call _delete_chapter_data() first when
+    re-extracting."""
     entity_list = _format_entity_list(session, story.id)
     active_relations = _format_active_relations(session, story.id)
     prev_event_key = _get_prev_event_key(session, story.id, chapter_number)
@@ -155,7 +144,6 @@ def run(session: Session, story: Story) -> int:
         f"\n## NỘI DUNG CHƯƠNG GỐC SỐ {chapter_number}\n---\n{chapter_text}\n---\n"
     )
 
-    # One chapter = small bounded output: 1 event + ~10 edges = ~1500 tokens.
     output: ChapterGraphOutput = generate_structured(
         PROVIDER,
         system=system,
@@ -163,10 +151,9 @@ def run(session: Session, story: Story) -> int:
         model=AGENT_MODELS["chapter_graph_extractor"],
         schema=ChapterGraphOutput,
         max_tokens=4096,
-        thinking=False,   # extraction task, no creative reasoning needed
+        thinking=False,
     )
 
-    # Insert EVENT node for this chapter.
     session.add(StoryGraphNode(
         story_id=story.id,
         graph_type="source",
@@ -177,7 +164,6 @@ def run(session: Session, story: Story) -> int:
         chapter_introduced=chapter_number,
     ))
 
-    # Insert any newly discovered entity nodes.
     for node in output.new_nodes:
         existing = (
             session.query(StoryGraphNode)
@@ -196,7 +182,6 @@ def run(session: Session, story: Story) -> int:
             ))
     session.flush()
 
-    # Insert edges; sync denormalized arc_stage cache for ARC_CHANGE edges.
     for edge in output.edges:
         session.add(StoryGraphEdge(
             story_id=story.id,
@@ -214,4 +199,77 @@ def run(session: Session, story: Story) -> int:
         if edge.edge_type == "ARC_CHANGE":
             _sync_arc_change(session, story.id, edge.source_id, edge.properties or {})
 
+
+def _delete_chapter_data(session: Session, story_id: int, chapter_number: int) -> None:
+    """Remove the EVENT node and all edges introduced at chapter_number.
+
+    Also reverts any ARC_CHANGE effects (arc_stage synced into node.properties)
+    so the entity list reflects the state at chapter_number - 1 before re-extraction.
+    """
+    # Revert ARC_CHANGE effects before deleting the edges that carried them.
+    arc_edges = (
+        session.query(StoryGraphEdge)
+        .filter_by(story_id=story_id, graph_type="source", edge_type="ARC_CHANGE")
+        .filter(StoryGraphEdge.chapter_from == chapter_number)
+        .all()
+    )
+    for edge in arc_edges:
+        props = edge.properties or {}
+        old_val = props.get("old_val")
+        field = props.get("field", "arc_stage")
+        if old_val:
+            node = (
+                session.query(StoryGraphNode)
+                .filter_by(story_id=story_id, graph_type="source", node_key=edge.source_key)
+                .first()
+            )
+            if node:
+                updated = dict(node.properties or {})
+                updated[field] = old_val
+                node.properties = updated
+
+    # Delete all edges introduced at this chapter.
+    session.query(StoryGraphEdge).filter(
+        StoryGraphEdge.story_id == story_id,
+        StoryGraphEdge.graph_type == "source",
+        StoryGraphEdge.chapter_from == chapter_number,
+    ).delete(synchronize_session=False)
+
+    # Delete the EVENT node for this chapter.
+    session.query(StoryGraphNode).filter_by(
+        story_id=story_id,
+        graph_type="source",
+        node_type="event",
+        chapter_introduced=chapter_number,
+    ).delete(synchronize_session=False)
+
+    session.flush()
+
+
+def run(session: Session, story: Story) -> int:
+    """Extract graph data for the next unprocessed source chapter.
+    Returns the chapter number just processed.
+    """
+    source_chapters = length_calc.split_source_chapters(story.source_content)
+    extracted_count = (
+        session.query(StoryGraphNode)
+        .filter_by(story_id=story.id, graph_type="source", node_type="event")
+        .count()
+    )
+    chapter_number = extracted_count + 1
+    _extract_chapter(session, story, chapter_number, source_chapters[extracted_count])
+    return chapter_number
+
+
+def run_for_chapter(session: Session, story: Story, chapter_number: int) -> int:
+    """Re-extract a specific source chapter after wiping its existing data.
+
+    Safe to call only if chapters AFTER chapter_number are NOT yet extracted —
+    i.e., entity state from chapter_number+1 onward has not been applied yet.
+    source_graph_verifier calls this chapter-by-chapter in order, so this
+    invariant always holds.
+    """
+    source_chapters = length_calc.split_source_chapters(story.source_content)
+    _delete_chapter_data(session, story.id, chapter_number)
+    _extract_chapter(session, story, chapter_number, source_chapters[chapter_number - 1])
     return chapter_number

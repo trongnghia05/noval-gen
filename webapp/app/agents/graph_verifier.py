@@ -1,8 +1,9 @@
 """Verify logical consistency of the NEW story graph.
 
 Checks that character arcs, causal chains, relationship changes, and world
-details are internally consistent. Returns issues with specific node_key
-references so the caller can pass targeted feedback to new_graph_builder.
+details are internally consistent. On critical issues, calls graph_repair
+to apply surgical fixes (update/delete/add specific nodes and edges) rather
+than rebuilding the entire graph.
 
 Max 10 iterations total (bounded cost guarantee). Sets story.planning_verified
 = True when done (or when max iterations exhausted).
@@ -19,7 +20,7 @@ from ..db.models import PlanningVerifyLog, Story
 from ..llm_json import generate_structured
 from ..prompts.loader import load_prompt
 from ..schemas import GraphVerifierOutput
-from . import new_graph_builder
+from . import graph_repair
 
 MAX_ITERATIONS = 10
 
@@ -74,18 +75,8 @@ def run(session: Session, story: Story) -> None:
         if not critical:
             break  # graph is internally consistent — done
 
-        # Build targeted feedback referencing specific nodes/edges.
-        feedback_lines = []
-        for issue in critical:
-            ref = f"[{issue.node_key}]" if issue.node_key else ""
-            edge_ref = f" edge: {issue.edge_desc}" if issue.edge_desc else ""
-            feedback_lines.append(
-                f"- {ref}{edge_ref} {issue.description} → FIX: {issue.suggestion}"
-            )
-        feedback = "\n".join(feedback_lines)
-
-        # Rebuild new graph with targeted feedback, then verify again.
-        new_graph_builder.run(session, story, feedback=feedback)
+        # Surgical repair: fix only the affected nodes/edges, not the whole graph.
+        graph_repair.run(session, story, critical)
         session.flush()
 
     # Mark gate as passed whether the graph is clean or iterations exhausted.

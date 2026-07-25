@@ -29,6 +29,7 @@ from .agents import (
     plot_architect,
     quality_reviewer,
     smart_planner,
+    source_graph_verifier,
     story_analyzer,
     worldbuilder,
 )
@@ -67,8 +68,11 @@ def _decide_next_step(session: Session, story: Story) -> str:
             )
             if extracted < story.source_chapter_count:
                 return "graph_extract"
+            # REWRITE: verify source graph before building new graph.
+            if not story.source_graph_verified:
+                return "verify_source_graph"
             # REWRITE: build new story graph from source graph (once all source
-            # chapters have been extracted).
+            # chapters have been extracted and verified).
             if not story.new_graph_built:
                 return "new_graph"
         if not story.plot_outline:
@@ -130,6 +134,12 @@ def run_graph_extract_step(session: Session, story: Story) -> dict:
         "extracted_total": extracted,
         "source_total": story.source_chapter_count,
     }
+
+
+def run_verify_source_graph_step(session: Session, story: Story) -> dict:
+    source_graph_verifier.run(session, story)
+    session.commit()
+    return {"phase": "PLANNING", "step": "verify_source_graph"}
 
 
 def run_new_graph_step(session: Session, story: Story) -> dict:
@@ -336,6 +346,7 @@ def run_complete_step(session: Session, story: Story) -> dict:
 _STEP_EXECUTORS = {
     "story_bible": run_story_bible_step,
     "graph_extract": run_graph_extract_step,
+    "verify_source_graph": run_verify_source_graph_step,
     "new_graph": run_new_graph_step,
     "verify_graph": run_verify_graph_step,
     "plot_outline": run_plot_outline_step,

@@ -246,3 +246,36 @@ class GraphVerifyIssueOut(BaseModel):
 class GraphVerifierOutput(BaseModel):
     issues: list[GraphVerifyIssueOut] = []
     verdict_note: str
+
+
+# ── graph_repair ───────────────────────────────────────────────────────────────
+
+class NodeUpdateOut(BaseModel):
+    node_key: str
+    properties: dict[str, Any]
+
+
+class EdgeDeleteOut(BaseModel):
+    source_key: str
+    target_key: str
+    edge_type: str
+    chapter_from: int | None = None
+
+
+class EdgeAddOut(BaseModel):
+    source_id: str
+    target_id: str
+    edge_type: str
+    label: str = ""
+    chapter_from: int | None = None
+    chapter_to: int | None = None
+    trigger_event_id: str | None = None
+    condition: str | None = None
+    properties: dict[str, Any] = {}
+
+
+class GraphRepairOutput(BaseModel):
+    node_updates: list[NodeUpdateOut] = []
+    edge_deletes: list[EdgeDeleteOut] = []
+    edge_adds: list[EdgeAddOut] = []
+    repair_note: str
