@@ -59,17 +59,25 @@ Với mỗi EVENT node: hiểu **mục đích kịch tính**:
 ### 3. Tái tạo cấu trúc quan hệ
 
 Với mỗi RELATION edge trong source:
-- Giữ nguyên: `rel_type`, `strength` (tuyến tính), chương bắt đầu/kết thúc tương đối
+- Giữ nguyên: `rel_type`, `strength`, chương bắt đầu/kết thúc tương đối
 - Thay đổi: `label`, `condition` — mô tả bằng ngôn ngữ của thế giới mới
-- Trigger events: ánh xạ sang EVENT node tương ứng trong new graph
+- **Bắt buộc**: `rel_type` và `strength` là top-level fields (không phải trong `properties`)
 
 Với mỗi CAUSES edge (E→E):
 - Giữ nguyên: chuỗi nhân quả
 - Thay đổi: `mechanism` — giải thích bằng logic của thế giới mới
+- **Bắt buộc**: `mechanism` là top-level field
 
 Với mỗi ARC_CHANGE edge:
-- Giữ nguyên: `field`, `old_val`, `new_val` (trừ khi context mới đòi hỏi thuật ngữ khác)
+- Giữ nguyên: `old_val`, `new_val` (trừ khi context mới đòi hỏi thuật ngữ khác)
 - Ánh xạ `trigger_event_id` sang EVENT node mới
+- **Bắt buộc**: `old_val`, `new_val`, `arc_field` là top-level fields; source_id == target_id (self-loop)
+
+Với mỗi PARTICIPATES edge:
+- **Bắt buộc**: `role` là top-level field (cause|victim|witness|ally|bystander)
+
+Với mỗi LOCATED_AT edge:
+- **Bắt buộc**: source_id = EVENT (E###), target_id = LOCATION (L###) — không đảo ngược
 
 ## Format profile_md cho CHARACTER nodes
 
@@ -126,11 +134,55 @@ Với mỗi ARC_CHANGE edge:
       "target_id": "C002",
       "edge_type": "RELATION",
       "label": "...",
+      "rel_type": "friendship",
+      "strength": "strong",
       "chapter_from": 1,
       "chapter_to": null,
       "trigger_event_id": null,
       "condition": "...",
-      "properties": { "rel_type": "friendship", "strength": 0.7 }
+      "properties": {}
+    },
+    {
+      "source_id": "C001",
+      "target_id": "C001",
+      "edge_type": "ARC_CHANGE",
+      "label": "...",
+      "old_val": "introduction",
+      "new_val": "hoài nghi và sợ hãi",
+      "arc_field": "arc_stage",
+      "trigger_event_id": "E003",
+      "chapter_from": 3,
+      "chapter_to": null,
+      "properties": {}
+    },
+    {
+      "source_id": "C001",
+      "target_id": "E005",
+      "edge_type": "PARTICIPATES",
+      "label": "...",
+      "role": "cause",
+      "chapter_from": 5,
+      "chapter_to": null,
+      "properties": {}
+    },
+    {
+      "source_id": "E004",
+      "target_id": "E005",
+      "edge_type": "CAUSES",
+      "label": "dẫn đến",
+      "mechanism": "Giải thích nhân quả tại sao E004 dẫn đến E005",
+      "chapter_from": null,
+      "chapter_to": null,
+      "properties": {}
+    },
+    {
+      "source_id": "E005",
+      "target_id": "L002",
+      "edge_type": "LOCATED_AT",
+      "label": "...",
+      "chapter_from": 5,
+      "chapter_to": null,
+      "properties": {}
     }
   ]
 }
