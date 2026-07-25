@@ -33,7 +33,12 @@ Dựa vào `act_position` được cung cấp, điều chỉnh:
 - `emotional_arc_end`: độc giả nên cảm thấy gì khi đóng chương — phải KHÁC với start
 
 ### 4. Cấu trúc scenes
-Chia chương thành 2-4 scenes. Mỗi scene có cấu trúc:
+
+Tự quyết định số scenes dựa trên nhu cầu của chương. Tiêu chí để phân chia:
+- **Mỗi scene có một mục tiêu riêng biệt** — nếu hai đoạn đang hướng đến cùng một goal, đó là một scene, không phải hai
+- **Scene thay đổi khi**: thời gian/địa điểm nhảy đáng kể, POV đổi, hoặc một disaster kết thúc và một goal mới bắt đầu
+
+Mỗi scene có cấu trúc:
 - **goal**: nhân vật POV muốn đạt gì trong scene này (cụ thể, không chung chung)
 - **conflict**: điều gì cản trở họ (người, thông tin, hoàn cảnh, bản thân họ)
 - **outcome**: thành công / thất bại / thành công một phần
