@@ -176,9 +176,20 @@ def run(session: Session, story: Story, feedback: str | None = None) -> None:
         )
     session.flush()
 
+    # Track inserted RELATION edges to deduplicate within the same LLM output.
+    # Same pair + same rel_type active simultaneously = keep the one with later chapter_from.
+    seen_active_relations: dict[tuple, StoryGraphEdge] = {}
     for edge in output.edges:
-        session.add(
-            StoryGraphEdge(
+        if edge.edge_type == "RELATION" and edge.chapter_to is None:
+            rel_type = (edge.properties or {}).get("rel_type", "")
+            key = (edge.source_id, edge.target_id, rel_type)
+            if key in seen_active_relations:
+                # Keep whichever has the later chapter_from
+                if (edge.chapter_from or 0) > (seen_active_relations[key].chapter_from or 0):
+                    seen_active_relations[key].chapter_from = edge.chapter_from
+                    seen_active_relations[key].properties = edge.properties or {}
+                continue
+            row = StoryGraphEdge(
                 story_id=story.id,
                 graph_type="new",
                 source_key=edge.source_id,
@@ -191,7 +202,24 @@ def run(session: Session, story: Story, feedback: str | None = None) -> None:
                 condition=edge.condition,
                 properties=edge.properties or {},
             )
-        )
+            session.add(row)
+            seen_active_relations[key] = row
+        else:
+            session.add(
+                StoryGraphEdge(
+                    story_id=story.id,
+                    graph_type="new",
+                    source_key=edge.source_id,
+                    target_key=edge.target_id,
+                    edge_type=edge.edge_type,
+                    label=edge.label,
+                    chapter_from=edge.chapter_from,
+                    chapter_to=edge.chapter_to,
+                    trigger_event_key=edge.trigger_event_id,
+                    condition=edge.condition,
+                    properties=edge.properties or {},
+                )
+            )
     session.flush()
 
     # Populate downstream text artifacts so chapter_writer keeps working
