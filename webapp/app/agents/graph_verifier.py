@@ -12,6 +12,8 @@ Note: we reuse PlanningVerifyLog for audit trail (artifact="graph") rather
 than adding a new table — keeps schema minimal.
 """
 
+import logging
+
 from sqlalchemy.orm import Session
 
 from .. import context_builder
@@ -23,6 +25,7 @@ from ..schemas import GraphVerifierOutput
 from . import graph_repair
 
 MAX_ITERATIONS = 10
+logger = logging.getLogger(__name__)
 
 
 def run(session: Session, story: Story) -> None:
@@ -50,10 +53,16 @@ def run(session: Session, story: Story) -> None:
             model=AGENT_MODELS["graph_verifier"],
             schema=GraphVerifierOutput,
             max_tokens=8192,
-            thinking=False,  # logic checking, not creative reasoning
+            thinking=False,
         )
 
-        # Log every issue found (all severities) to the audit trail.
+        critical = [i for i in output.issues if i.severity == "critical"]
+        logger.info("[%s] graph_verifier iter%d: %d issues (%d critical) | %s",
+                    story.slug, iteration + 1, len(output.issues), len(critical),
+                    output.verdict_note[:100])
+        for issue in critical:
+            logger.info("  [CRITICAL] %s | %s", issue.node_key, issue.description[:100])
+
         for issue in output.issues:
             session.add(
                 PlanningVerifyLog(
@@ -63,7 +72,7 @@ def run(session: Session, story: Story) -> None:
                     description=issue.description,
                     suggestion=issue.suggestion,
                     action_taken=(
-                        f"rebuild_iter_{iteration + 1}"
+                        f"repair_iter_{iteration + 1}"
                         if issue.severity == "critical"
                         else "logged_only"
                     ),
@@ -71,11 +80,10 @@ def run(session: Session, story: Story) -> None:
             )
         session.flush()
 
-        critical = [i for i in output.issues if i.severity == "critical"]
         if not critical:
-            break  # graph is internally consistent — done
+            break
 
-        # Surgical repair: fix only the affected nodes/edges, not the whole graph.
+        logger.info("[%s] graph_verifier repairing %d critical issues", story.slug, len(critical))
         graph_repair.run(session, story, critical)
         session.flush()
 
