@@ -104,44 +104,46 @@ Tôn trọng các chi tiết user đã đưa. Phát triển thêm xung đột v�
       "target_id": "C002",
       "edge_type": "RELATION",
       "label": "kết nghĩa",
+      "rel_type": "friendship",
+      "strength": "strong",
       "chapter_from": 1,
       "chapter_to": 19,
       "trigger_event_id": "E012",
       "condition": "cùng vượt qua thử thách nhập môn",
-      "properties": { "rel_type": "friendship", "strength": 0.8 }
+      "properties": {}
     },
     {
       "source_id": "C001",
       "target_id": "C002",
       "edge_type": "RELATION",
       "label": "kẻ thù không đội trời chung",
+      "rel_type": "rivalry",
+      "strength": "strong",
       "chapter_from": 20,
       "chapter_to": null,
       "trigger_event_id": "E045",
       "condition": "sau khi C002 tố cáo C001 trước hội đồng",
-      "properties": { "rel_type": "rivalry", "strength": -0.9 }
+      "properties": {}
     },
     {
       "source_id": "C001",
       "target_id": "E045",
       "edge_type": "PARTICIPATES",
       "label": "nạn nhân của tố cáo",
+      "role": "victim",
       "chapter_from": 20,
       "chapter_to": null,
-      "trigger_event_id": null,
-      "condition": null,
-      "properties": { "role": "victim" }
+      "properties": {}
     },
     {
       "source_id": "E012",
       "target_id": "E045",
       "edge_type": "CAUSES",
       "label": "tin tưởng sai người",
+      "mechanism": "C001 tiết lộ bí mật cho C002 vì tin tưởng → C002 lợi dụng",
       "chapter_from": null,
       "chapter_to": null,
-      "trigger_event_id": null,
-      "condition": null,
-      "properties": { "mechanism": "C001 tiết lộ bí mật cho C002 vì tin tưởng → C002 lợi dụng" }
+      "properties": {}
     },
     {
       "source_id": "E001",
@@ -150,8 +152,6 @@ Tôn trọng các chi tiết user đã đưa. Phát triển thêm xung đột v�
       "label": "báo hiệu sự phản bội",
       "chapter_from": null,
       "chapter_to": null,
-      "trigger_event_id": null,
-      "condition": null,
       "properties": { "hint": "C002 liếc nhìn cửa ra vào khi C001 nói bí mật" }
     },
     {
@@ -159,11 +159,13 @@ Tôn trọng các chi tiết user đã đưa. Phát triển thêm xung đột v�
       "target_id": "C001",
       "edge_type": "ARC_CHANGE",
       "label": "mất niềm tin vào con người",
+      "old_val": "naive_idealist",
+      "new_val": "cynical_avenger",
+      "arc_field": "arc_stage",
+      "trigger_event_id": "E045",
       "chapter_from": 20,
       "chapter_to": null,
-      "trigger_event_id": "E045",
-      "condition": null,
-      "properties": { "field": "arc_stage", "old_val": "naive_idealist", "new_val": "cynical_avenger" }
+      "properties": {}
     },
     {
       "source_id": "E045",
@@ -172,8 +174,6 @@ Tôn trọng các chi tiết user đã đưa. Phát triển thêm xung đột v�
       "label": null,
       "chapter_from": 20,
       "chapter_to": null,
-      "trigger_event_id": null,
-      "condition": null,
       "properties": {}
     },
     {
@@ -183,8 +183,6 @@ Tôn trọng các chi tiết user đã đưa. Phát triển thêm xung đột v�
       "label": "nhận từ cha trước khi mất",
       "chapter_from": 1,
       "chapter_to": null,
-      "trigger_event_id": null,
-      "condition": null,
       "properties": { "how_acquired": "di vật từ cha" }
     }
   ]
@@ -206,11 +204,12 @@ Tôn trọng các chi tiết user đã đưa. Phát triển thêm xung đột v�
 
 ## Quy tắc Edge
 
-- **RELATION** (C↔C): `rel_type` ∈ friendship|rivalry|love|family|mentor|debt|alliance. `strength` ∈ [-1.0, 1.0]. Tạo edge MỚI (không sửa edge cũ) khi quan hệ thay đổi ở chương khác.
-- **PARTICIPATES** (C→E): `role` ∈ cause|victim|witness|ally|bystander.
-- **CAUSES** (E→E): giải thích tại sao sự kiện này dẫn đến sự kiện kia.
+- **RELATION** (C↔C): `rel_type` là **top-level field** (không phải trong `properties`) ∈ friendship|rivalry|love|family|mentor|debt|alliance. `strength` là top-level field ∈ weak|medium|strong. Tạo edge MỚI (không sửa edge cũ) khi quan hệ thay đổi ở chương khác.
+- **PARTICIPATES** (C→E): `role` là **top-level field** ∈ cause|victim|witness|ally|bystander.
+- **CAUSES** (E→E): `mechanism` là **top-level field** giải thích nhân quả.
+- **ARC_CHANGE** (C→C self-loop): `old_val`, `new_val`, `arc_field` là **top-level fields**. source_id == target_id.
 - **FORESHADOWS** (E→E): sự kiện sớm báo hiệu sự kiện sau.
-- **LOCATED_AT** (E→L): sự kiện xảy ra ở đâu.
+- **LOCATED_AT** (E→L): source_id PHẢI là EVENT (E###), target_id PHẢI là LOCATION (L###) — không được đảo ngược.
 - **INVOLVES** (E→O): sự kiện liên quan đến vật thể nào.
 - **OWNS** (C→O): ai sở hữu vật thể.
 - **MEMBER_OF** (C→F): nhân vật thuộc phe phái nào.
