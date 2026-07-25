@@ -184,6 +184,35 @@ def _extract_chapter(session: Session, story: Story, chapter_number: int, chapte
             ))
     session.flush()
 
+    # Auto-create placeholder nodes for any node_key referenced in edges but
+    # not yet defined. The LLM occasionally omits nodes from new_nodes despite
+    # prompt instructions — this prevents verifier false-positives while
+    # preserving the relationship data.
+    _NODE_TYPE_BY_PREFIX = {"C": "character", "L": "location", "F": "faction",
+                            "T": "theme", "O": "object", "E": "event"}
+    referenced_keys = {e.source_id for e in output.edges} | {e.target_id for e in output.edges}
+    for key in referenced_keys:
+        if not key:
+            continue
+        existing = (
+            session.query(StoryGraphNode)
+            .filter_by(story_id=story.id, graph_type="source", node_key=key)
+            .first()
+        )
+        if not existing:
+            prefix = key[0].upper() if key else ""
+            node_type = _NODE_TYPE_BY_PREFIX.get(prefix, "character")
+            session.add(StoryGraphNode(
+                story_id=story.id,
+                graph_type="source",
+                node_key=key,
+                node_type=node_type,
+                label=key,  # placeholder label = key itself
+                properties={},
+                chapter_introduced=chapter_number,
+            ))
+    session.flush()
+
     for edge in output.edges:
         # For RELATION edges: if same pair + same rel_type is already active (chapter_to=null),
         # just update chapter_from to the current chapter instead of inserting a duplicate.
