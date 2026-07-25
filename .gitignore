@@ -1,5 +1,4 @@
 stories/
-input/input.md
 .idea/
 auth/*
 !auth/.gitkeep
