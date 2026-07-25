@@ -152,7 +152,7 @@ def _extract_chapter(session: Session, story: Story, chapter_number: int, chapte
         user_content=user_content,
         model=AGENT_MODELS["chapter_graph_extractor"],
         schema=ChapterGraphOutput,
-        max_tokens=4096,
+        max_tokens=16384,
         thinking=False,
     )
 
