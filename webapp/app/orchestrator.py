@@ -17,11 +17,14 @@ from sqlalchemy.orm import Session
 
 from .agents import (
     chapter_blueprinter,
+    chapter_graph_extractor,
     chapter_summarizer,
     chapter_verifier,
     chapter_writer,
     character_developer,
     continuity_editor,
+    graph_verifier,
+    new_graph_builder,
     planning_verifier,
     plot_architect,
     quality_reviewer,
@@ -45,10 +48,29 @@ def _decide_next_step(session: Session, story: Story) -> str:
 
     Planning ends with a verify_planning gate (once all 4 artifacts exist but
     story.planning_verified is still False) before phase flips to WRITING.
+
+    For REWRITE, graph_extract runs between story_bible and plot_outline:
+    the orchestrator dispatches it once per source chapter until all
+    source chapters have an EVENT node, then moves to plot_outline.
     """
     if story.phase == "PLANNING":
         if not story.story_bible:
             return "story_bible"
+        # REWRITE: extract one source chapter into graph per advance call
+        # until all source chapters have a source EVENT node.
+        if story.input_type == "REWRITE" and story.source_chapter_count:
+            from .db.models import StoryGraphNode
+            extracted = (
+                session.query(StoryGraphNode)
+                .filter_by(story_id=story.id, graph_type="source", node_type="event")
+                .count()
+            )
+            if extracted < story.source_chapter_count:
+                return "graph_extract"
+            # REWRITE: build new story graph from source graph (once all source
+            # chapters have been extracted).
+            if not story.new_graph_built:
+                return "new_graph"
         if not story.plot_outline:
             return "plot_outline"
         has_characters = session.query(Character).filter_by(story_id=story.id).first() is not None
@@ -57,6 +79,9 @@ def _decide_next_step(session: Session, story: Story) -> str:
         if not story.world_bible:
             return "world"
         if not story.planning_verified:
+            # REWRITE uses graph-based verification; IDEA/PREMISE uses artifact verification.
+            if story.input_type == "REWRITE":
+                return "verify_graph"
             return "verify_planning"
         return "planning_complete"
 
@@ -89,14 +114,56 @@ def _decide_next_step(session: Session, story: Story) -> str:
     return "complete"
 
 
+def run_graph_extract_step(session: Session, story: Story) -> dict:
+    chapter_number = chapter_graph_extractor.run(session, story)
+    session.commit()
+    from .db.models import StoryGraphNode
+    extracted = (
+        session.query(StoryGraphNode)
+        .filter_by(story_id=story.id, graph_type="source", node_type="event")
+        .count()
+    )
+    return {
+        "phase": "PLANNING",
+        "step": "graph_extract",
+        "chapter_extracted": chapter_number,
+        "extracted_total": extracted,
+        "source_total": story.source_chapter_count,
+    }
+
+
+def run_new_graph_step(session: Session, story: Story) -> dict:
+    new_graph_builder.run(session, story)
+    session.commit()
+    from .db.models import StoryGraphNode
+    new_node_count = (
+        session.query(StoryGraphNode)
+        .filter_by(story_id=story.id, graph_type="new")
+        .count()
+    )
+    return {
+        "phase": "PLANNING",
+        "step": "new_graph",
+        "new_graph_nodes": new_node_count,
+    }
+
+
+def run_verify_graph_step(session: Session, story: Story) -> dict:
+    graph_verifier.run(session, story)
+    session.commit()
+    return {"phase": "PLANNING", "step": "verify_graph"}
+
+
 def run_story_bible_step(session: Session, story: Story) -> dict:
-    story.story_bible = story_analyzer.run(story)
+    story_analyzer.run(session, story)
     session.commit()
     return {"phase": "PLANNING", "step": "story_bible"}
 
 
 def run_plot_outline_step(session: Session, story: Story) -> dict:
-    story.plot_outline = plot_architect.run(story)
+    from . import context_builder
+    graph_ctx = context_builder.format_story_graph(session, story.id)
+    story.plot_outline = plot_architect.run(story, story_graph=graph_ctx)
     session.commit()
     return {"phase": "PLANNING", "step": "plot_outline"}
 
@@ -201,6 +268,9 @@ def run_complete_step(session: Session, story: Story) -> dict:
 
 _STEP_EXECUTORS = {
     "story_bible": run_story_bible_step,
+    "graph_extract": run_graph_extract_step,
+    "new_graph": run_new_graph_step,
+    "verify_graph": run_verify_graph_step,
     "plot_outline": run_plot_outline_step,
     "characters": run_characters_step,
     "world": run_world_step,

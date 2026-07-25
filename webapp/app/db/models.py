@@ -40,6 +40,7 @@ class Story(Base):
     last_checkpoint_chapter = Column(Integer, default=0)  # last chapter continuity_editor/smart_planner actually ran for
     is_running = Column(Boolean, default=False)  # True while a graph.run_story_to_completion() background run is active
     planning_verified = Column(Boolean, default=False)  # True once planning_verifier has gated the 4 planning artifacts before WRITING
+    new_graph_built = Column(Boolean, default=False)    # True once new_graph_builder has built graph_type="new" nodes/edges
 
     # Planning-phase outputs. Free-form markdown blobs — chapter_writer just
     # needs them as context, no per-field querying required, so a text
@@ -47,6 +48,7 @@ class Story(Base):
     story_bible = Column(Text)
     plot_outline = Column(Text)
     world_bible = Column(Text)
+    source_chapter_count = Column(Integer)   # REWRITE only: number of source chapters to graph-extract
 
     created_at = Column(DateTime, default=_utcnow)
     updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
@@ -203,3 +205,66 @@ class PlanningVerifyLog(Base):
     suggestion = Column(Text)
     action_taken = Column(String)  # rewrite_1|2|3 | regenerated_fresh | accepted | logged_only
     created_at = Column(DateTime, default=_utcnow)
+
+
+# ── Story Knowledge Graph ──────────────────────────────────────────────────────
+#
+# story_bible used to be a free-form markdown blob. The graph replaces the
+# structured parts (chapter event map, character arcs, causal chains) with
+# queryable rows. story.story_bible is kept as a short narrative summary for
+# agents that need prose context; everything else lives here.
+#
+# Node types : character | location | event | object | theme | faction
+# Edge types : RELATION | PARTICIPATES | CAUSES | FORESHADOWS |
+#              LOCATED_AT | INVOLVES | OWNS | MEMBER_OF | EMBODIES | ARC_CHANGE
+#
+# Edges carry chapter_from / chapter_to so two nodes can have multiple edges
+# (e.g. A and B are friends in Ch.1-19, then rivals from Ch.20 onward).
+
+class StoryGraphNode(Base):
+    __tablename__ = "story_graph_nodes"
+
+    id                 = Column(Integer, primary_key=True, autoincrement=True)
+    story_id           = Column(Integer, ForeignKey("stories.id"), nullable=False)
+    graph_type         = Column(String, nullable=False, default="source")  # "source" | "new"
+    node_key           = Column(String, nullable=False)   # "C001" … "F099" — story-scoped
+    node_type          = Column(String, nullable=False)   # character|location|event|object|theme|faction
+    label              = Column(String, nullable=False)
+    properties         = Column(JSON, default=dict)
+    # CHARACTER : { role, status, wants, fears, arc_stage, aliases[] }
+    # EVENT     : { summary, event_type, emotional_weight }
+    #               event_type: revelation|conflict|turning_point|consequence|decision
+    # LOCATION  : { description, significance }
+    # OBJECT    : { description, symbolic_meaning }
+    # THEME     : { description, central_question }
+    # FACTION   : { goal, opposing_faction }
+    chapter_introduced = Column(Integer)   # first chapter this node appears (NULL = pre-story)
+
+    __table_args__ = (UniqueConstraint("story_id", "graph_type", "node_key", name="uq_graph_node"),)
+
+
+class StoryGraphEdge(Base):
+    __tablename__ = "story_graph_edges"
+
+    id                 = Column(Integer, primary_key=True, autoincrement=True)
+    story_id           = Column(Integer, ForeignKey("stories.id"), nullable=False)
+    graph_type         = Column(String, nullable=False, default="source")  # "source" | "new"
+    source_key         = Column(String, nullable=False)   # node_key of source node
+    target_key         = Column(String, nullable=False)   # node_key of target node
+    edge_type          = Column(String, nullable=False)
+    label              = Column(String)                   # short human-readable description
+    # ── Temporal context ──────────────────────────────────────────────────────
+    chapter_from       = Column(Integer)   # chapter where this edge state begins
+    chapter_to         = Column(Integer)   # chapter where it ends (NULL = still active)
+    trigger_event_key  = Column(String)    # node_key of the event that caused this edge
+    condition          = Column(Text)      # circumstances: "after B denounced A publicly"
+    # ── Payload ───────────────────────────────────────────────────────────────
+    properties         = Column(JSON, default=dict)
+    # RELATION     : { rel_type, strength }   rel_type: friendship|rivalry|love|family|mentor|debt
+    #                                          strength: -1.0 (hostile) → 1.0 (devoted)
+    # PARTICIPATES : { role }                  cause|victim|witness|ally|bystander
+    # CAUSES       : { mechanism }             why A leads to B
+    # FORESHADOWS  : { hint }                  what it foreshadows
+    # ARC_CHANGE   : { field, old_val, new_val }
+    # OWNS         : { how_acquired }
+    # MEMBER_OF    : { role, chapter_left }

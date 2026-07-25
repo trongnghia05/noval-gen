@@ -24,6 +24,9 @@ _RETRY_DELAYS = (5, 20, 60)  # seconds; bounded backoff for 429/5xx from the pro
 
 _WORK_STEPS = [
     "story_bible",
+    "graph_extract",
+    "new_graph",
+    "verify_graph",
     "plot_outline",
     "characters",
     "world",

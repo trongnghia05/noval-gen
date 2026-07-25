@@ -3,9 +3,48 @@
 chapter_writer stays free-form prose — everything else feeds directly into DB
 tables or CSV files, so it's requested and parsed as JSON.
 """
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel
+
+
+# ── story_analyzer ─────────────────────────────────────────────────────────────
+
+class GraphNodeOut(BaseModel):
+    id: str                            # "C001" … "F099" — story-scoped key
+    node_type: str                     # character|location|event|object|theme|faction
+    label: str
+    properties: dict[str, Any] = {}
+    chapter_introduced: int | None = None
+
+
+class GraphEdgeOut(BaseModel):
+    source_id: str                     # node key of source
+    target_id: str                     # node key of target
+    edge_type: str                     # RELATION|PARTICIPATES|CAUSES|FORESHADOWS|
+                                       # LOCATED_AT|INVOLVES|OWNS|MEMBER_OF|EMBODIES|ARC_CHANGE
+    label: str
+    chapter_from: int | None = None
+    chapter_to: int | None = None      # None = still active
+    trigger_event_id: str | None = None
+    condition: str | None = None
+    properties: dict[str, Any] = {}
+
+
+class StoryAnalyzerOutput(BaseModel):
+    narrative_summary: str             # short prose summary kept in story.story_bible
+    nodes: list[GraphNodeOut]          # CHARACTER, LOCATION, FACTION, THEME, OBJECT
+                                       # + key arc EVENT nodes for IDEA/PREMISE
+                                       # NO event nodes for REWRITE (those come from chapter_graph_extractor)
+    edges: list[GraphEdgeOut]          # initial relations, member_of, embodies
+    source_chapter_count: int | None = None  # REWRITE only — how many source chapters exist
+
+
+class ChapterGraphOutput(BaseModel):
+    """Per-source-chapter extraction for REWRITE. One call per chapter, bounded output."""
+    event: GraphNodeOut                # the single EVENT node for this source chapter
+    new_nodes: list[GraphNodeOut] = [] # new entities discovered in this chapter not yet in DB
+    edges: list[GraphEdgeOut] = []     # PARTICIPATES, LOCATED_AT, CAUSES, RELATION change, ARC_CHANGE
 
 
 # ── character_developer ────────────────────────────────────────────────────────
@@ -185,4 +224,19 @@ class QualityReviewIssueOut(BaseModel):
 
 class QualityReviewerOutput(BaseModel):
     issues: list[QualityReviewIssueOut] = []
+    verdict_note: str
+
+
+# ── graph_verifier ─────────────────────────────────────────────────────────────
+
+class GraphVerifyIssueOut(BaseModel):
+    node_key: str | None = None       # which node has the issue (None if general)
+    edge_desc: str | None = None      # describe the edge (e.g. "C001→C002 RELATION Ch.1")
+    description: str
+    suggestion: str
+    severity: Literal["critical", "minor"]
+
+
+class GraphVerifierOutput(BaseModel):
+    issues: list[GraphVerifyIssueOut] = []
     verdict_note: str

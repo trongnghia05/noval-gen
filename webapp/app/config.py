@@ -27,8 +27,9 @@ else:
 _DEFAULT_MODEL = "gemini-2.5-flash" if LLM_PROVIDER == "vertex" else "anthropic/claude-opus-4.8"
 
 AGENT_MODELS = {
-    "story_analyzer":      os.getenv("MODEL_STORY_ANALYZER",      _DEFAULT_MODEL),
-    "plot_architect":      os.getenv("MODEL_PLOT_ARCHITECT",       _DEFAULT_MODEL),
+    "story_analyzer":           os.getenv("MODEL_STORY_ANALYZER",           _DEFAULT_MODEL),
+    "chapter_graph_extractor":  os.getenv("MODEL_CHAPTER_GRAPH_EXTRACTOR",  _DEFAULT_MODEL),
+    "plot_architect":           os.getenv("MODEL_PLOT_ARCHITECT",            _DEFAULT_MODEL),
     "character_developer": os.getenv("MODEL_CHARACTER_DEVELOPER",  _DEFAULT_MODEL),
     "worldbuilder":        os.getenv("MODEL_WORLDBUILDER",         _DEFAULT_MODEL),
     "chapter_blueprinter": os.getenv("MODEL_CHAPTER_BLUEPRINTER",  _DEFAULT_MODEL),
@@ -40,6 +41,8 @@ AGENT_MODELS = {
     "planning_verifier":   os.getenv("MODEL_PLANNING_VERIFIER",    _DEFAULT_MODEL),
     "quality_reviewer":    os.getenv("MODEL_QUALITY_REVIEWER",     _DEFAULT_MODEL),
     "title_generator":     os.getenv("MODEL_TITLE_GENERATOR",      _DEFAULT_MODEL),
+    "new_graph_builder":   os.getenv("MODEL_NEW_GRAPH_BUILDER",    _DEFAULT_MODEL),
+    "graph_verifier":      os.getenv("MODEL_GRAPH_VERIFIER",       _DEFAULT_MODEL),
 }
 
 DB_URL = os.getenv("DATABASE_URL", "sqlite:///./novelgen.db")

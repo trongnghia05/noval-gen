@@ -1,0 +1,92 @@
+"""Verify logical consistency of the NEW story graph.
+
+Checks that character arcs, causal chains, relationship changes, and world
+details are internally consistent. Returns issues with specific node_key
+references so the caller can pass targeted feedback to new_graph_builder.
+
+Max 10 iterations total (bounded cost guarantee). Sets story.planning_verified
+= True when done (or when max iterations exhausted).
+
+Note: we reuse PlanningVerifyLog for audit trail (artifact="graph") rather
+than adding a new table — keeps schema minimal.
+"""
+
+from sqlalchemy.orm import Session
+
+from .. import context_builder
+from ..config import AGENT_MODELS, PROVIDER
+from ..db.models import PlanningVerifyLog, Story
+from ..llm_json import generate_structured
+from ..prompts.loader import load_prompt
+from ..schemas import GraphVerifierOutput
+from . import new_graph_builder
+
+MAX_ITERATIONS = 10
+
+
+def run(session: Session, story: Story) -> None:
+    """Verify the new graph, rebuilding it with targeted feedback on critical issues.
+
+    Iterates up to MAX_ITERATIONS times. Stops early when no critical issues
+    remain. After the loop (whether clean or exhausted), sets
+    story.planning_verified = True so the orchestrator gates the planning phase
+    as done regardless of outcome — keeps the pipeline from getting stuck.
+    """
+    for iteration in range(MAX_ITERATIONS):
+        new_graph_text = context_builder.format_story_graph(
+            session, story.id, graph_type="new"
+        )
+        system = load_prompt("graph_verifier")
+        user_content = (
+            f"language: {story.language}\n"
+            f"total_chapters: {story.total_chapters}\n\n"
+            f"## NEW STORY GRAPH\n{new_graph_text}\n"
+        )
+        output: GraphVerifierOutput = generate_structured(
+            PROVIDER,
+            system=system,
+            user_content=user_content,
+            model=AGENT_MODELS["graph_verifier"],
+            schema=GraphVerifierOutput,
+            max_tokens=4096,
+            thinking=False,  # logic checking, not creative reasoning
+        )
+
+        # Log every issue found (all severities) to the audit trail.
+        for issue in output.issues:
+            session.add(
+                PlanningVerifyLog(
+                    story_id=story.id,
+                    artifact="graph",
+                    severity=issue.severity,
+                    description=issue.description,
+                    suggestion=issue.suggestion,
+                    action_taken=(
+                        f"rebuild_iter_{iteration + 1}"
+                        if issue.severity == "critical"
+                        else "logged_only"
+                    ),
+                )
+            )
+        session.flush()
+
+        critical = [i for i in output.issues if i.severity == "critical"]
+        if not critical:
+            break  # graph is internally consistent — done
+
+        # Build targeted feedback referencing specific nodes/edges.
+        feedback_lines = []
+        for issue in critical:
+            ref = f"[{issue.node_key}]" if issue.node_key else ""
+            edge_ref = f" edge: {issue.edge_desc}" if issue.edge_desc else ""
+            feedback_lines.append(
+                f"- {ref}{edge_ref} {issue.description} → FIX: {issue.suggestion}"
+            )
+        feedback = "\n".join(feedback_lines)
+
+        # Rebuild new graph with targeted feedback, then verify again.
+        new_graph_builder.run(session, story, feedback=feedback)
+        session.flush()
+
+    # Mark gate as passed whether the graph is clean or iterations exhausted.
+    story.planning_verified = True

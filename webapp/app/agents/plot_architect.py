@@ -19,18 +19,22 @@ def _highest_chapter(text: str) -> int:
     return max(nums, default=0)
 
 
-def run(story: Story, feedback: str | None = None) -> str:
+def run(story: Story, feedback: str | None = None, story_graph: str = "") -> str:
     system = load_prompt("plot_architect")
+    graph_section = (
+        f"\n## Story Knowledge Graph (dùng EVENT nodes làm xương sống cho REWRITE)\n{story_graph}\n"
+        if story_graph else ""
+    )
     base = f"""input_type: {story.input_type}
 total_chapters (N): {story.total_chapters}
 words_per_chapter: {story.words_per_chapter}
 Ngôn ngữ: {story.language}
 
-story-bible.md:
+story-bible.md (tóm tắt ngắn):
 ---
 {story.story_bible}
 ---
-"""
+{graph_section}"""
     if feedback:
         base += (
             "\n## LỖI TỪ VÒNG KIỂM TRA TRƯỚC — bắt buộc khắc phục, giữ nguyên phần đã đúng\n"

@@ -26,6 +26,9 @@ from ..schemas import PlanningVerifierOutput
 from . import character_developer, plot_architect, story_analyzer, worldbuilder
 
 MAX_REWRITES = 3  # feedback-guided rewrites per artifact before a from-scratch regen
+# 3 feedback + 1 from-scratch + 1 final verify = 5 iterations max per artifact.
+# Derived so this cap stays correct if MAX_REWRITES ever changes.
+MAX_ITERATIONS = MAX_REWRITES + 2
 # story_bible first, then the artifacts derived from it, then characters (reads both).
 ARTIFACTS = ("story_bible", "plot_outline", "characters", "world")
 
@@ -69,7 +72,7 @@ words_per_chapter: {story.words_per_chapter}
         model=AGENT_MODELS["planning_verifier"],
         schema=PlanningVerifierOutput,
         max_tokens=8192,
-        thinking=True,
+        thinking=False,  # verification is pattern-matching, not creative reasoning
     )
 
 
@@ -83,9 +86,11 @@ def _feedback_for(output: PlanningVerifierOutput, artifact: str) -> str:
 
 def _regenerate(session: Session, story: Story, artifact: str, feedback: str | None) -> None:
     if artifact == "story_bible":
-        story.story_bible = story_analyzer.run(story, feedback=feedback)
+        story_analyzer.run(session, story, feedback=feedback)
     elif artifact == "plot_outline":
-        story.plot_outline = plot_architect.run(story, feedback=feedback)
+        from .. import context_builder
+        graph_ctx = context_builder.format_story_graph(session, story.id)
+        story.plot_outline = plot_architect.run(story, feedback=feedback, story_graph=graph_ctx)
     elif artifact == "world":
         story.world_bible = worldbuilder.run(story, feedback=feedback)
     elif artifact == "characters":
@@ -99,7 +104,7 @@ def run(session: Session, story: Story) -> None:
     rewrites: dict[str, int] = defaultdict(int)  # feedback rewrites done per artifact
     fresh_done: set[str] = set()                 # artifacts that got their from-scratch regen
 
-    while True:
+    for _iter in range(MAX_ITERATIONS):
         output = _verify(session, story)
         critical = {i.artifact for i in output.issues if i.severity == "critical"}
 
