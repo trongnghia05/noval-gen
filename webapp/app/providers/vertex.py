@@ -71,7 +71,7 @@ class VertexProvider(LLMProvider):
                         text_parts.append(delta)
                 return LLMResponse(text="".join(text_parts), raw=last_chunk)
             except genai_errors.ClientError as exc:
-                if exc.status_code == 429 and attempt < _MAX_RETRIES:
+                if exc.code == 429 and attempt < _MAX_RETRIES:
                     logger.warning(
                         "Vertex AI 429 RESOURCE_EXHAUSTED (attempt %d/%d), sleeping %ds before retry",
                         attempt + 1, _MAX_RETRIES, _RATE_LIMIT_SLEEP,
