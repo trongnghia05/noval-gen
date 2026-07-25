@@ -1,3 +1,5 @@
+import logging
+
 from sqlalchemy.orm import Session
 
 from .. import context_builder
@@ -6,6 +8,8 @@ from ..db.models import Chapter, Story
 from ..llm_json import generate_structured
 from ..prompts.loader import load_prompt
 from ..schemas import ChapterVerifierOutput, ChapterVerifyIssueOut
+
+logger = logging.getLogger(__name__)
 
 
 def check(
@@ -49,4 +53,9 @@ def check(
         max_tokens=8192,
         thinking=False,
     )
+    critical = [i for i in output.issues if i.severity == "critical"]
+    logger.info("[%s] chapter_verifier ch%d: %d issues (%d critical)",
+                story.slug, chapter.number, len(output.issues), len(critical))
+    for issue in output.issues:
+        logger.info("  [%s] %s | fix: %s", issue.severity.upper(), issue.description, issue.suggestion)
     return output.issues

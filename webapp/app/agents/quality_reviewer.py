@@ -4,6 +4,8 @@ before chapter_summarizer. Reuses ChapterVerifyLog for history (the dimension
 is tagged into the description) — no schema change needed.
 """
 
+import logging
+
 from sqlalchemy.orm import Session
 
 from .. import length_calc
@@ -12,6 +14,8 @@ from ..db.models import Chapter, Story
 from ..llm_json import generate_structured
 from ..prompts.loader import load_prompt
 from ..schemas import QualityReviewIssueOut, QualityReviewerOutput
+
+logger = logging.getLogger(__name__)
 
 
 def _source_chapter_for(story: Story, chapter_number: int) -> str | None:
@@ -57,4 +61,11 @@ def check(session: Session, story: Story, chapter: Chapter) -> list[QualityRevie
         max_tokens=8192,
         thinking=False,
     )
+    critical = [i for i in output.issues if i.severity == "critical"]
+    logger.info("[%s] quality_reviewer ch%d: %d issues (%d critical)",
+                story.slug, chapter.number, len(output.issues), len(critical))
+    for issue in output.issues:
+        logger.info("  [%s][%s] %s | fix: %s",
+                    issue.severity.upper(), getattr(issue, "dimension", "quality"),
+                    issue.description, issue.suggestion)
     return output.issues

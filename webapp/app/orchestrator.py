@@ -333,10 +333,12 @@ def run_write_chapter_step(session: Session, story: Story) -> dict:
     # be fixed before it enters memory (world-state, chapter-summaries).
     # Loop up to _MAX_VERIFY_ITERATIONS times; each rewrite gets accumulated
     # feedback from all previous iterations.
-    _verify_chapter_loop(session, story, next_chapter)
+    rewrites = _verify_chapter_loop(session, story, next_chapter)
+    logger.info("[%s] verify_loop ch%d: %d rewrite(s)", story.slug, next_chapter.number, rewrites)
     session.commit()
 
     chapter_summarizer.run(session, story, next_chapter)
+    logger.info("[%s] summarizer DONE ch%d", story.slug, next_chapter.number)
     story.current_words = (story.current_words or 0) + next_chapter.word_count
     session.commit()
 

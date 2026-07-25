@@ -1,4 +1,5 @@
 import json
+import logging
 import re
 import textwrap
 
@@ -8,6 +9,8 @@ from .. import context_builder, csv_graph
 from ..config import AGENT_MODELS, PROVIDER
 from ..db.models import Chapter, Story
 from ..prompts.loader import load_prompt
+
+logger = logging.getLogger(__name__)
 
 _TITLE_RE = re.compile(r"^#\s*\S+\.?\s*\d+\s*[:.]?\s*(.+)$")
 _HEADING_RE = re.compile(r"^#+\s+.+$")
@@ -242,6 +245,9 @@ _FEEDBACK_HEADER = (
 
 
 def run(session: Session, story: Story, chapter: Chapter, feedback: str | None = None) -> None:
+    logger.info("[%s] chapter_writer START ch%d/%d%s",
+                story.slug, chapter.number, story.total_chapters,
+                " [rewrite]" if feedback else "")
     system = load_prompt("chapter_writer")
     min_words = int(story.words_per_chapter * MIN_WORD_RATIO)
     fb_block = f"{_FEEDBACK_HEADER}{feedback}\n\n" if feedback else ""
@@ -260,6 +266,8 @@ def run(session: Session, story: Story, chapter: Chapter, feedback: str | None =
                 scene_texts: list[str] = []
 
                 for i, scene_data in enumerate(scenes):
+                    logger.info("[%s] ch%d scene %d/%d (~%d words)",
+                                story.slug, chapter.number, i + 1, len(scenes), words_per_scene)
                     scene_text = _write_single_scene(
                         system, story, chapter, bp,
                         i, len(scenes), scene_data,
@@ -270,6 +278,8 @@ def run(session: Session, story: Story, chapter: Chapter, feedback: str | None =
                         scene_text = _strip_leading_heading(scene_text)
                     # Inline expand if this scene is too short
                     if len(scene_text.split()) < min_scene_words:
+                        logger.info("[%s] ch%d scene %d short (%d words), expanding",
+                                    story.slug, chapter.number, i + 1, len(scene_text.split()))
                         scene_text = _expand_scene(
                             system, story, chapter, i, scene_text, words_per_scene
                         )
@@ -278,10 +288,12 @@ def run(session: Session, story: Story, chapter: Chapter, feedback: str | None =
                 full_text = "\n\n".join(scene_texts)
                 title, content = _parse_chapter(full_text, chapter.number)
         except Exception:
-            pass  # fall through to single-call below
+            logger.warning("[%s] ch%d scene-by-scene failed, falling back to single call",
+                           story.slug, chapter.number, exc_info=True)
 
     # --- Fallback: single call (no blueprint or exception in scene loop) ---
     if content is None:
+        logger.info("[%s] ch%d single-call path", story.slug, chapter.number)
         base_context = fb_block + _build_context(session, story, chapter)
         max_tokens = 40000
         response = PROVIDER.generate(
@@ -292,12 +304,16 @@ def run(session: Session, story: Story, chapter: Chapter, feedback: str | None =
         title, content = _parse_chapter(response.text, chapter.number)
 
     word_count = len(content.split())
+    logger.info("[%s] ch%d assembled: %d words (target %d, min %d)",
+                story.slug, chapter.number, word_count, story.words_per_chapter, min_words)
 
     # Safety net: if the assembled chapter is still short, deepen existing scenes.
     # The prompt explicitly says "same order, no new events" to prevent restructuring.
     attempts = 0
     while word_count < min_words and attempts < MAX_EXPAND_ATTEMPTS:
         attempts += 1
+        logger.info("[%s] ch%d expand attempt %d/%d (%d words)",
+                    story.slug, chapter.number, attempts, MAX_EXPAND_ATTEMPTS, word_count)
         max_tokens = 40000
         expand_content = (
             f"chapter_number: {chapter.number} | language: {story.language} "
@@ -317,7 +333,10 @@ def run(session: Session, story: Story, chapter: Chapter, feedback: str | None =
         )
         title, content = _parse_chapter(response.text, chapter.number)
         word_count = len(content.split())
+        logger.info("[%s] ch%d after expand: %d words", story.slug, chapter.number, word_count)
 
+    logger.info("[%s] chapter_writer DONE ch%d: %d words | title=%r",
+                story.slug, chapter.number, word_count, title)
     chapter.title = title
     chapter.content = content
     chapter.word_count = word_count
