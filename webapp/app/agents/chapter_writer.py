@@ -10,6 +10,16 @@ from ..db.models import Chapter, Story
 from ..prompts.loader import load_prompt
 
 _TITLE_RE = re.compile(r"^#\s*\S+\.?\s*\d+\s*[:.]?\s*(.+)$")
+_HEADING_RE = re.compile(r"^#+\s+.+$")
+
+
+def _strip_leading_heading(text: str) -> str:
+    """Remove a chapter/scene heading from the first line if the model added one
+    despite instructions not to (non-first scenes should start with prose)."""
+    lines = text.split("\n")
+    if lines and _HEADING_RE.match(lines[0].strip()):
+        return "\n".join(lines[1:]).lstrip()
+    return text
 
 MIN_WORD_RATIO = 0.85
 # Expand a single scene inline if it falls below this fraction of its per-scene target.
@@ -255,6 +265,9 @@ def run(session: Session, story: Story, chapter: Chapter, feedback: str | None =
                         i, len(scenes), scene_data,
                         scene_texts, shared_context, words_per_scene,
                     )
+                    # Non-first scenes must not start with a heading; strip if model added one.
+                    if i > 0:
+                        scene_text = _strip_leading_heading(scene_text)
                     # Inline expand if this scene is too short
                     if len(scene_text.split()) < min_scene_words:
                         scene_text = _expand_scene(
