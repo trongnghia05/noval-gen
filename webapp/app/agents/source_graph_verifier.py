@@ -136,6 +136,7 @@ def _format_chapter_context(session: Session, story_id: int, chapter_number: int
             StoryGraphEdge.edge_type == "RELATION",
             StoryGraphEdge.chapter_to.is_(None),
             StoryGraphEdge.source_key.in_(char_keys),
+            StoryGraphEdge.chapter_from < chapter_number,
         )
         .all()
     )
