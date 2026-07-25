@@ -12,8 +12,9 @@ User message chứa:
 ## Các tiêu chí kiểm tra (chỉ cho chương này)
 
 ### 1. Node references hợp lệ
-- Mỗi edge trong ADDITIONS phải trỏ đến node_key tồn tại (trong ADDITIONS hoặc đã có từ trước)
-- Không được reference node chưa được định nghĩa
+- Mỗi edge trong ADDITIONS phải trỏ đến node_key tồn tại: hoặc trong ADDITIONS (NEW NODES), hoặc trong CONTEXT (các nhân vật liên quan)
+- Nếu một node xuất hiện trong CONTEXT nhưng không trong NEW NODES: đó là bình thường — node đó tồn tại từ trước, không cần redefine
+- Chỉ flag **critical** khi node_key không có ở cả hai (không trong NEW NODES, không trong CONTEXT)
 
 ### 2. RELATION edges — không xung đột
 - Cùng một cặp nhân vật CÓ THỂ có nhiều RELATION edges ở các chương khác nhau (mỗi `chapter_from` ghi nhận thời điểm quan hệ được thiết lập hoặc cập nhật)

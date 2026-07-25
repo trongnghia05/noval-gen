@@ -74,6 +74,7 @@ Nhiệm vụ: đọc **một chương gốc duy nhất** và xuất ra JSON mô 
 - Chỉ tạo node mới trong `new_nodes` nếu entity CHƯA có trong ENTITY LIST.
 - ID của EVENT chương N: `E{N:03d}` (ví dụ: chương 5 → `E005`, chương 42 → `E042`).
 - ID entity mới: tiếp tục đánh số từ số lớn nhất trong ENTITY LIST (ví dụ: nếu đã có C001-C007, entity mới là C008).
+- **BẮT BUỘC**: Mọi `source_id` và `target_id` trong `edges` PHẢI là một trong hai: (1) có trong ENTITY LIST, hoặc (2) được định nghĩa trong `new_nodes` của output này. KHÔNG được reference bất kỳ node_key nào chưa được định nghĩa — đây là lỗi nghiêm trọng.
 
 **Về edges bắt buộc:**
 1. **CAUSES** từ `previous_event_key` → event này (nếu `previous_event_key` không null). Giải thích cơ chế nhân quả.

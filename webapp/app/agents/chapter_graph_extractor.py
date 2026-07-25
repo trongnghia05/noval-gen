@@ -262,12 +262,13 @@ def _delete_chapter_data(session: Session, story_id: int, chapter_number: int) -
         StoryGraphEdge.chapter_from == chapter_number,
     ).delete(synchronize_session=False)
 
-    # Delete the EVENT node for this chapter.
-    session.query(StoryGraphNode).filter_by(
-        story_id=story_id,
-        graph_type="source",
-        node_type="event",
-        chapter_introduced=chapter_number,
+    # Delete ALL nodes introduced at this chapter (event + character/location/etc.).
+    # Without this, ghost nodes from a previous failed extraction persist in the DB
+    # and cause "referenced but not defined" false-positives on the next attempt.
+    session.query(StoryGraphNode).filter(
+        StoryGraphNode.story_id == story_id,
+        StoryGraphNode.graph_type == "source",
+        StoryGraphNode.chapter_introduced == chapter_number,
     ).delete(synchronize_session=False)
 
     session.flush()
