@@ -1,9 +1,17 @@
+import logging
 import os
+import time
 
 from google import genai
+from google.genai import errors as genai_errors
 from google.genai import types
 
 from .base import LLMProvider, LLMResponse
+
+logger = logging.getLogger(__name__)
+
+_RATE_LIMIT_SLEEP = 60  # seconds to wait on 429 before retrying
+_MAX_RETRIES = 3
 
 
 class VertexProvider(LLMProvider):
@@ -45,19 +53,29 @@ class VertexProvider(LLMProvider):
             thinking_config=types.ThinkingConfig(thinking_budget=-1 if thinking else 0),
         )
 
-        text_parts: list[str] = []
-        last_chunk = None
-        for chunk in self.client.models.generate_content_stream(
-            model=model,
-            contents=user_content,
-            config=config,
-        ):
-            last_chunk = chunk
+        for attempt in range(_MAX_RETRIES + 1):
+            text_parts: list[str] = []
+            last_chunk = None
             try:
-                delta = chunk.text
-            except Exception:
-                delta = None  # a chunk may carry only non-text parts (e.g. thoughts)
-            if delta:
-                text_parts.append(delta)
-
-        return LLMResponse(text="".join(text_parts), raw=last_chunk)
+                for chunk in self.client.models.generate_content_stream(
+                    model=model,
+                    contents=user_content,
+                    config=config,
+                ):
+                    last_chunk = chunk
+                    try:
+                        delta = chunk.text
+                    except Exception:
+                        delta = None
+                    if delta:
+                        text_parts.append(delta)
+                return LLMResponse(text="".join(text_parts), raw=last_chunk)
+            except genai_errors.ClientError as exc:
+                if exc.status_code == 429 and attempt < _MAX_RETRIES:
+                    logger.warning(
+                        "Vertex AI 429 RESOURCE_EXHAUSTED (attempt %d/%d), sleeping %ds before retry",
+                        attempt + 1, _MAX_RETRIES, _RATE_LIMIT_SLEEP,
+                    )
+                    time.sleep(_RATE_LIMIT_SLEEP)
+                    continue
+                raise
