@@ -54,22 +54,32 @@ class VertexProvider(LLMProvider):
         )
 
         for attempt in range(_MAX_RETRIES + 1):
-            text_parts: list[str] = []
-            last_chunk = None
             try:
-                for chunk in self.client.models.generate_content_stream(
-                    model=model,
-                    contents=user_content,
-                    config=config,
-                ):
-                    last_chunk = chunk
-                    try:
-                        delta = chunk.text
-                    except Exception:
-                        delta = None
-                    if delta:
-                        text_parts.append(delta)
-                return LLMResponse(text="".join(text_parts), raw=last_chunk)
+                if json_mode:
+                    # Non-streaming for JSON mode: response is always fully buffered
+                    # before parsing, and non-streaming never silently hangs.
+                    response = self.client.models.generate_content(
+                        model=model,
+                        contents=user_content,
+                        config=config,
+                    )
+                    return LLMResponse(text=response.text, raw=response)
+                else:
+                    text_parts: list[str] = []
+                    last_chunk = None
+                    for chunk in self.client.models.generate_content_stream(
+                        model=model,
+                        contents=user_content,
+                        config=config,
+                    ):
+                        last_chunk = chunk
+                        try:
+                            delta = chunk.text
+                        except Exception:
+                            delta = None
+                        if delta:
+                            text_parts.append(delta)
+                    return LLMResponse(text="".join(text_parts), raw=last_chunk)
             except genai_errors.ClientError as exc:
                 if exc.code == 429 and attempt < _MAX_RETRIES:
                     logger.warning(

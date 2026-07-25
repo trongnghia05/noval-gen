@@ -1,12 +1,12 @@
-"""Verify source graph consistency chapter by chapter.
+"""Verify source graph chapter by chapter.
 
-After all source chapters are extracted, loops chapter 1 → N and verifies
-each chapter's additions against the accumulated graph state up to that point.
-If a chapter has critical issues, re-extracts only that chapter (safe because
-chapters after it haven't been applied yet in this verification pass).
+For each chapter, only verifies what that chapter contributed (EVENT node +
+new nodes + new edges) plus minimal context (current character states +
+active relations for involved characters). This keeps each call O(additions),
+not O(accumulated_graph) — scales to any chapter count.
 
-Max MAX_ITERATIONS repair attempts per chapter — after that, logs remaining
-issues and moves on (never blocks the pipeline).
+On critical issues, re-extracts only that chapter (safe because later chapters
+haven't been applied yet). Max MAX_ITERATIONS per chapter.
 
 Sets story.source_graph_verified = True when done.
 """
@@ -15,7 +15,6 @@ import logging
 
 from sqlalchemy.orm import Session
 
-from .. import context_builder
 from ..config import AGENT_MODELS, PROVIDER
 from ..db.models import PlanningVerifyLog, Story, StoryGraphEdge, StoryGraphNode
 from ..llm_json import generate_structured
@@ -29,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 
 def _format_chapter_additions(session: Session, story_id: int, chapter_number: int) -> str:
-    """Format only the EVENT node and edges introduced at chapter_number."""
+    """Format EVENT node, new nodes, and new edges introduced at chapter_number."""
     event_key = f"E{chapter_number:03d}"
     event_node = (
         session.query(StoryGraphNode)
@@ -55,7 +54,11 @@ def _format_chapter_additions(session: Session, story_id: int, chapter_number: i
     if new_nodes:
         lines.append(f"\nNEW NODES introduced at Ch.{chapter_number}:")
         for n in new_nodes:
-            lines.append(f"  {n.node_key} [{n.node_type}]: {n.label}")
+            np = n.properties or {}
+            detail = ""
+            if n.node_type == "character":
+                detail = f" | arc_stage={np.get('arc_stage','?')} role={np.get('role','')}"
+            lines.append(f"  {n.node_key} [{n.node_type}]: {n.label}{detail}")
 
     new_edges = (
         session.query(StoryGraphEdge)
@@ -66,54 +69,117 @@ def _format_chapter_additions(session: Session, story_id: int, chapter_number: i
     if new_edges:
         lines.append(f"\nNEW EDGES at Ch.{chapter_number}:")
         for e in new_edges:
-            p = e.properties or {}
-            detail = p.get("rel_type") or p.get("mechanism") or p.get("role") or e.label or ""
-            ch_range = f"Ch.{e.chapter_from}"
-            if e.chapter_to:
-                ch_range += f"→{e.chapter_to}"
-            else:
-                ch_range += "→∞"
+            ep = e.properties or {}
+            detail = ep.get("rel_type") or ep.get("mechanism") or ep.get("role") or e.label or ""
+            ch_to = f"→{e.chapter_to}" if e.chapter_to else "→∞"
+            lines.append(f"  {e.source_key} ──[{e.edge_type}: {detail} Ch.{e.chapter_from}{ch_to}]──► {e.target_key}")
+
+    return "\n".join(lines)
+
+
+def _format_chapter_context(session: Session, story_id: int, chapter_number: int) -> str:
+    """Format relevant context: character states + active relations for characters
+    involved in this chapter's additions.
+    """
+    new_edges = (
+        session.query(StoryGraphEdge)
+        .filter_by(story_id=story_id, graph_type="source")
+        .filter(StoryGraphEdge.chapter_from == chapter_number)
+        .all()
+    )
+
+    # Collect character keys involved in this chapter
+    char_keys: set[str] = set()
+    for e in new_edges:
+        if e.source_key and e.source_key.startswith("C"):
+            char_keys.add(e.source_key)
+        if e.target_key and e.target_key.startswith("C"):
+            char_keys.add(e.target_key)
+
+    # Also include characters in PARTICIPATES edges targeting this chapter's event
+    event_key = f"E{chapter_number:03d}"
+    participates = (
+        session.query(StoryGraphEdge)
+        .filter_by(story_id=story_id, graph_type="source",
+                   edge_type="PARTICIPATES", target_key=event_key)
+        .all()
+    )
+    for e in participates:
+        if e.source_key and e.source_key.startswith("C"):
+            char_keys.add(e.source_key)
+
+    if not char_keys:
+        return "(không có nhân vật liên quan)"
+
+    lines = []
+
+    # Current character states
+    lines.append("## TRẠNG THÁI NHÂN VẬT LIÊN QUAN (trước chương này)")
+    for key in sorted(char_keys):
+        node = (
+            session.query(StoryGraphNode)
+            .filter_by(story_id=story_id, graph_type="source", node_key=key)
+            .first()
+        )
+        if node:
+            np = node.properties or {}
             lines.append(
-                f"  {e.source_key} ──[{e.edge_type}: {detail} {ch_range}]──► {e.target_key}"
+                f"  {key}: {node.label} | arc_stage={np.get('arc_stage', '?')} | role={np.get('role', '')}"
+            )
+
+    # Active RELATION edges for involved characters
+    active = (
+        session.query(StoryGraphEdge)
+        .filter(
+            StoryGraphEdge.story_id == story_id,
+            StoryGraphEdge.graph_type == "source",
+            StoryGraphEdge.edge_type == "RELATION",
+            StoryGraphEdge.chapter_to.is_(None),
+            StoryGraphEdge.source_key.in_(char_keys),
+        )
+        .all()
+    )
+    if active:
+        lines.append("\n## QUAN HỆ ĐANG HOẠT ĐỘNG (active trước chương này)")
+        for e in active:
+            ep = e.properties or {}
+            rel = ep.get("rel_type", "")
+            strength = ep.get("strength", "")
+            lines.append(
+                f"  {e.source_key}↔{e.target_key}: {rel} strength={strength} [từ Ch.{e.chapter_from}→∞]"
             )
 
     return "\n".join(lines)
 
 
 def run(session: Session, story: Story) -> None:
-    """Verify source graph chapter by chapter, repairing critical issues up to
-    MAX_ITERATIONS times per chapter.
+    """Verify source graph chapter by chapter. Each call checks only that
+    chapter's additions + minimal context — O(additions) per call.
     """
-    system = load_prompt("graph_verifier")
-
+    system = load_prompt("source_graph_chapter_verifier")
     total = story.source_chapter_count or 0
+
     for chapter_number in range(1, total + 1):
         logger.info("[%s] verify_source_graph ch%d/%d", story.slug, chapter_number, total)
         for iteration in range(MAX_ITERATIONS):
-            # Accumulated graph state up to (and including) this chapter.
-            accumulated_graph = context_builder.format_story_graph(
-                session, story.id, chapter_limit=chapter_number, graph_type="source"
-            )
-            # Isolate what chapter N contributed — this is what we're verifying.
-            chapter_additions = _format_chapter_additions(
-                session, story.id, chapter_number
-            )
+            additions = _format_chapter_additions(session, story.id, chapter_number)
+            context = _format_chapter_context(session, story.id, chapter_number)
 
             user_content = (
                 f"language: {story.language}\n"
-                f"total_chapters: {story.source_chapter_count}\n\n"
-                f"## ACCUMULATED SOURCE GRAPH (chapters 1 to {chapter_number})\n"
-                f"{accumulated_graph}\n\n"
-                f"## CHAPTER {chapter_number} ADDITIONS (focus your check here)\n"
-                f"{chapter_additions}\n"
+                f"chapter_number: {chapter_number}\n"
+                f"total_chapters: {total}\n\n"
+                f"## CHAPTER {chapter_number} ADDITIONS\n{additions}\n\n"
+                f"## CONTEXT\n{context}\n"
             )
+
             output: GraphVerifierOutput = generate_structured(
                 PROVIDER,
                 system=system,
                 user_content=user_content,
                 model=AGENT_MODELS["graph_verifier"],
                 schema=GraphVerifierOutput,
-                max_tokens=65000,
+                max_tokens=8192,
                 thinking=False,
             )
 
@@ -122,6 +188,12 @@ def run(session: Session, story: Story) -> None:
                 f"reextract_ch{chapter_number}_iter_{iteration + 1}"
                 if critical else "logged_only"
             )
+            logger.info("[%s] ch%d iter%d: %d issues (%d critical) | %s",
+                        story.slug, chapter_number, iteration + 1,
+                        len(output.issues), len(critical), output.verdict_note[:80])
+            for issue in critical:
+                logger.info("  [CRITICAL] node=%s | %s | fix: %s", issue.node_key, issue.description, issue.suggestion)
+
             for issue in output.issues:
                 session.add(
                     PlanningVerifyLog(
@@ -136,10 +208,9 @@ def run(session: Session, story: Story) -> None:
             session.flush()
 
             if not critical:
-                break  # chapter N is consistent — move to chapter N+1
+                break
 
-            logger.info("[%s] verify_source_graph ch%d critical issues=%d, re-extracting",
-                        story.slug, chapter_number, len(critical))
+            logger.info("[%s] ch%d critical=%d, re-extracting", story.slug, chapter_number, len(critical))
             chapter_graph_extractor.run_for_chapter(session, story, chapter_number)
             session.flush()
 

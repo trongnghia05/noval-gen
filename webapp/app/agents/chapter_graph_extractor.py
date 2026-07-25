@@ -21,18 +21,20 @@ from ..prompts.loader import load_prompt
 from ..schemas import ChapterGraphOutput
 
 
-def _format_entity_list(session: Session, story_id: int) -> str:
-    """Compact text of all non-event nodes so the model can reference them by ID."""
-    nodes = (
-        session.query(StoryGraphNode)
-        .filter(
-            StoryGraphNode.story_id == story_id,
-            StoryGraphNode.graph_type == "source",
-            StoryGraphNode.node_type != "event",
-        )
-        .order_by(StoryGraphNode.node_type, StoryGraphNode.node_key)
-        .all()
+def _format_entity_list(session: Session, story_id: int, up_to_chapter: int | None = None) -> str:
+    """Compact text of non-event nodes so the model can reference them by ID.
+
+    up_to_chapter: if set, only include nodes introduced at or before that chapter.
+    Used during re-extraction to avoid leaking future-chapter entities.
+    """
+    q = session.query(StoryGraphNode).filter(
+        StoryGraphNode.story_id == story_id,
+        StoryGraphNode.graph_type == "source",
+        StoryGraphNode.node_type != "event",
     )
+    if up_to_chapter is not None:
+        q = q.filter(StoryGraphNode.chapter_introduced <= up_to_chapter)
+    nodes = q.order_by(StoryGraphNode.node_type, StoryGraphNode.node_key).all()
     if not nodes:
         return "(chưa có entity nào)"
     lines = []
@@ -124,7 +126,7 @@ def _extract_chapter(session: Session, story: Story, chapter_number: int, chapte
     """Core extraction logic for one source chapter. Assumes the EVENT node for
     chapter_number does NOT exist yet — call _delete_chapter_data() first when
     re-extracting."""
-    entity_list = _format_entity_list(session, story.id)
+    entity_list = _format_entity_list(session, story.id, up_to_chapter=chapter_number - 1)
     active_relations = _format_active_relations(session, story.id)
     prev_event_key = _get_prev_event_key(session, story.id, chapter_number)
 
