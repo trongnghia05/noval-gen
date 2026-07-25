@@ -180,14 +180,38 @@ def run(session: Session, story: Story, feedback: str | None = None) -> None:
     # Same pair + same rel_type active simultaneously = keep the one with later chapter_from.
     seen_active_relations: dict[tuple, StoryGraphEdge] = {}
     for edge in output.edges:
+        # Build DB properties dict from typed fields (fall back to properties dict for generic edges)
+        if edge.edge_type == "ARC_CHANGE":
+            db_props = {
+                "field": edge.arc_field,
+                "old_val": edge.old_val,
+                "new_val": edge.new_val,
+            }
+            db_label = f"{edge.old_val} → {edge.new_val}"
+        elif edge.edge_type == "RELATION":
+            db_props = {"rel_type": edge.rel_type, "strength": edge.strength}
+            db_label = edge.label
+        elif edge.edge_type == "PARTICIPATES":
+            db_props = {"role": edge.role}
+            db_label = edge.label
+        elif edge.edge_type == "CAUSES":
+            db_props = {"mechanism": edge.mechanism}
+            db_label = "dẫn đến"
+        elif edge.edge_type == "LOCATED_AT":
+            db_props = {}
+            db_label = edge.label
+        else:
+            db_props = edge.properties or {}
+            db_label = edge.label
+
         if edge.edge_type == "RELATION" and edge.chapter_to is None:
-            rel_type = (edge.properties or {}).get("rel_type", "")
+            rel_type = edge.rel_type or ""
             key = (edge.source_id, edge.target_id, rel_type)
             if key in seen_active_relations:
                 # Keep whichever has the later chapter_from
                 if (edge.chapter_from or 0) > (seen_active_relations[key].chapter_from or 0):
                     seen_active_relations[key].chapter_from = edge.chapter_from
-                    seen_active_relations[key].properties = edge.properties or {}
+                    seen_active_relations[key].properties = db_props
                 continue
             row = StoryGraphEdge(
                 story_id=story.id,
@@ -195,12 +219,12 @@ def run(session: Session, story: Story, feedback: str | None = None) -> None:
                 source_key=edge.source_id,
                 target_key=edge.target_id,
                 edge_type=edge.edge_type,
-                label=edge.label,
+                label=db_label,
                 chapter_from=edge.chapter_from,
                 chapter_to=edge.chapter_to,
                 trigger_event_key=edge.trigger_event_id,
                 condition=edge.condition,
-                properties=edge.properties or {},
+                properties=db_props,
             )
             session.add(row)
             seen_active_relations[key] = row
@@ -212,12 +236,12 @@ def run(session: Session, story: Story, feedback: str | None = None) -> None:
                     source_key=edge.source_id,
                     target_key=edge.target_id,
                     edge_type=edge.edge_type,
-                    label=edge.label,
+                    label=db_label,
                     chapter_from=edge.chapter_from,
                     chapter_to=edge.chapter_to,
                     trigger_event_key=edge.trigger_event_id,
                     condition=edge.condition,
-                    properties=edge.properties or {},
+                    properties=db_props,
                 )
             )
     session.flush()

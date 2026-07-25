@@ -5,7 +5,7 @@ tables or CSV files, so it's requested and parsed as JSON.
 """
 from typing import Any, Literal
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 # ── story_analyzer ─────────────────────────────────────────────────────────────
@@ -19,16 +19,100 @@ class GraphNodeOut(BaseModel):
 
 
 class GraphEdgeOut(BaseModel):
-    source_id: str                     # node key of source
-    target_id: str                     # node key of target
-    edge_type: str                     # RELATION|PARTICIPATES|CAUSES|FORESHADOWS|
-                                       # LOCATED_AT|INVOLVES|OWNS|MEMBER_OF|EMBODIES|ARC_CHANGE
-    label: str
-    chapter_from: int | None = None
-    chapter_to: int | None = None      # None = still active
-    trigger_event_id: str | None = None
-    condition: str | None = None
-    properties: dict[str, Any] = {}
+    source_id: str = Field(description="node_key của node nguồn")
+    target_id: str = Field(description="node_key của node đích. LOCATED_AT: source=EVENT(E###), target=LOCATION(L###)")
+    edge_type: str = Field(description="RELATION | ARC_CHANGE | PARTICIPATES | LOCATED_AT | CAUSES | MEMBER_OF | EMBODIES | FORESHADOWS | INVOLVES | OWNS")
+    label: str = Field(default="", description="mô tả ngắn về cạnh này")
+    chapter_from: int | None = Field(default=None)
+    chapter_to: int | None = Field(default=None)
+    trigger_event_id: str | None = Field(default=None)
+    condition: str | None = Field(default=None)
+
+    # ── Typed fields — bắt buộc tùy edge_type ──────────────────────────────
+    # [RELATION] loại quan hệ giữa hai nhân vật
+    rel_type: str | None = Field(
+        default=None,
+        description="[RELATION — BẮT BUỘC] loại quan hệ: friendship|rivalry|romantic|mentor_student|family|distrust|alliance|betrayal|professional|..."
+    )
+    strength: str = Field(
+        default="medium",
+        description="[RELATION] mức độ quan hệ: weak|medium|strong"
+    )
+
+    # [ARC_CHANGE] thay đổi trạng thái nội tâm nhân vật
+    old_val: str | None = Field(
+        default=None,
+        description="[ARC_CHANGE — BẮT BUỘC] arc_stage HIỆN TẠI của nhân vật TRƯỚC chương này. Lấy từ 'arc=' trong ENTITY LIST. Nếu nhân vật mới ra mắt lần đầu thì dùng 'introduction'"
+    )
+    new_val: str | None = Field(
+        default=None,
+        description="[ARC_CHANGE — BẮT BUỘC] arc_stage MỚI sau sự kiện chương này — mô tả trạng thái nội tâm thay đổi"
+    )
+    arc_field: str = Field(
+        default="arc_stage",
+        description="[ARC_CHANGE] trường đang thay đổi, luôn là 'arc_stage'"
+    )
+
+    # [PARTICIPATES] vai trò nhân vật trong sự kiện
+    role: str | None = Field(
+        default=None,
+        description="[PARTICIPATES — BẮT BUỘC] vai trò: cause (kẻ gây ra) | victim (nạn nhân) | witness (chứng kiến) | ally (hỗ trợ) | bystander (ngoại vi)"
+    )
+
+    # [CAUSES] cơ chế nhân quả giữa hai sự kiện
+    mechanism: str | None = Field(
+        default=None,
+        description="[CAUSES — BẮT BUỘC] giải thích nhân quả: tại sao event trước trực tiếp dẫn đến event này"
+    )
+
+    # Fallback cho MEMBER_OF, EMBODIES, FORESHADOWS, v.v.
+    properties: dict[str, Any] = Field(
+        default={},
+        description="[MEMBER_OF|EMBODIES|FORESHADOWS|INVOLVES|OWNS] thông tin bổ sung; không dùng cho RELATION/ARC_CHANGE/PARTICIPATES/CAUSES — dùng các field riêng ở trên"
+    )
+
+    @model_validator(mode="after")
+    def check_required_by_type(self) -> "GraphEdgeOut":
+        t = self.edge_type
+        if t == "ARC_CHANGE":
+            if not self.old_val:
+                raise ValueError(
+                    "ARC_CHANGE edge PHẢI có 'old_val' (arc_stage trước thay đổi — lấy từ ENTITY LIST). "
+                    "Ví dụ: old_val='introduction'"
+                )
+            if not self.new_val:
+                raise ValueError(
+                    "ARC_CHANGE edge PHẢI có 'new_val' (arc_stage sau thay đổi)"
+                )
+        elif t == "RELATION":
+            if not self.rel_type:
+                raise ValueError(
+                    "RELATION edge PHẢI có 'rel_type' (friendship|rivalry|romantic|mentor_student|family|distrust|alliance|betrayal|...)"
+                )
+        elif t == "PARTICIPATES":
+            if not self.role:
+                raise ValueError(
+                    "PARTICIPATES edge PHẢI có 'role' (cause|victim|witness|ally|bystander)"
+                )
+        elif t == "CAUSES":
+            if not self.mechanism:
+                raise ValueError(
+                    "CAUSES edge PHẢI có 'mechanism' (giải thích tại sao event trước dẫn đến event này)"
+                )
+        elif t == "LOCATED_AT":
+            src = (self.source_id or "")
+            tgt = (self.target_id or "")
+            if src and src[0].upper() != "E":
+                raise ValueError(
+                    f"LOCATED_AT edge: source_id phải là EVENT (E###), nhận được '{self.source_id}'. "
+                    "Hướng đúng: EVENT → LOCATION (không phải ngược lại)"
+                )
+            if tgt and tgt[0].upper() != "L":
+                raise ValueError(
+                    f"LOCATED_AT edge: target_id phải là LOCATION (L###), nhận được '{self.target_id}'. "
+                    "Hướng đúng: EVENT → LOCATION (không phải ngược lại)"
+                )
+        return self
 
 
 class StoryAnalyzerOutput(BaseModel):

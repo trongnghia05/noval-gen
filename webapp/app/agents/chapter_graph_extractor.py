@@ -214,10 +214,34 @@ def _extract_chapter(session: Session, story: Story, chapter_number: int, chapte
     session.flush()
 
     for edge in output.edges:
+        # Build DB properties dict from typed fields (fall back to properties dict for generic edges)
+        if edge.edge_type == "ARC_CHANGE":
+            db_props = {
+                "field": edge.arc_field,
+                "old_val": edge.old_val,
+                "new_val": edge.new_val,
+            }
+            db_label = f"{edge.old_val} → {edge.new_val}"
+        elif edge.edge_type == "RELATION":
+            db_props = {"rel_type": edge.rel_type, "strength": edge.strength}
+            db_label = edge.label
+        elif edge.edge_type == "PARTICIPATES":
+            db_props = {"role": edge.role}
+            db_label = edge.label
+        elif edge.edge_type == "CAUSES":
+            db_props = {"mechanism": edge.mechanism}
+            db_label = "dẫn đến"
+        elif edge.edge_type == "LOCATED_AT":
+            db_props = {}
+            db_label = edge.label
+        else:
+            db_props = edge.properties or {}
+            db_label = edge.label
+
         # For RELATION edges: if same pair + same rel_type is already active (chapter_to=null),
         # just update chapter_from to the current chapter instead of inserting a duplicate.
         if edge.edge_type == "RELATION" and edge.chapter_to is None:
-            rel_type = (edge.properties or {}).get("rel_type", "")
+            rel_type = edge.rel_type or ""
             active_same_pair = (
                 session.query(StoryGraphEdge)
                 .filter(
@@ -236,7 +260,7 @@ def _extract_chapter(session: Session, story: Story, chapter_number: int, chapte
             )
             if matched:
                 matched.chapter_from = edge.chapter_from
-                matched.properties = edge.properties or {}
+                matched.properties = db_props
                 continue
 
         session.add(StoryGraphEdge(
@@ -245,15 +269,15 @@ def _extract_chapter(session: Session, story: Story, chapter_number: int, chapte
             source_key=edge.source_id,
             target_key=edge.target_id,
             edge_type=edge.edge_type,
-            label=edge.label,
+            label=db_label,
             chapter_from=edge.chapter_from,
             chapter_to=edge.chapter_to,
             trigger_event_key=edge.trigger_event_id,
             condition=edge.condition,
-            properties=edge.properties or {},
+            properties=db_props,
         ))
         if edge.edge_type == "ARC_CHANGE":
-            _sync_arc_change(session, story.id, edge.source_id, edge.properties or {})
+            _sync_arc_change(session, story.id, edge.source_id, db_props)
 
 
 def _delete_chapter_data(session: Session, story_id: int, chapter_number: int) -> None:
