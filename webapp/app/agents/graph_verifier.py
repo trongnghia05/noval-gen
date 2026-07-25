@@ -59,9 +59,11 @@ def run(session: Session, story: Story) -> None:
         critical = [i for i in output.issues if i.severity == "critical"]
         logger.info("[%s] graph_verifier iter%d: %d issues (%d critical) | %s",
                     story.slug, iteration + 1, len(output.issues), len(critical),
-                    output.verdict_note[:100])
-        for issue in critical:
-            logger.info("  [CRITICAL] %s | %s", issue.node_key, issue.description[:100])
+                    output.verdict_note)
+        for issue in output.issues:
+            logger.info("  [%s] node=%s | %s | fix: %s",
+                        issue.severity.upper(), issue.node_key,
+                        issue.description, issue.suggestion)
 
         for issue in output.issues:
             session.add(

@@ -226,9 +226,11 @@ def run(session: Session, story: Story) -> None:
             )
             logger.info("[%s] ch%d iter%d: %d issues (%d critical) | %s",
                         story.slug, chapter_number, iteration + 1,
-                        len(output.issues), len(critical), output.verdict_note[:80])
-            for issue in critical:
-                logger.info("  [CRITICAL] node=%s | %s | fix: %s", issue.node_key, issue.description, issue.suggestion)
+                        len(output.issues), len(critical), output.verdict_note)
+            for issue in output.issues:
+                logger.info("  [%s] node=%s | %s | fix: %s",
+                            issue.severity.upper(), issue.node_key,
+                            issue.description, issue.suggestion)
 
             for issue in output.issues:
                 session.add(
