@@ -71,7 +71,7 @@ def run(session: Session, story: Story) -> None:
             user_content=user_content,
             model=AGENT_MODELS["graph_verifier"],
             schema=GraphVerifierOutput,
-            max_tokens=16384,
+            max_tokens=32768,
             thinking=False,
         )
 
