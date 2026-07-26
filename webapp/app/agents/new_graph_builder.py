@@ -85,7 +85,7 @@ def _rebuild_characters(session: Session, story: Story) -> None:
 
     Safe to wipe+rebuild here because this runs before WRITING starts.
     """
-    session.query(Character).filter_by(story_id=story.id).delete()
+    session.query(Character).filter_by(story_id=story.id).delete(synchronize_session="fetch")
     session.flush()
     char_nodes = (
         session.query(StoryGraphNode)

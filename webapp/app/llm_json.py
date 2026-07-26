@@ -8,6 +8,9 @@ from .providers.base import LLMProvider
 T = TypeVar("T", bound=BaseModel)
 
 
+MAX_STRUCTURED_RETRIES = 3
+
+
 def generate_structured(
     provider: LLMProvider,
     *,
@@ -19,13 +22,14 @@ def generate_structured(
     thinking: bool = False,
 ) -> T:
     """Call the provider in JSON mode and validate the result against a
-    Pydantic schema. Retries once with the parse error appended to the
-    prompt if the first response isn't valid JSON / doesn't match the
-    schema — models occasionally wrap JSON in prose despite instructions.
+    Pydantic schema. Retries up to MAX_STRUCTURED_RETRIES times, appending
+    the parse/validation error to the prompt each time so the model can
+    self-correct — covers both syntax errors and semantic violations (e.g.
+    duplicate node labels caught by model_validators).
     """
     last_error: Exception | None = None
     content = user_content
-    for attempt in range(2):
+    for attempt in range(MAX_STRUCTURED_RETRIES):
         response = provider.generate(
             system=system,
             user_content=content,
@@ -40,8 +44,12 @@ def generate_structured(
         except (json.JSONDecodeError, ValidationError) as exc:
             last_error = exc
             content = (
-                f"{user_content}\n\n---\nLần trả lời trước không phải JSON hợp lệ theo schema "
-                f"yêu cầu (lỗi: {exc}). Trả lời LẠI, DUY NHẤT một object JSON hợp lệ, không có "
-                f"markdown code fence, không có lời dẫn."
+                f"{user_content}\n\n---\n"
+                f"Previous response did not pass schema validation "
+                f"(attempt {attempt + 1}/{MAX_STRUCTURED_RETRIES}, error: {exc}). "
+                f"Reply AGAIN with a single valid JSON object — no markdown fences, "
+                f"no preamble. Fix the exact error described above."
             )
-    raise ValueError(f"Model did not return valid JSON after 2 attempts: {last_error}")
+    raise ValueError(
+        f"Model did not return valid JSON after {MAX_STRUCTURED_RETRIES} attempts: {last_error}"
+    )

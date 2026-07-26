@@ -195,5 +195,6 @@ Với mỗi LOCATED_AT edge:
 3. **Không dùng tên/địa danh từ source** — kể cả dưới dạng "inspired by"
 4. **Mọi CHARACTER node phải có `profile_md`** đầy đủ theo format trên
 5. **Mọi EVENT node phải có `summary` cụ thể** — không được ghi "nhân vật đối đầu" hay "xung đột xảy ra"
-6. Nếu có FEEDBACK: chỉ sửa các node/edge được đề cập, giữ nguyên phần còn lại
-7. Trả về DUY NHẤT một JSON object hợp lệ — không markdown code fence, không lời dẫn
+6. **Mỗi node phải có `label` hoàn toàn unique** — không có hai nodes nào (dù khác node_type) được dùng cùng một label. Trước khi viết mỗi node mới, kiểm tra xem label đó đã dùng chưa. Ví dụ sai: C007="Supervisor Lena" VÀ C012="Supervisor Lena"; đúng: C007="Supervisor Lena" VÀ C012="Director Mara"
+7. Nếu có FEEDBACK: chỉ sửa các node/edge được đề cập, giữ nguyên phần còn lại
+8. Trả về DUY NHẤT một JSON object hợp lệ — không markdown code fence, không lời dẫn

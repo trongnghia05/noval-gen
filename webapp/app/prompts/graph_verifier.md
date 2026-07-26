@@ -47,6 +47,7 @@ Với mỗi cặp nhân vật có nhiều RELATION edges theo thời gian:
 - EVENT nodes phải có `chapter_introduced` liên tiếp từ 1 đến total_chapters (không bỏ chương, không trùng)
 - Mỗi edge phải tham chiếu đến node_key hợp lệ (source và target đều phải tồn tại trong graph)
 - LOCATED_AT edges phải trỏ từ EVENT → LOCATION (không ngược lại)
+- **Không có hai nodes nào có cùng `label`** (so sánh case-insensitive): nếu C007 và C012 đều có label "Supervisor Lena", chúng là cùng một thực thể và graph bị sai — flag `critical` với suggestion merge hoặc đổi tên một node
 
 ---
 

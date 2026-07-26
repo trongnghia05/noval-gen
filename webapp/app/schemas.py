@@ -117,6 +117,20 @@ class StoryAnalyzerOutput(BaseModel):
     edges: list[GraphEdgeOut]          # initial relations, member_of, embodies
     source_chapter_count: int | None = None  # REWRITE only — how many source chapters exist
 
+    @model_validator(mode="after")
+    def check_unique_node_labels(self) -> "StoryAnalyzerOutput":
+        seen: dict[str, str] = {}  # normalised_label → first node_id
+        for n in self.nodes:
+            key = n.label.strip().lower()
+            if key in seen:
+                raise ValueError(
+                    f"Duplicate node label '{n.label}': used by both node {seen[key]} and node {n.id}. "
+                    f"Every node must have a completely unique label. "
+                    f"Assign a different name/label to node {n.id}."
+                )
+            seen[key] = n.id
+        return self
+
 
 class ChapterGraphOutput(BaseModel):
     """Per-source-chapter extraction for REWRITE. One call per chapter, bounded output."""
