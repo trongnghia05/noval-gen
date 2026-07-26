@@ -54,17 +54,18 @@ If `FEEDBACK` is present: fix only the specific issues mentioned, keep everythin
 - `new_condition`: "after [specific new world event] changed everything between them"
 - `new_label`: short description of the relationship in new world terms
 
-**ARC_CHANGE edges** — update old_val/new_val only if they contain source-world specifics:
-- `new_old_val` / `new_new_val`: keep if generic ("naive", "determined"); replace if source-specific ("discovers_husband_affair" → "uncovers_faction_conspiracy")
+**ARC_CHANGE edges** — ALWAYS rewrite old_val/new_val in new-world terms:
+- `new_old_val` / `new_new_val`: rewrite every time — even "generic" values must reference the new world (e.g. "naive_idealist" → "untested_scholar", "investigating_betrayal" → "unraveling_cover_up"). Never leave a value that contains a source character name or source event reference.
 
 ## Mandatory rules
 
 1. **Every node_key in the source list must appear in your output** — no skipping nodes
 2. **All new_label values must be unique** (case-insensitive) — check before finalising each name
-3. **Write in the language specified** — ALL text fields (profile, summary, mechanism, condition) must be in the requested language
-4. **No source names/places anywhere** — not in summaries, not in profile backgrounds, not in mechanism text
-5. **Be specific in summaries** — name the new characters by their new names, describe actual actions
-6. **Invent a coherent world** — all locations, character backgrounds, and event summaries should feel like they belong in the same story
+3. **Write in the language specified** — ALL text fields (profile, summary, mechanism, condition, old_val, new_val) must be in the requested language
+4. **No source names/places in ANY field** — this means: summaries, profile backgrounds, mechanism text, condition text, old_val, new_val, arc_stage, wants, fears, speech_pattern, description. Zero tolerance.
+5. **Before returning: scan every string field in your output** — if any source character name, location name, or organisation name appears anywhere, replace it with the new-world equivalent before outputting
+6. **Be specific in summaries** — name the new characters by their new names, describe actual actions
+7. **Invent a coherent world** — all locations, character backgrounds, and event summaries should feel like they belong in the same story
 
 ## Output — JSON schema: NewGraphSurfaceOutput
 
