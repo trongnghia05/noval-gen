@@ -285,10 +285,13 @@ def _rename_surface(
     if feedback:
         user_content += f"\n## FEEDBACK — fix these specific issues:\n{feedback}\n"
 
+    # Feedback rebuilds don't need thinking (the feedback already says exactly
+    # what to fix); disabling it gives the full token budget to JSON output.
+    # 65536 = Gemini 2.5 Flash max_output_tokens cap.
     output: NewGraphSurfaceOutput = generate_structured(
         PROVIDER, system=system, user_content=user_content,
         model=AGENT_MODELS["new_graph_builder"], schema=NewGraphSurfaceOutput,
-        max_tokens=32768, thinking=True,
+        max_tokens=65536, thinking=(not feedback),
     )
 
     node_map = {
