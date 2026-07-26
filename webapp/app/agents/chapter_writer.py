@@ -74,6 +74,21 @@ def _build_shared_context(session: Session, story: Story, chapter: "Chapter") ->
             + "\n"
         )
 
+    db_graph_section = ""
+    if story.new_graph_built:
+        db_graph_section = (
+            "\n## chapter graph constraints"
+            " (verifier checks these — PARTICIPATES = who must appear,"
+            " LOCATED_AT = where, ARC_CHANGE = arc shifts to trigger this chapter)\n"
+            + context_builder.format_chapter_subgraph(
+                session, story.id, chapter.number, graph_type="new", max_depth=1
+            )
+            + "\n"
+        )
+
+    source_spirit = context_builder.format_source_spirit_for_chapter(session, story, chapter.number)
+    source_section = f"\n{source_spirit}\n" if source_spirit else ""
+
     return (
         f"## chapter-list (bức tranh toàn cảnh — Ch.{chapter.number} là chương đang viết)\n"
         f"{context_builder.format_chapter_list(session, story.id, chapter.number)}\n\n"
@@ -85,6 +100,8 @@ def _build_shared_context(session: Session, story: Story, chapter: "Chapter") ->
         f"## world.md\n{story.world_bible}\n\n"
         f"## story-bible.md (tone, theme)\n{story.story_bible}\n"
         f"{graph_section}"
+        f"{db_graph_section}"
+        f"{source_section}"
     )
 
 
@@ -104,12 +121,28 @@ def _build_context(session: Session, story: Story, chapter: Chapter) -> str:
             + "\n"
         )
 
+    db_graph_section = ""
+    if story.new_graph_built:
+        db_graph_section = (
+            "\n## chapter graph constraints"
+            " (verifier checks these — PARTICIPATES = who must appear,"
+            " LOCATED_AT = where, ARC_CHANGE = arc shifts to trigger this chapter)\n"
+            + context_builder.format_chapter_subgraph(
+                session, story.id, chapter.number, graph_type="new", max_depth=1
+            )
+            + "\n"
+        )
+
+    source_spirit = context_builder.format_source_spirit_for_chapter(session, story, chapter.number)
+    source_section = f"\n{source_spirit}\n" if source_spirit else ""
+
     return (
         f"chapter_number: {chapter.number}\n"
         f"words_per_chapter: {story.words_per_chapter}\n"
         f"language: {story.language}\n\n"
         f"## CHAPTER BLUEPRINT (follow this structure)\n{_format_blueprint(chapter)}\n"
         f"{graph_section}\n"
+        f"{db_graph_section}"
         f"## chapter-list (bức tranh toàn cảnh — Ch.{chapter.number} là chương đang viết)\n"
         f"{context_builder.format_chapter_list(session, story.id, chapter.number)}\n\n"
         f"## world-state.md (snapshot hiện tại)\n{context_builder.format_world_state(session, story.id)}\n\n"
@@ -119,6 +152,7 @@ def _build_context(session: Session, story: Story, chapter: Chapter) -> str:
         f"## characters.md (full profiles)\n{context_builder.format_characters(session, story.id)}\n\n"
         f"## world.md\n{story.world_bible}\n\n"
         f"## story-bible.md (tone, chủ đề)\n{story.story_bible}\n"
+        f"{source_section}"
     )
 
 
@@ -146,13 +180,17 @@ def _write_single_scene(
         f"FORESHADOWING TO PLANT: {blueprint.get('foreshadowing_to_plant') or 'none'}"
     )
 
+    chars = scene_data.get("characters", [])
+    loc = scene_data.get("location", "")
     scene_spec = (
         f"Scene {scene_index + 1} of {total_scenes}:\n"
         f"  goal: {scene_data['goal']}\n"
         f"  conflict: {scene_data['conflict']}\n"
         f"  outcome: {scene_data['outcome']}\n"
-        f"  disaster: {scene_data['disaster']}"
-    )
+        f"  disaster: {scene_data['disaster']}\n"
+        + (f"  characters: {', '.join(chars)}\n" if chars else "")
+        + (f"  location: {loc}\n" if loc else "")
+    ).rstrip()
 
     heading_instruction = (
         f'Start line 1 with the chapter heading: "# Chapter {chapter.number}: [Your invented title]"\n'

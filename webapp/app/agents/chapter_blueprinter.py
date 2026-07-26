@@ -41,11 +41,22 @@ def run(session: Session, story: Story, chapter: Chapter) -> None:
 {csv_graph.format_recent_timeline(story.id)}
 """
 
+    db_graph_section = ""
+    if story.new_graph_built:
+        db_graph_section = (
+            "\n## chapter graph constraints"
+            " (PARTICIPATES = who must appear, LOCATED_AT = where, ARC_CHANGE = arc shifts to trigger)\n"
+            + context_builder.format_chapter_subgraph(
+                session, story.id, chapter.number, graph_type="new", max_depth=1
+            )
+            + "\n"
+        )
+
     user_content = f"""chapter_number: {chapter.number}
 total_chapters: {story.total_chapters}
 act_position: {act}
 language: {story.language}
-{graph_section}
+{graph_section}{db_graph_section}
 ## chapter-summaries (story so far)
 {context_builder.format_chapter_summaries(session, story.id)}
 

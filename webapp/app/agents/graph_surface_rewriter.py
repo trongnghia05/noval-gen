@@ -84,9 +84,29 @@ def run(
             .first()
         )
         if not edge:
-            logger.warning("[%s] graph_surface_rewriter: edge %s→%s %s not found",
-                           story.slug, patch.source_key, patch.target_key, patch.edge_type)
-            continue
+            # LLM often embeds full edge descriptions in edge_type (e.g.
+            # "RELATION ?→∞" or "betrayal strength=strong"). Fall back to
+            # matching by source/target only, preferring the edge whose
+            # edge_type is a prefix of the LLM's raw string.
+            candidates = (
+                session.query(StoryGraphEdge)
+                .filter_by(story_id=story.id, graph_type="new",
+                           source_key=patch.source_key, target_key=patch.target_key)
+                .all()
+            )
+            raw_upper = patch.edge_type.upper()
+            edge = next((e for e in candidates if raw_upper.startswith(e.edge_type)), None)
+            if not edge and candidates:
+                edge = candidates[0]
+            if edge:
+                logger.info("[%s] graph_surface_rewriter: edge %s→%s matched by fallback"
+                            " (patch.edge_type=%r → actual %r)",
+                            story.slug, patch.source_key, patch.target_key,
+                            patch.edge_type, edge.edge_type)
+            else:
+                logger.warning("[%s] graph_surface_rewriter: edge %s→%s %s not found",
+                               story.slug, patch.source_key, patch.target_key, patch.edge_type)
+                continue
         if patch.new_label:
             edge.label = patch.new_label
         if patch.new_mechanism:

@@ -453,7 +453,7 @@ def _rewrite_story_bible(
     )
     if feedback:
         user_content += (
-            f"\n\n## CRITICAL — FORBIDDEN SOURCE NAMES (must not appear anywhere)\n{feedback}\n"
+            f"\n\n## CRITICAL FEEDBACK — must address in rewrite\n{feedback}\n"
         )
 
     response = PROVIDER.generate(
@@ -539,12 +539,16 @@ def run(session: Session, story: Story, feedback: str | None = None) -> None:
 
     # story_bible was rewritten with a new world — downstream planning artifacts
     # (plot_outline, world_bible) must be rebuilt from the updated story_bible.
-    # _rebuild_characters handles Character rows; planning_verified must also
-    # reset so verify_planning re-gates everything after the artifacts regenerate.
+    # Clear Character rows too so character_developer re-runs after plot_outline:
+    # character_developer initializes BOTH the Character DB rows AND the CSV
+    # knowledge graph (csv_graph.init_graph) — skipping it leaves the CSV empty
+    # for all 30 chapters. planning_verified resets so verify_planning re-gates
+    # everything after the artifacts regenerate.
     story.plot_outline = None
     story.world_bible = None
     story.planning_verified = False
 
-    _rebuild_characters(session, story)
+    session.query(Character).filter_by(story_id=story.id).delete(synchronize_session="fetch")
+    session.flush()
     story.new_graph_built = True
     logger.info("[%s] new_graph_builder: done", story.slug)

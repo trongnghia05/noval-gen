@@ -254,10 +254,12 @@ class ChapterSummaryOutput(BaseModel):
 # ── chapter_blueprinter ────────────────────────────────────────────────────────
 
 class SceneOut(BaseModel):
-    goal: str      # what the POV character wants in this scene
-    conflict: str  # what blocks them
-    outcome: str   # do they get it? (success | failure | partial)
-    disaster: str  # new problem that emerges from this scene
+    goal: str              # what the POV character wants in this scene
+    conflict: str          # what blocks them
+    outcome: str           # do they get it? (success | failure | partial)
+    disaster: str          # new problem that emerges from this scene
+    characters: list[str] = []  # node keys (C001...) or names — who appears in this scene
+    location: str = ""          # location label or node key from graph LOCATED_AT
 
 
 class ChapterBlueprintOutput(BaseModel):

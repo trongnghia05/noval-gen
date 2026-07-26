@@ -85,14 +85,38 @@ def _feedback_for(output: PlanningVerifierOutput, artifact: str) -> str:
 
 
 def _regenerate(session: Session, story: Story, artifact: str, feedback: str | None) -> None:
+    from .. import context_builder as cb
+
     if artifact == "story_bible":
-        story_analyzer.run(session, story, feedback=feedback)
+        if story.input_type == "REWRITE":
+            # For REWRITE, story_bible derives from new-graph names via
+            # _rewrite_story_bible — never from re-analyzing the source content.
+            # story_analyzer.run() would: (a) contaminate story_bible with source
+            # character names, (b) wipe all source EVENT nodes accumulated during
+            # the 30 graph_extract steps (they share graph_type="source" and
+            # _clear_graph deletes the whole type).
+            from .new_graph_builder import _rewrite_story_bible, _verify_story_bible
+            _rewrite_story_bible(session, story, world_design=None, feedback=feedback)
+            _verify_story_bible(session, story, world_design=None)
+            # story_bible now uses new-world names — plot_outline and world_bible
+            # were built from the previous bible and are now stale. Rebuild them
+            # immediately so the next _verify() sees a consistent set of all 4
+            # artifacts (same names throughout). Without this, the verifier flags
+            # story_bible inconsistent with plot_outline on every iteration.
+            graph_ctx = cb.format_story_graph(session, story.id, graph_type="new")
+            story.plot_outline = plot_architect.run(story, story_graph=graph_ctx)
+            story.world_bible = worldbuilder.run(story, story_graph=graph_ctx)
+        else:
+            story_analyzer.run(session, story, feedback=feedback)
     elif artifact == "plot_outline":
-        from .. import context_builder
-        graph_ctx = context_builder.format_story_graph(session, story.id)
+        graph_type = "new" if story.new_graph_built else "source"
+        graph_ctx = cb.format_story_graph(session, story.id, graph_type=graph_type)
         story.plot_outline = plot_architect.run(story, feedback=feedback, story_graph=graph_ctx)
     elif artifact == "world":
-        story.world_bible = worldbuilder.run(story, feedback=feedback)
+        graph_ctx = ""
+        if story.new_graph_built:
+            graph_ctx = cb.format_story_graph(session, story.id, graph_type="new")
+        story.world_bible = worldbuilder.run(story, feedback=feedback, story_graph=graph_ctx)
     elif artifact == "characters":
         # Wipe + rebuild is safe pre-WRITING: nothing references these rows yet,
         # and character_developer re-inits the CSV graph from scratch.

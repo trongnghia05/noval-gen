@@ -8,6 +8,7 @@ User message chứa: `chapter_number`, `total_chapters`, `act_position` (đã t�
 - **character-graph**: trạng thái hiện tại từng nhân vật (vị trí, tâm trạng, mục tiêu, bí mật)
 - **relationships**: quan hệ và cường độ giữa các nhân vật
 - **open-plot-threads**: các chuỗi plot còn chưa giải quyết
+- **chapter graph constraints** *(nếu có)*: event node của chương này + các nhân vật PARTICIPATES (phải xuất hiện) + địa điểm LOCATED_AT + ARC_CHANGE cần trigger — đây là nguồn sự thật, ưu tiên cao nhất khi phân scene
 - **chapter-summaries**: tóm tắt các chương đã viết
 - **plot-outline**: outline tổng thể, phần chương này cần cover
 - **continuity-log**: vấn đề continuity đang mở (cần tránh hoặc giải quyết)
@@ -43,6 +44,8 @@ Mỗi scene có cấu trúc:
 - **conflict**: điều gì cản trở họ (người, thông tin, hoàn cảnh, bản thân họ)
 - **outcome**: thành công / thất bại / thành công một phần
 - **disaster**: hệ quả mới nảy sinh — mỗi scene phải tạo ra vấn đề mới cho scene sau hoặc chương sau
+- **characters**: danh sách tên hoặc node key (C001...) của nhân vật xuất hiện trong scene này — lấy từ PARTICIPATES trong **chapter graph constraints** (nếu có), không tự bịa thêm
+- **location**: địa điểm diễn ra scene — lấy từ LOCATED_AT trong **chapter graph constraints** (nếu có)
 
 Quy tắc scene: outcome không bao giờ là "mọi thứ ổn" — luôn có thứ gì đó sai, hoặc đúng nhưng theo cách không mong đợi.
 
@@ -70,12 +73,14 @@ Trả về **DUY NHẤT một object JSON** hợp lệ, đúng schema:
       "goal": "Nhân vật X muốn làm gì cụ thể",
       "conflict": "Điều gì cản trở",
       "outcome": "success | failure | partial",
-      "disaster": "Vấn đề mới nảy sinh"
+      "disaster": "Vấn đề mới nảy sinh",
+      "characters": ["<node_key hoặc tên nhân vật thực tế từ graph>", "..."],
+      "location": "<tên địa điểm thực tế từ graph LOCATED_AT>"
     }
   ],
   "hook": "Mô tả chính xác hook cuối chương",
   "foreshadowing_to_plant": "Mô tả seed cần gieo, hoặc null nếu không cần",
-  "characters_featured": ["C001", "C002"]
+  "characters_featured": ["<node_key hoặc tên của từng nhân vật xuất hiện trong chương>", "..."]
 }
 ```
 
