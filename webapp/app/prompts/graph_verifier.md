@@ -65,6 +65,7 @@ Compare new graph surface against source to ensure genuine creative transformati
 - Same event_type or emotional_weight — these are structural labels
 - Similar arc trajectory (both go naive → experienced) — archetype, not copyrightable
 - Event summaries that describe the same plot beat in genuinely different words/setting/details
+- **THEME labels naming a universal concept** (e.g. "Justice and Consequence", "Self-Discovery", "Betrayal", "Family") — themes are deliberately shared in a REWRITE and are intentionally NOT renamed (only invented proper nouns — people, places, organisations, unique objects — must change). A theme label identical to the source is **never** a reskin violation. Do NOT flag themes on AXIS 2 at all.
 
 **CRITICAL distinction for event summaries**: Two summaries describing the same plot event are NOT violations unless actual sentences/phrases are copied. Test: could the new summary have been written by someone who only knew the plot structure (not the source prose)? If yes → do NOT flag.
 
@@ -101,7 +102,7 @@ When uncertain → choose MINOR.
 
 Your output just lists issues. The orchestrator routes:
 - `narrative_logic` CRITICAL → `graph_surface_rewriter` (targeted fix of specific node/edge text)
-- `reskin` CRITICAL → `new_graph_builder` surface rebuild with feedback
+- `reskin` CRITICAL → deterministic Python name substitution (leaked source names → new names)
 - `enrichment` CRITICAL → enrichment node/edge removed
 
 ---

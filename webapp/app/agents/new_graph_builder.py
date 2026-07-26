@@ -302,16 +302,55 @@ _NODE_TEXT_FIELDS = ("arc_stage", "wants", "fears", "summary", "description",
 _EDGE_TEXT_FIELDS = ("old_val", "new_val", "mechanism", "hint")
 
 
+# Honorifics / titles that are never a character's distinctive given name — a
+# name token equal to one of these is not worth substituting on its own.
+_NAME_TITLES = {
+    "dr", "mr", "mrs", "ms", "sr", "jr", "master", "grandmaster", "artificer",
+    "librarian", "councillor", "apprentice", "healer", "lord", "lady", "the",
+    "madam", "sir", "professor", "captain", "reverend", "matron", "miss", "mister",
+}
+
+
+def _expand_with_name_tokens(label_map: dict[str, str]) -> dict[str, str]:
+    """Add given-name / distinctive-token entries to a full-label substitution map.
+
+    Source labels are full names ("Juniper Kennedy") but prose references the
+    character by a bare token ("Juniper"). Full-label-only substitution leaves
+    those bare references untouched — the #1 source of un-reskinned name leaks.
+    For each source label we add its distinctive tokens (len ≥ 4, not a title)
+    mapping to the full new label, but drop any token that maps to more than one
+    new label (e.g. a shared surname "Kennedy") to avoid ambiguous replacement.
+    """
+    token_targets: dict[str, set[str]] = {}
+    for src, new in label_map.items():
+        for raw in src.split():
+            tok = raw.strip(".,;:'\"()").strip()
+            if len(tok) < 4 or tok.lower() in _NAME_TITLES:
+                continue
+            token_targets.setdefault(tok, set()).add(new)
+
+    expanded = dict(label_map)
+    for tok, targets in token_targets.items():
+        if tok in expanded:
+            continue  # a full label already owns this key
+        if len(targets) == 1:
+            expanded[tok] = next(iter(targets))
+    return expanded
+
+
 def substitute_labels(session: Session, story_id: int, label_map: dict[str, str]) -> int:
     """Replace source labels → new labels in every text field of the new graph.
 
     Deterministic, no LLM. Uses word-boundary matching so a short source label
-    (e.g. "An", "Bar") never corrupts an unrelated substring. Also rewrites
-    the `aliases` list on character nodes. Returns the number of label pairs.
+    (e.g. "An", "Bar") never corrupts an unrelated substring. Expands full-name
+    labels to their bare given-name tokens (so "Juniper" is replaced, not just
+    "Juniper Kennedy"). Also rewrites the `aliases` list. Returns the number of
+    (expanded) label pairs.
     """
     if not label_map:
         return 0
 
+    label_map = _expand_with_name_tokens(label_map)
     # Longest source label first so multi-word names are replaced before any of
     # their component words. Each gets a compiled word-boundary pattern.
     pairs = sorted(label_map.items(), key=lambda x: len(x[0]), reverse=True)
@@ -1000,8 +1039,15 @@ def _verify_story_bible(
     ]
 
     for attempt in range(max_retries + 1):
-        bible_lower = story.story_bible.lower()
-        leaked = [name for name in source_labels if name.lower() in bible_lower]
+        # Only scan the prose portion — the programmatic structured sections
+        # (## Bản đồ cốt truyện gốc, ## Sơ đồ quan hệ nhân vật) are built
+        # from graph data and may legitimately reference minor source-character
+        # names that were never assigned new-world equivalents in the lexicon.
+        # Those names are caught by graph_verifier's reskin pass, not here.
+        bible = story.story_bible or ""
+        prose_only = bible.split("\n\n## Bản đồ cốt truyện gốc")[0]
+        prose_lower = prose_only.lower()
+        leaked = [name for name in source_labels if name.lower() in prose_lower]
         if not leaked:
             logger.info("[%s] story_bible verify: clean (attempt %d)", story.slug, attempt)
             return

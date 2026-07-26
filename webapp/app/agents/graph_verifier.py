@@ -17,6 +17,7 @@ Max 10 iterations. Sets story.new_graph_verified = True when done or exhausted.
 """
 
 import logging
+from collections import defaultdict
 
 from sqlalchemy.orm import Session
 
@@ -73,8 +74,64 @@ def _remove_enrichment_nodes(session: Session, story_id: int, node_keys: list[st
     session.flush()
 
 
+def _deduplicate_nodes(session: Session, story_id: int) -> int:
+    """Remove duplicate new-graph nodes (same node_type + label) before LLM verification.
+
+    graph_surface_rewriter can only PATCH properties — it cannot delete nodes.
+    Keeping duplicates causes the LLM verifier to flag them every iteration,
+    burning cycles. This Python pass detects duplicates by (node_type, label),
+    keeps the lowest node_key (first-created), redirects edges from duplicates
+    to the survivor, then deletes duplicates. Returns the count removed.
+    """
+    nodes = (
+        session.query(StoryGraphNode)
+        .filter_by(story_id=story_id, graph_type="new")
+        .all()
+    )
+    groups: dict[tuple, list] = defaultdict(list)
+    for n in nodes:
+        groups[(n.node_type, n.label.strip().lower())].append(n)
+
+    removed = 0
+    for (_ntype, _label), group in groups.items():
+        if len(group) <= 1:
+            continue
+        group.sort(key=lambda n: n.node_key)
+        survivor = group[0]
+        for dup in group[1:]:
+            session.query(StoryGraphEdge).filter_by(
+                story_id=story_id, graph_type="new", source_key=dup.node_key
+            ).update({"source_key": survivor.node_key}, synchronize_session="fetch")
+            session.query(StoryGraphEdge).filter_by(
+                story_id=story_id, graph_type="new", target_key=dup.node_key
+            ).update({"target_key": survivor.node_key}, synchronize_session="fetch")
+            # Drop self-loops created by the redirect
+            session.query(StoryGraphEdge).filter_by(
+                story_id=story_id, graph_type="new",
+                source_key=survivor.node_key, target_key=survivor.node_key,
+            ).delete(synchronize_session="fetch")
+            session.query(StoryGraphNode).filter_by(
+                story_id=story_id, graph_type="new", node_key=dup.node_key
+            ).delete(synchronize_session="fetch")
+            logger.info("[story %d] deduplicate: removed %s '%s' (duplicate of %s)",
+                        story_id, dup.node_key, dup.label, survivor.node_key)
+            removed += 1
+
+    if removed:
+        session.flush()
+    return removed
+
+
 def run(session: Session, story: Story) -> None:
     """Verify the new graph. Routes critical issues to the right repair agent."""
+    # Pre-pass: remove label duplicates before the LLM sees them.
+    # graph_surface_rewriter can only patch — it cannot delete — so duplicates
+    # would survive every iteration and waste MAX_ITERATIONS LLM calls.
+    dup_count = _deduplicate_nodes(session, story.id)
+    if dup_count:
+        logger.info("[%s] graph_verifier: pre-pass removed %d duplicate nodes",
+                    story.slug, dup_count)
+
     source_graph_text = ""
     if story.input_type == "REWRITE":
         source_graph_text = context_builder.format_story_graph(
