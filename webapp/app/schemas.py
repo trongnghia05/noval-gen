@@ -323,6 +323,7 @@ class QualityReviewerOutput(BaseModel):
 # ── graph_verifier ─────────────────────────────────────────────────────────────
 
 class GraphVerifyIssueOut(BaseModel):
+    check_type: Literal["consistency", "reskin"] = "consistency"
     node_key: str | None = None       # which node has the issue (None if general)
     edge_desc: str | None = None      # describe the edge (e.g. "C001→C002 RELATION Ch.1")
     description: str
