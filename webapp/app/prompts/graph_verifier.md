@@ -106,6 +106,8 @@ Your output just lists issues. The orchestrator routes:
 
 Return ONLY a single valid JSON object (no markdown fences, no preamble):
 
+**CRITICAL — `edge_desc` format**: Always use **node_key identifiers** (e.g. `C001→C002 RELATION Ch.3-15`, `E006→E007 CAUSES`), never character names or labels. Node keys are the bracketed IDs like `C001`, `E006`, `L002` shown in the graph.
+
 ```json
 {
   "issues": [

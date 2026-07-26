@@ -42,8 +42,8 @@ For each issue in the list:
   ],
   "edge_patches": [
     {
-      "source_key": "E006",
-      "target_key": "E007",
+      "source_key": "E006",         ← MUST be a node_key (e.g. C001, E006) — never a character name
+      "target_key": "E007",         ← same: node_key only
       "edge_type": "CAUSES",
       "new_mechanism": "Mira's conversation with Henrik in E006 reveals that the old maintenance logs were never purged from the offline archive — she realises this is her only chance to access the original data before the audit deadline."
     }
