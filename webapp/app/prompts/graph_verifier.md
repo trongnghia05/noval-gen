@@ -50,19 +50,23 @@ Compare new graph surface against source to ensure genuine creative transformati
 ### Flag as CRITICAL:
 - Character label in new graph identical or 1-2 characters different from source label
 - Location label copied from source (even with minor spelling change)
-- Event summary shares >60% of specific words/phrases with the matching source event
 - New graph uses proper nouns (character names, place names, organisation names) from source
+- Event summary contains **verbatim or near-verbatim sentences/phrases** copied from the source (e.g. same sentence structure with only nouns swapped)
 
 ### Flag as MINOR:
 - Arc stage descriptions are direct translations of source (e.g. "fiercely_protective_mother" → "mẹ_bảo_vệ_mãnh_liệt")
 - Mechanism or condition text closely mirrors source phrasing
 - Character `wants` or `fears` are near-literal translations
+- Event summary prose is vague/generic but not copied
 
 ### Do NOT flag:
-- Same narrative beat (turning point at ch.5 in both) — this is intentional for REWRITE
+- Same narrative beat or plot event (e.g. both E004 describe "protagonist finds physical evidence of betrayal") — **this is intentional and correct for REWRITE**. The event happens in both; only the surface prose matters.
 - Same rel_type (both have a romantic relationship) — structural, not surface
 - Same event_type or emotional_weight — these are structural labels
 - Similar arc trajectory (both go naive → experienced) — archetype, not copyrightable
+- Event summaries that describe the same plot beat in genuinely different words/setting/details
+
+**CRITICAL distinction for event summaries**: Two summaries describing the same plot event are NOT violations unless actual sentences/phrases are copied. Test: could the new summary have been written by someone who only knew the plot structure (not the source prose)? If yes → do NOT flag.
 
 ---
 
