@@ -376,6 +376,125 @@ def _enrich_graph(session: Session, story: Story) -> None:
                 story.slug, len(output.new_nodes), len(output.new_edges), output.enrichment_note)
 
 
+# ── Phase 3.5: Rewrite story_bible from new-graph names ──────────────────────
+
+def _rewrite_story_bible(
+    session: Session,
+    story: Story,
+    world_design: WorldDesignOutput | None = None,
+    feedback: str | None = None,
+) -> None:
+    """Rewrite story.story_bible using new-graph names — no source-name contamination.
+
+    world_design: provided on first run; None on feedback rebuilds (uses current
+    story_bible as world context instead).
+    feedback: list of forbidden source names to explicitly avoid.
+    """
+    char_nodes = (
+        session.query(StoryGraphNode)
+        .filter_by(story_id=story.id, graph_type="new", node_type="character")
+        .order_by(StoryGraphNode.chapter_introduced)
+        .all()
+    )
+    event_nodes = (
+        session.query(StoryGraphNode)
+        .filter_by(story_id=story.id, graph_type="new", node_type="event")
+        .order_by(StoryGraphNode.chapter_introduced)
+        .all()
+    )
+
+    char_block = "\n".join(
+        "[{key}] {label} | role: {role} | wants: {wants} | arc: {arc}".format(
+            key=n.node_key, label=n.label,
+            role=(n.properties or {}).get("role", ""),
+            wants=(n.properties or {}).get("wants", ""),
+            arc=(n.properties or {}).get("arc_stage", ""),
+        )
+        for n in char_nodes
+    )
+    event_block = "\n".join(
+        "ch{ch}: {label} — {summary}".format(
+            ch=n.chapter_introduced, label=n.label,
+            summary=((n.properties or {}).get("summary") or "")[:100],
+        )
+        for n in event_nodes
+    )
+
+    if world_design is not None:
+        world_block = (
+            f"Setting: {world_design.setting}\n"
+            f"Time period: {world_design.time_period}\n"
+            f"Genre: {world_design.genre}\n"
+            f"Tone: {world_design.tone}\n"
+            f"Thematic core: {world_design.thematic_core}\n"
+            f"Key locations: {', '.join(world_design.location_concepts)}\n"
+            f"Protagonist archetype: {world_design.protagonist_archetype}\n"
+            f"Antagonist archetype: {world_design.antagonist_archetype}"
+        )
+    else:
+        # Feedback rebuild — existing story_bible is already clean; use as world context
+        world_block = story.story_bible or ""
+
+    system = (
+        "You are a story bible writer for a novel project. "
+        "Write a concise, vivid story bible (300-500 words) using ONLY the provided "
+        "new-world information and character names. "
+        "Never reference source/original character names, company names, or settings. "
+        "Return ONLY the story bible prose — no headings, no commentary."
+    )
+    user_content = (
+        f"language: {story.language}\n\n"
+        f"## WORLD DESIGN\n{world_block}\n\n"
+        f"## NEW CHARACTERS (use EXACTLY these names — no others)\n{char_block}\n\n"
+        f"## KEY PLOT EVENTS (in order)\n{event_block}\n"
+    )
+    if feedback:
+        user_content += (
+            f"\n\n## CRITICAL — FORBIDDEN SOURCE NAMES (must not appear anywhere)\n{feedback}\n"
+        )
+
+    response = PROVIDER.generate(
+        system=system,
+        user_content=user_content,
+        model=AGENT_MODELS.get("story_bible_rewriter", AGENT_MODELS["world_designer"]),
+        max_tokens=2048,
+        thinking=False,
+    )
+    story.story_bible = response.text.strip()
+    logger.info("[%s] story_bible rewritten: %d chars", story.slug, len(story.story_bible))
+
+
+def _verify_story_bible(
+    session: Session,
+    story: Story,
+    world_design: WorldDesignOutput | None = None,
+    max_retries: int = 2,
+) -> None:
+    """Check story_bible for leaked source character names; retry rewrite if found."""
+    source_labels = [
+        n.label for n in session.query(StoryGraphNode)
+        .filter_by(story_id=story.id, graph_type="source", node_type="character")
+        .all()
+    ]
+
+    for attempt in range(max_retries + 1):
+        bible_lower = story.story_bible.lower()
+        leaked = [name for name in source_labels if name.lower() in bible_lower]
+        if not leaked:
+            logger.info("[%s] story_bible verify: clean (attempt %d)", story.slug, attempt)
+            return
+        logger.warning("[%s] story_bible leaked source names (attempt %d): %s",
+                       story.slug, attempt, leaked)
+        if attempt < max_retries:
+            _rewrite_story_bible(
+                session, story, world_design,
+                feedback="FORBIDDEN — do not use any of: " + ", ".join(leaked),
+            )
+
+    logger.warning("[%s] story_bible still has source names after %d retries — accepted",
+                   story.slug, max_retries)
+
+
 # ── Public entry point ────────────────────────────────────────────────────────
 
 def run(session: Session, story: Story, feedback: str | None = None) -> None:
@@ -393,10 +512,12 @@ def run(session: Session, story: Story, feedback: str | None = None) -> None:
     if not feedback:
         # Phase 0 — design the world (first run only)
         world_design = _design_world(session, story)
+        # Store narrative_summary temporarily; _rewrite_story_bible replaces it below
         story.story_bible = world_design.narrative_summary
         world_design_text = world_design.narrative_summary
     else:
-        # Rebuild — reuse existing world design from story.story_bible
+        world_design = None
+        # Feedback rebuild — story_bible already rewritten cleanly on first run
         world_design_text = story.story_bible or ""
 
     # Phase 1b — name lexicon (re-runs on feedback with context)
@@ -408,6 +529,10 @@ def run(session: Session, story: Story, feedback: str | None = None) -> None:
     # Phase 3 — enrichment (skip on feedback rebuild)
     if not feedback:
         _enrich_graph(session, story)
+
+    # Phase 3.5 — rewrite story_bible using new-graph names, then verify
+    _rewrite_story_bible(session, story, world_design)
+    _verify_story_bible(session, story, world_design)
 
     _rebuild_characters(session, story)
     story.new_graph_built = True

@@ -74,9 +74,6 @@ def _build_shared_context(session: Session, story: Story, chapter: "Chapter") ->
             + "\n"
         )
 
-    source_spirit_section = context_builder.format_source_spirit_for_chapter(session, story, chapter.number)
-    spirit_block = f"\n\n{source_spirit_section}" if source_spirit_section else ""
-
     return (
         f"## chapter-list (bức tranh toàn cảnh — Ch.{chapter.number} là chương đang viết)\n"
         f"{context_builder.format_chapter_list(session, story.id, chapter.number)}\n\n"
@@ -88,7 +85,6 @@ def _build_shared_context(session: Session, story: Story, chapter: "Chapter") ->
         f"## world.md\n{story.world_bible}\n\n"
         f"## story-bible.md (tone, theme)\n{story.story_bible}\n"
         f"{graph_section}"
-        f"{spirit_block}"
     )
 
 
@@ -108,9 +104,6 @@ def _build_context(session: Session, story: Story, chapter: Chapter) -> str:
             + "\n"
         )
 
-    source_spirit_section = context_builder.format_source_spirit_for_chapter(session, story, chapter.number)
-    spirit_block = f"\n\n{source_spirit_section}" if source_spirit_section else ""
-
     return (
         f"chapter_number: {chapter.number}\n"
         f"words_per_chapter: {story.words_per_chapter}\n"
@@ -126,7 +119,6 @@ def _build_context(session: Session, story: Story, chapter: Chapter) -> str:
         f"## characters.md (full profiles)\n{context_builder.format_characters(session, story.id)}\n\n"
         f"## world.md\n{story.world_bible}\n\n"
         f"## story-bible.md (tone, chủ đề)\n{story.story_bible}\n"
-        f"{spirit_block}"
     )
 
 
