@@ -30,9 +30,15 @@ from ..db.models import Character, Story, StoryGraphEdge, StoryGraphNode
 from ..llm_json import generate_structured
 from ..prompts.loader import load_prompt
 from ..schemas import (
+    ArcChangeGroupEnrichOutput,
+    ArcChangeSurfaceOut,
+    CausesGroupEnrichOutput,
+    CharacterGroupEnrichOutput,
+    EventGroupEnrichOutput,
     GraphEnrichmentOutput,
     NameLexiconOutput,
     NewGraphSurfaceOutput,
+    RelationGroupEnrichOutput,
     WorldDesignOutput,
 )
 
@@ -202,6 +208,362 @@ def _copy_source_structure(session: Session, story_id: int) -> None:
     session.flush()
     logger.info("[story %d] Phase 1: copied %d nodes, %d edges",
                 story_id, len(source_nodes), len(source_edges))
+
+
+# ── Phase 1.5: Python name substitution (deterministic) ──────────────────────
+
+def _apply_lexicon_substitution(
+    session: Session,
+    story_id: int,
+    lexicon: dict[str, str],          # node_key → new_label
+) -> None:
+    """Replace all source labels with new labels in every text field — no LLM, fully deterministic."""
+    source_labels = {
+        n.node_key: n.label
+        for n in session.query(StoryGraphNode)
+        .filter_by(story_id=story_id, graph_type="source").all()
+    }
+    # source_label → new_label, longest first to avoid partial replacements
+    label_map: dict[str, str] = {}
+    for key, src_label in source_labels.items():
+        new_label = lexicon.get(key)
+        if new_label and new_label != src_label:
+            label_map[src_label] = new_label
+    if not label_map:
+        return
+
+    pairs = sorted(label_map.items(), key=lambda x: len(x[0]), reverse=True)
+
+    def sub(text: str | None) -> str | None:
+        if not text:
+            return text
+        for src, new in pairs:
+            text = text.replace(src, new)
+        return text
+
+    _NODE_TEXT_FIELDS = ("arc_stage", "wants", "fears", "summary", "description",
+                         "background", "speech_pattern", "old_val", "new_val", "hint", "profile_md")
+    _EDGE_TEXT_FIELDS = ("old_val", "new_val", "mechanism", "hint")
+
+    for node in session.query(StoryGraphNode).filter_by(story_id=story_id, graph_type="new").all():
+        node.label = sub(node.label) or node.label
+        props = dict(node.properties or {})
+        changed = False
+        for f in _NODE_TEXT_FIELDS:
+            if props.get(f):
+                new_val = sub(props[f])
+                if new_val != props[f]:
+                    props[f] = new_val
+                    changed = True
+        if changed:
+            node.properties = props
+
+    for edge in session.query(StoryGraphEdge).filter_by(story_id=story_id, graph_type="new").all():
+        if edge.label:
+            edge.label = sub(edge.label)
+        if edge.condition:
+            edge.condition = sub(edge.condition)
+        props = dict(edge.properties or {})
+        changed = False
+        for f in _EDGE_TEXT_FIELDS:
+            if props.get(f):
+                new_val = sub(props[f])
+                if new_val != props[f]:
+                    props[f] = new_val
+                    changed = True
+        if changed:
+            edge.properties = props
+
+    session.flush()
+    logger.info("[story %d] Phase 1.5: applied %d name substitutions", story_id, len(pairs))
+
+
+# ── Phase 2: Per-group LLM enrichment ─────────────────────────────────────────
+
+def _enrich_characters(
+    session: Session, story: Story,
+    lexicon: dict[str, str], world_design_text: str,
+) -> None:
+    nodes = (
+        session.query(StoryGraphNode)
+        .filter_by(story_id=story.id, graph_type="new", node_type="character")
+        .all()
+    )
+    if not nodes:
+        return
+
+    char_lines = []
+    for n in nodes:
+        p = n.properties or {}
+        char_lines.append(
+            f"[{n.node_key}] {n.label} | role: {p.get('role','')} | "
+            f"arc: {p.get('arc_stage','')} | wants: {p.get('wants','')} | "
+            f"fears: {p.get('fears','')} | background: {p.get('background','')}"
+        )
+
+    lexicon_block = "\n".join(f"  {k}: \"{v}\"" for k, v in sorted(lexicon.items()))
+    system = load_prompt("graph_character_enricher")
+    user_content = (
+        f"language: {story.language}\n\n"
+        f"## WORLD DESIGN\n{world_design_text}\n\n"
+        f"## NAME LEXICON\n{lexicon_block}\n\n"
+        f"## CHARACTERS\n" + "\n".join(char_lines)
+    )
+    output: CharacterGroupEnrichOutput = generate_structured(
+        PROVIDER, system=system, user_content=user_content,
+        model=AGENT_MODELS["graph_character_enricher"],
+        schema=CharacterGroupEnrichOutput, max_tokens=8192, thinking=False,
+    )
+    node_map = {n.node_key: n for n in nodes}
+    for surf in output.characters:
+        node = node_map.get(surf.node_key)
+        if not node:
+            continue
+        props = dict(node.properties or {})
+        if surf.new_arc_stage:      props["arc_stage"]      = surf.new_arc_stage
+        if surf.new_wants:          props["wants"]          = surf.new_wants
+        if surf.new_fears:          props["fears"]          = surf.new_fears
+        if surf.new_background:     props["background"]     = surf.new_background
+        if surf.new_speech_pattern: props["speech_pattern"] = surf.new_speech_pattern
+        node.properties = props
+    session.flush()
+    logger.info("[%s] Phase 2a: enriched %d characters", story.slug, len(output.characters))
+
+
+def _enrich_events(
+    session: Session, story: Story,
+    lexicon: dict[str, str], world_design_text: str,
+) -> None:
+    nodes = (
+        session.query(StoryGraphNode)
+        .filter_by(story_id=story.id, graph_type="new", node_type="event")
+        .order_by(StoryGraphNode.chapter_introduced)
+        .all()
+    )
+    if not nodes:
+        return
+
+    # Build char label map for context
+    char_map = {
+        n.node_key: n.label
+        for n in session.query(StoryGraphNode)
+        .filter_by(story_id=story.id, graph_type="new", node_type="character").all()
+    }
+    char_map_block = "\n".join(f"  {k}: {v}" for k, v in char_map.items())
+
+    event_lines = []
+    for n in nodes:
+        p = n.properties or {}
+        event_lines.append(
+            f"[{n.node_key}] ch{n.chapter_introduced} {n.label} "
+            f"| type:{p.get('event_type','')} | {p.get('summary','')[:120]}"
+        )
+
+    system = load_prompt("graph_event_enricher")
+    user_content = (
+        f"language: {story.language}\n\n"
+        f"## WORLD DESIGN\n{world_design_text}\n\n"
+        f"## CHARACTER LABEL MAP\n{char_map_block}\n\n"
+        f"## EVENTS\n" + "\n".join(event_lines)
+    )
+    output: EventGroupEnrichOutput = generate_structured(
+        PROVIDER, system=system, user_content=user_content,
+        model=AGENT_MODELS["graph_event_enricher"],
+        schema=EventGroupEnrichOutput, max_tokens=8192, thinking=False,
+    )
+    node_map = {n.node_key: n for n in nodes}
+    for surf in output.events:
+        node = node_map.get(surf.node_key)
+        if not node:
+            continue
+        props = dict(node.properties or {})
+        props["summary"] = surf.new_summary
+        node.properties = props
+    session.flush()
+    logger.info("[%s] Phase 2b: enriched %d events", story.slug, len(output.events))
+
+
+def _enrich_arc_changes(
+    session: Session, story: Story,
+    lexicon: dict[str, str], world_design_text: str,
+) -> None:
+    edges = (
+        session.query(StoryGraphEdge)
+        .filter_by(story_id=story.id, graph_type="new", edge_type="ARC_CHANGE")
+        .order_by(StoryGraphEdge.chapter_from)
+        .all()
+    )
+    if not edges:
+        return
+
+    char_map = {
+        n.node_key: n.label
+        for n in session.query(StoryGraphNode)
+        .filter_by(story_id=story.id, graph_type="new", node_type="character").all()
+    }
+    char_map_block = "\n".join(f"  {k}: {v}" for k, v in char_map.items())
+
+    arc_lines = []
+    for e in edges:
+        p = e.properties or {}
+        char_name = char_map.get(e.source_key, e.source_key)
+        arc_lines.append(
+            f"[{e.source_key}] {char_name} ch{e.chapter_from}: "
+            f"'{p.get('old_val','')}' → '{p.get('new_val','')}'"
+        )
+
+    system = load_prompt("graph_arc_enricher")
+    user_content = (
+        f"language: {story.language}\n\n"
+        f"## WORLD DESIGN\n{world_design_text}\n\n"
+        f"## CHARACTER LABEL MAP\n{char_map_block}\n\n"
+        f"## ARC_CHANGES\n" + "\n".join(arc_lines)
+    )
+    output: ArcChangeGroupEnrichOutput = generate_structured(
+        PROVIDER, system=system, user_content=user_content,
+        model=AGENT_MODELS["graph_arc_enricher"],
+        schema=ArcChangeGroupEnrichOutput, max_tokens=8192, thinking=False,
+    )
+    # Match by (source_key, chapter_from)
+    edge_map: dict[tuple, StoryGraphEdge] = {}
+    for e in edges:
+        edge_map[(e.source_key, e.chapter_from)] = e
+
+    for surf in output.arc_changes:
+        edge = edge_map.get((surf.source_key, surf.chapter_from))
+        if not edge:
+            logger.warning("[%s] _enrich_arc_changes: no edge for (%s, ch%s)",
+                           story.slug, surf.source_key, surf.chapter_from)
+            continue
+        props = dict(edge.properties or {})
+        if surf.new_old_val: props["old_val"] = surf.new_old_val
+        if surf.new_new_val: props["new_val"] = surf.new_new_val
+        edge.properties = props
+    session.flush()
+    logger.info("[%s] Phase 2c: enriched %d arc_changes", story.slug, len(output.arc_changes))
+
+
+def _enrich_relations(
+    session: Session, story: Story,
+    lexicon: dict[str, str], world_design_text: str,
+) -> None:
+    edges = (
+        session.query(StoryGraphEdge)
+        .filter_by(story_id=story.id, graph_type="new", edge_type="RELATION")
+        .all()
+    )
+    if not edges:
+        return
+
+    char_nodes = (
+        session.query(StoryGraphNode)
+        .filter_by(story_id=story.id, graph_type="new", node_type="character")
+        .all()
+    )
+    char_profiles = "\n".join(
+        f"[{n.node_key}] {n.label} | role:{(n.properties or {}).get('role','')} | "
+        f"arc:{(n.properties or {}).get('arc_stage','')[:60]}"
+        for n in char_nodes
+    )
+
+    _BATCH = 30
+    for batch_start in range(0, len(edges), _BATCH):
+        batch = edges[batch_start: batch_start + _BATCH]
+        char_map = {n.node_key: n.label for n in char_nodes}
+        rel_lines = []
+        for e in batch:
+            p = e.properties or {}
+            src = char_map.get(e.source_key, e.source_key)
+            tgt = char_map.get(e.target_key, e.target_key)
+            rel_lines.append(
+                f"[{e.source_key}→{e.target_key}] ch{e.chapter_from} "
+                f"'{src}' → '{tgt}' | rel_type:{p.get('rel_type','')} | label:{e.label}"
+            )
+
+        system = load_prompt("graph_relation_enricher")
+        user_content = (
+            f"language: {story.language}\n\n"
+            f"## CHARACTER PROFILES\n{char_profiles}\n\n"
+            f"## RELATIONS\n" + "\n".join(rel_lines)
+        )
+        output: RelationGroupEnrichOutput = generate_structured(
+            PROVIDER, system=system, user_content=user_content,
+            model=AGENT_MODELS["graph_relation_enricher"],
+            schema=RelationGroupEnrichOutput, max_tokens=8192, thinking=False,
+        )
+        # Match by (source_key, target_key, chapter_from)
+        edge_map: dict[tuple, StoryGraphEdge] = {}
+        for e in batch:
+            edge_map[(e.source_key, e.target_key, e.chapter_from)] = e
+
+        for surf in output.relations:
+            edge = edge_map.get((surf.source_key, surf.target_key, surf.chapter_from))
+            if not edge:
+                logger.warning("[%s] _enrich_relations: no edge for (%s→%s ch%s)",
+                               story.slug, surf.source_key, surf.target_key, surf.chapter_from)
+                continue
+            props = dict(edge.properties or {})
+            if surf.new_rel_type: props["rel_type"] = surf.new_rel_type
+            edge.properties = props
+            if surf.new_label:    edge.label = surf.new_label
+        session.flush()
+    logger.info("[%s] Phase 2d: enriched %d relations", story.slug, len(edges))
+
+
+def _enrich_causes(
+    session: Session, story: Story,
+    lexicon: dict[str, str], world_design_text: str,
+) -> None:
+    edges = (
+        session.query(StoryGraphEdge)
+        .filter_by(story_id=story.id, graph_type="new", edge_type="CAUSES")
+        .all()
+    )
+    if not edges:
+        return
+
+    event_map = {
+        n.node_key: n.label
+        for n in session.query(StoryGraphNode)
+        .filter_by(story_id=story.id, graph_type="new", node_type="event").all()
+    }
+    event_map_block = "\n".join(f"  {k}: {v}" for k, v in event_map.items())
+
+    cause_lines = []
+    for e in edges:
+        p = e.properties or {}
+        src_label = event_map.get(e.source_key, e.source_key)
+        tgt_label = event_map.get(e.target_key, e.target_key)
+        cause_lines.append(
+            f"[{e.source_key}→{e.target_key}] '{src_label}' causes '{tgt_label}' "
+            f"| mechanism: {p.get('mechanism','')[:100]} | label: {e.label}"
+        )
+
+    system = load_prompt("graph_causes_enricher")
+    user_content = (
+        f"language: {story.language}\n\n"
+        f"## WORLD DESIGN\n{world_design_text}\n\n"
+        f"## EVENT LABEL MAP\n{event_map_block}\n\n"
+        f"## CAUSES\n" + "\n".join(cause_lines)
+    )
+    output: CausesGroupEnrichOutput = generate_structured(
+        PROVIDER, system=system, user_content=user_content,
+        model=AGENT_MODELS["graph_causes_enricher"],
+        schema=CausesGroupEnrichOutput, max_tokens=8192, thinking=False,
+    )
+    edge_map = {(e.source_key, e.target_key): e for e in edges}
+    for surf in output.causes:
+        edge = edge_map.get((surf.source_key, surf.target_key))
+        if not edge:
+            logger.warning("[%s] _enrich_causes: no edge for (%s→%s)",
+                           story.slug, surf.source_key, surf.target_key)
+            continue
+        props = dict(edge.properties or {})
+        if surf.new_mechanism: props["mechanism"] = surf.new_mechanism
+        edge.properties = props
+        if surf.new_label: edge.label = surf.new_label
+    session.flush()
+    logger.info("[%s] Phase 2e: enriched %d causes", story.slug, len(output.causes))
 
 
 # ── Phase 0: World design ──────────────────────────────────────────────────────
@@ -551,33 +913,46 @@ def _verify_story_bible(
 def run(session: Session, story: Story, feedback: str | None = None) -> None:
     """Build (or rebuild) the new graph.
 
-    feedback: if set (from graph_verifier reskin issues), world design is
-    preserved but name lexicon rebuilds with feedback context and Phase 2
-    reruns. Phase 3 is skipped on feedback rebuilds.
+    Pipeline:
+      Phase 1   — Python copy of source graph structure
+      Phase 1b  — LLM: build name lexicon (source_key → new_label)
+      Phase 1.5 — Python: deterministic name substitution across all text fields
+      Phase 2   — LLM per-group enrichment (characters / events / arc_changes /
+                  relations / causes) — small focused calls, convergent
+      Phase 3   — LLM: creative enrichment (new minor nodes/edges) — first run only
+      Phase 3.5 — LLM: rewrite story_bible from new-graph names
+
+    feedback: if set (from graph_verifier), world design is preserved but
+    lexicon rebuilds + full Phase 2 re-runs. Phase 3 skipped on feedback.
     """
     logger.info("[%s] new_graph_builder: start (feedback=%s)", story.slug, bool(feedback))
 
-    # Phase 1 — copy structure (always, even on feedback rebuild)
+    # Phase 1 — copy source structure
     _copy_source_structure(session, story.id)
 
     if not feedback:
-        # Phase 0 — design the world (first run only)
+        # Phase 0 — design the new world (first run only)
         world_design = _design_world(session, story)
-        # Store narrative_summary temporarily; _rewrite_story_bible replaces it below
         story.story_bible = world_design.narrative_summary
         world_design_text = world_design.narrative_summary
     else:
         world_design = None
-        # Feedback rebuild — story_bible already rewritten cleanly on first run
         world_design_text = story.story_bible or ""
 
-    # Phase 1b — name lexicon (re-runs on feedback with context)
+    # Phase 1b — name lexicon
     lexicon = _build_name_lexicon(session, story, world_design_text, feedback)
 
-    # Phase 2 — write surface content
-    _rename_surface(session, story, lexicon, world_design_text, feedback)
+    # Phase 1.5 — Python name substitution (deterministic, convergent)
+    _apply_lexicon_substitution(session, story.id, lexicon)
 
-    # Phase 3 — enrichment (skip on feedback rebuild)
+    # Phase 2 — per-group LLM enrichment (each call is focused and bounded)
+    _enrich_characters(session, story, lexicon, world_design_text)
+    _enrich_events(session, story, lexicon, world_design_text)
+    _enrich_arc_changes(session, story, lexicon, world_design_text)
+    _enrich_relations(session, story, lexicon, world_design_text)
+    _enrich_causes(session, story, lexicon, world_design_text)
+
+    # Phase 3 — creative enrichment (first run only)
     if not feedback:
         _enrich_graph(session, story)
 
@@ -585,17 +960,9 @@ def run(session: Session, story: Story, feedback: str | None = None) -> None:
     _rewrite_story_bible(session, story, world_design)
     _verify_story_bible(session, story, world_design)
 
-    # story_bible was rewritten with a new world — downstream planning artifacts
-    # (plot_outline, world_bible) must be rebuilt from the updated story_bible.
-    # Clear Character rows too so character_developer re-runs after plot_outline:
-    # character_developer initializes BOTH the Character DB rows AND the CSV
-    # knowledge graph (csv_graph.init_graph) — skipping it leaves the CSV empty
-    # for all 30 chapters. planning_verified resets so verify_planning re-gates
-    # everything after the artifacts regenerate.
     story.plot_outline = None
     story.world_bible = None
     story.planning_verified = False
-
     session.query(Character).filter_by(story_id=story.id).delete(synchronize_session="fetch")
     session.flush()
     story.new_graph_built = True

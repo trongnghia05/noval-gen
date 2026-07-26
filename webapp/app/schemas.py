@@ -462,15 +462,90 @@ class SurfaceNodePatchOut(BaseModel):
 class SurfaceEdgePatchOut(BaseModel):
     source_key: str
     target_key: str
-    edge_type: str
+    edge_type: str                       # RELATION | PARTICIPATES | CAUSES | ARC_CHANGE | FORESHADOWS | LOCATED_AT | INVOLVES | OWNS | MEMBER_OF | EMBODIES
     new_mechanism: str | None = None     # CAUSES
     new_label: str | None = None
+    new_rel_type: str | None = None      # RELATION only — friendship|rivalry|love|family|mentor|debt|alliance|betrayal|distrust
+
+
+class NewEdgeForRepairOut(BaseModel):
+    source_key: str
+    target_key: str
+    edge_type: str                       # PARTICIPATES | RELATION | LOCATED_AT | INVOLVES | OWNS | MEMBER_OF | EMBODIES
+    label: str = ""
+    rel_type: str | None = None          # for RELATION
+    role: str | None = None              # for PARTICIPATES: cause|victim|witness|ally|bystander
+    chapter_from: int | None = None
 
 
 class GraphSurfaceRepairOutput(BaseModel):
     node_patches: list[SurfaceNodePatchOut] = []
     edge_patches: list[SurfaceEdgePatchOut] = []
+    add_edges: list[NewEdgeForRepairOut] = []   # edges that are missing and must be created
     repair_note: str
+
+
+# ── new_graph_builder per-group enrichment ─────────────────────────────────────
+
+class CharacterSurfaceOut(BaseModel):
+    node_key: str
+    new_arc_stage: str
+    new_wants: str
+    new_fears: str
+    new_background: str = ""
+    new_speech_pattern: str = ""
+
+
+class CharacterGroupEnrichOutput(BaseModel):
+    characters: list[CharacterSurfaceOut]
+    note: str = ""
+
+
+class EventSurfaceOut(BaseModel):
+    node_key: str
+    new_summary: str
+
+
+class EventGroupEnrichOutput(BaseModel):
+    events: list[EventSurfaceOut]
+    note: str = ""
+
+
+class ArcChangeSurfaceOut(BaseModel):
+    source_key: str
+    chapter_from: int | None
+    new_old_val: str
+    new_new_val: str
+
+
+class ArcChangeGroupEnrichOutput(BaseModel):
+    arc_changes: list[ArcChangeSurfaceOut]
+    note: str = ""
+
+
+class RelationSurfaceOut(BaseModel):
+    source_key: str
+    target_key: str
+    chapter_from: int | None
+    new_rel_type: str    # friendship|rivalry|love|family|mentor|debt|alliance|betrayal|distrust
+    new_label: str
+
+
+class RelationGroupEnrichOutput(BaseModel):
+    relations: list[RelationSurfaceOut]
+    note: str = ""
+
+
+class CausesSurfaceOut(BaseModel):
+    source_key: str
+    target_key: str
+    new_mechanism: str
+    new_label: str = ""
+
+
+class CausesGroupEnrichOutput(BaseModel):
+    causes: list[CausesSurfaceOut]
+    note: str = ""
 
 
 # ── graph_verifier ─────────────────────────────────────────────────────────────

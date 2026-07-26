@@ -13,7 +13,7 @@ from ..config import AGENT_MODELS, PROVIDER
 from ..db.models import Story, StoryGraphEdge, StoryGraphNode
 from ..llm_json import generate_structured
 from ..prompts.loader import load_prompt
-from ..schemas import GraphSurfaceRepairOutput, GraphVerifyIssueOut
+from ..schemas import GraphSurfaceRepairOutput, GraphVerifyIssueOut, NewEdgeForRepairOut
 
 logger = logging.getLogger(__name__)
 
@@ -109,12 +109,41 @@ def run(
                 continue
         if patch.new_label:
             edge.label = patch.new_label
-        if patch.new_mechanism:
+        if patch.new_mechanism or patch.new_rel_type:
             props = dict(edge.properties or {})
-            props["mechanism"] = patch.new_mechanism
+            if patch.new_mechanism:  props["mechanism"] = patch.new_mechanism
+            if patch.new_rel_type:   props["rel_type"]  = patch.new_rel_type
             edge.properties = props
 
+    # Create missing edges from add_edges list
+    existing_keys: set[tuple] = {
+        (e.source_key, e.target_key, e.edge_type)
+        for e in session.query(StoryGraphEdge)
+        .filter_by(story_id=story.id, graph_type="new").all()
+    }
+    added = 0
+    for new_edge in output.add_edges:
+        key = (new_edge.source_key, new_edge.target_key, new_edge.edge_type)
+        if key in existing_keys:
+            logger.info("[%s] graph_surface_rewriter: edge %s→%s %s already exists — skipped",
+                        story.slug, new_edge.source_key, new_edge.target_key, new_edge.edge_type)
+            continue
+        db_props: dict = {}
+        if new_edge.edge_type == "PARTICIPATES" and new_edge.role:
+            db_props["role"] = new_edge.role
+        elif new_edge.edge_type == "RELATION" and new_edge.rel_type:
+            db_props["rel_type"] = new_edge.rel_type
+        session.add(StoryGraphEdge(
+            story_id=story.id, graph_type="new",
+            source_key=new_edge.source_key, target_key=new_edge.target_key,
+            edge_type=new_edge.edge_type, label=new_edge.label or "",
+            chapter_from=new_edge.chapter_from,
+            properties=db_props,
+        ))
+        existing_keys.add(key)
+        added += 1
+
     session.flush()
-    logger.info("[%s] graph_surface_rewriter: patched %d nodes, %d edges — %s",
+    logger.info("[%s] graph_surface_rewriter: patched %d nodes, %d edges, +%d new edges — %s",
                 story.slug, len(output.node_patches), len(output.edge_patches),
-                output.repair_note)
+                added, output.repair_note)

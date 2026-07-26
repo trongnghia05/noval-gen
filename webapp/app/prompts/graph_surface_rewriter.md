@@ -17,14 +17,18 @@ User message contains:
 
 For each issue in the list:
 1. Read the current content of the flagged node/edge in the graph
-2. Understand why it was flagged (incoherent causality, wrong-world reference, vague arc justification)
-3. Write a replacement that:
-   - Fixes the specific problem
-   - Uses the new world's characters, setting, and logic
-   - Is consistent with adjacent events (read what comes before and after)
-   - Matches the narrative tone of the rest of the graph
+2. Understand why it was flagged (incoherent causality, wrong-world reference, vague arc justification, wrong rel_type, missing edge)
+3. Write a replacement that fixes the specific problem using the new world's logic
 
-**Do not rewrite anything not listed in the issues.** Even if you notice other imperfections, stay focused on the flagged items.
+**Do not rewrite anything not listed in the issues.** Stay focused on the flagged items only.
+
+## Valid edge types
+
+Only these edge types exist: `RELATION | PARTICIPATES | CAUSES | ARC_CHANGE | FORESHADOWS | LOCATED_AT | INVOLVES | OWNS | MEMBER_OF | EMBODIES`
+
+**NEVER invent a new edge type.** If an issue mentions a missing link between a character and an event, use `PARTICIPATES` — add it via `add_edges`.
+
+For `RELATION` edges: `rel_type` must be one of `friendship | rivalry | love | family | mentor | debt | alliance | betrayal | distrust`.
 
 ## Output — JSON schema: GraphSurfaceRepairOutput
 
@@ -33,22 +37,35 @@ For each issue in the list:
   "node_patches": [
     {
       "node_key": "E007",
-      "new_summary": "Mira finds the falsified load calculations embedded in a routine maintenance report — the exact data that would exonerate her. But before she can copy them, the system logs her access and alerts Director Callum's office."
-    },
-    {
-      "node_key": "C003",
-      "new_profile_md": "**Name**: Serafina Calder\n**Role**: supporting\n**Wants**: ...\n**Fears**: ...\n**Arc**: ..."
+      "new_summary": "Eleanor discovers the falsified accounts hidden in her husband's private correspondence — proof of his financial crimes. Before she can act, Professor Sterling's solicitor arrives unannounced at the townhouse."
     }
   ],
   "edge_patches": [
     {
-      "source_key": "E006",         ← MUST be a node_key (e.g. C001, E006) — never a character name
-      "target_key": "E007",         ← same: node_key only
+      "source_key": "C001",
+      "target_key": "C007",
+      "edge_type": "RELATION",
+      "new_rel_type": "family",
+      "new_label": "devoted daughter seeking maternal guidance"
+    },
+    {
+      "source_key": "E006",
+      "target_key": "E007",
       "edge_type": "CAUSES",
-      "new_mechanism": "Mira's conversation with Henrik in E006 reveals that the old maintenance logs were never purged from the offline archive — she realises this is her only chance to access the original data before the audit deadline."
+      "new_mechanism": "Eleanor's accidental discovery of a hidden letter in E006 reveals the archive location where the original financial records are kept — her only chance to gather evidence before the hearing."
     }
   ],
-  "repair_note": "Rewrote E007 summary to make Mira's discovery specific and consequential. Fixed E006→E007 mechanism to use new-world logic. Renamed C003 to avoid phonetic similarity to source."
+  "add_edges": [
+    {
+      "source_key": "C001",
+      "target_key": "E012",
+      "edge_type": "PARTICIPATES",
+      "role": "victim",
+      "label": "confronted publicly",
+      "chapter_from": 12
+    }
+  ],
+  "repair_note": "Fixed Eleanor→Matron rel_type from patient_therapist to family. Added missing PARTICIPATES edge for E012."
 }
 ```
 

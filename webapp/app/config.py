@@ -48,6 +48,11 @@ AGENT_MODELS = {
     "graph_enricher":         os.getenv("MODEL_GRAPH_ENRICHER",          _DEFAULT_MODEL),
     "graph_verifier":         os.getenv("MODEL_GRAPH_VERIFIER",          _DEFAULT_MODEL),
     "graph_surface_rewriter": os.getenv("MODEL_GRAPH_SURFACE_REWRITER",  _DEFAULT_MODEL),
+    "graph_character_enricher": os.getenv("MODEL_GRAPH_CHARACTER_ENRICHER", _DEFAULT_MODEL),
+    "graph_event_enricher":     os.getenv("MODEL_GRAPH_EVENT_ENRICHER",     _DEFAULT_MODEL),
+    "graph_arc_enricher":       os.getenv("MODEL_GRAPH_ARC_ENRICHER",       _DEFAULT_MODEL),
+    "graph_relation_enricher":  os.getenv("MODEL_GRAPH_RELATION_ENRICHER",  _DEFAULT_MODEL),
+    "graph_causes_enricher":    os.getenv("MODEL_GRAPH_CAUSES_ENRICHER",    _DEFAULT_MODEL),
 }
 
 DB_URL = os.getenv("DATABASE_URL", "sqlite:///./novelgen.db")

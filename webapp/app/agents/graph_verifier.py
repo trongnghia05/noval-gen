@@ -5,14 +5,15 @@
    story has a clear shape. Critical → graph_surface_rewriter (targeted patch).
 
 2. RESKIN QUALITY (REWRITE only): surface is genuinely different from source —
-   no copied names, no near-verbatim summaries. Critical → new_graph_builder
-   surface rebuild with feedback.
+   no copied names, no near-verbatim summaries. Critical → Python name
+   substitution using the reverse lexicon derived from existing DB nodes
+   (deterministic, convergent — never triggers a full graph rebuild).
 
 3. ENRICHMENT VALIDITY (always): Phase 3 additions don't violate constraints —
    no EVENT nodes added, no CAUSES/ARC_CHANGE from enrichment nodes. Critical →
    remove the offending enrichment node/edge directly.
 
-Max 5 iterations. Sets story.new_graph_verified = True when done or exhausted.
+Max 10 iterations. Sets story.new_graph_verified = True when done or exhausted.
 """
 
 import logging
@@ -27,8 +28,73 @@ from ..prompts.loader import load_prompt
 from ..schemas import GraphVerifierOutput
 from . import graph_surface_rewriter, new_graph_builder
 
-MAX_ITERATIONS = 5
+MAX_ITERATIONS = 10
 logger = logging.getLogger(__name__)
+
+
+def _apply_reskin_substitution(session: Session, story: Story) -> None:
+    """Replace leaked source labels with new labels — derived from DB, no LLM."""
+    source_map = {
+        n.node_key: n.label
+        for n in session.query(StoryGraphNode)
+        .filter_by(story_id=story.id, graph_type="source").all()
+    }
+    new_map = {
+        n.node_key: n.label
+        for n in session.query(StoryGraphNode)
+        .filter_by(story_id=story.id, graph_type="new").all()
+        if n.node_type in ("character", "location", "faction", "object")
+    }
+    label_map: dict[str, str] = {}
+    for key, src_label in source_map.items():
+        new_label = new_map.get(key)
+        if new_label and new_label != src_label:
+            label_map[src_label] = new_label
+    if not label_map:
+        return
+
+    pairs = sorted(label_map.items(), key=lambda x: len(x[0]), reverse=True)
+
+    def sub(text: str | None) -> str | None:
+        if not text:
+            return text
+        for src, new in pairs:
+            text = text.replace(src, new)
+        return text
+
+    _NODE_FIELDS = ("arc_stage", "wants", "fears", "summary", "description",
+                    "background", "speech_pattern", "old_val", "new_val", "hint", "profile_md")
+    _EDGE_FIELDS = ("old_val", "new_val", "mechanism", "hint")
+
+    for node in session.query(StoryGraphNode).filter_by(story_id=story.id, graph_type="new").all():
+        props = dict(node.properties or {})
+        changed = False
+        for f in _NODE_FIELDS:
+            if props.get(f):
+                v = sub(props[f])
+                if v != props[f]:
+                    props[f] = v
+                    changed = True
+        if changed:
+            node.properties = props
+
+    for edge in session.query(StoryGraphEdge).filter_by(story_id=story.id, graph_type="new").all():
+        if edge.label:
+            edge.label = sub(edge.label)
+        if edge.condition:
+            edge.condition = sub(edge.condition)
+        props = dict(edge.properties or {})
+        changed = False
+        for f in _EDGE_FIELDS:
+            if props.get(f):
+                v = sub(props[f])
+                if v != props[f]:
+                    props[f] = v
+                    changed = True
+        if changed:
+            edge.properties = props
+
+    logger.info("[%s] reskin substitution: %d replacements applied", story.slug, len(pairs))
 
 
 def _remove_enrichment_nodes(session: Session, story_id: int, node_keys: list[str]) -> None:
@@ -120,14 +186,11 @@ def run(session: Session, story: Story) -> None:
             session.flush()
 
         if reskin_critical:
-            feedback_lines = [
-                f"- [{i.node_key or 'general'}] {i.description} → Fix: {i.suggestion}"
-                for i in reskin_critical
-            ]
-            feedback = "\n".join(feedback_lines)
-            logger.info("[%s] graph_verifier: rebuilding surface for %d reskin issues",
+            # Python substitution only — derive reverse map from existing DB nodes.
+            # Convergent and deterministic: never triggers a full graph rebuild.
+            logger.info("[%s] graph_verifier: reskin fix — Python name substitution for %d issues",
                         story.slug, len(reskin_critical))
-            new_graph_builder.run(session, story, feedback=feedback)
+            _apply_reskin_substitution(session, story)
             session.flush()
 
         if enrichment_critical:

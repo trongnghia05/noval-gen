@@ -120,7 +120,12 @@ def _regenerate(session: Session, story: Story, artifact: str, feedback: str | N
     elif artifact == "characters":
         # Wipe + rebuild is safe pre-WRITING: nothing references these rows yet,
         # and character_developer re-inits the CSV graph from scratch.
-        session.query(Character).filter_by(story_id=story.id).delete()
+        # synchronize_session="fetch" loads objects into identity map before
+        # deleting, so SQLAlchemy's unit-of-work doesn't treat them as "pending
+        # inserts" on the next autoflush. The explicit flush ensures the DELETE
+        # hits SQLite before character_developer adds new rows with the same names.
+        session.query(Character).filter_by(story_id=story.id).delete(synchronize_session="fetch")
+        session.flush()
         character_developer.run(session, story, feedback=feedback)
 
 
@@ -171,4 +176,7 @@ def run(session: Session, story: Story) -> None:
             else:  # exhausted feedback rewrites → one clean regen, no feedback
                 _regenerate(session, story, art, None)
                 fresh_done.add(art)
-        session.flush()
+        # Commit (not just flush) after each iteration so the next iteration
+        # starts with a clean session — prevents stale identity-map objects from
+        # causing autoflush UNIQUE violations when characters are rebuilt.
+        session.commit()
