@@ -309,7 +309,7 @@ class PlanningVerifierOutput(BaseModel):
 # ── quality_reviewer ───────────────────────────────────────────────────────────
 
 class QualityReviewIssueOut(BaseModel):
-    dimension: Literal["quality", "originality", "world_consistency"]
+    dimension: Literal["quality", "world_consistency", "graph_consistency"]
     description: str
     suggestion: str
     severity: Literal["critical", "minor"]

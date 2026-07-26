@@ -1,14 +1,18 @@
-"""Per-chapter quality gate (all input types) plus, for REWRITE, an originality
-check against the matching source chapter. Runs after chapter_verifier and
-before chapter_summarizer. Reuses ChapterVerifyLog for history (the dimension
-is tagged into the description) — no schema change needed.
+"""Per-chapter quality gate. Three dimensions:
+- quality: prose quality, word count, coherence (all input types)
+- world_consistency: no anachronisms vs world.md/story-bible (all input types)
+- graph_consistency: chapter content matches the new graph's planned event (REWRITE only)
+
+Source chapter text is NOT passed here — originality checking against the source
+belongs at the new_graph_builder level, not the writing phase. The reviewer only
+knows the new story's world and its planned graph event.
 """
 
 import logging
 
 from sqlalchemy.orm import Session
 
-from .. import length_calc
+from .. import context_builder
 from ..config import AGENT_MODELS, PROVIDER
 from ..db.models import Chapter, Story
 from ..llm_json import generate_structured
@@ -18,43 +22,35 @@ from ..schemas import QualityReviewIssueOut, QualityReviewerOutput
 logger = logging.getLogger(__name__)
 
 
-def _source_chapter_for(story: Story, chapter_number: int) -> str | None:
-    if story.input_type != "REWRITE" or not story.source_content:
-        return None
-    chapters = length_calc.split_source_chapters(story.source_content)
-    if 1 <= chapter_number <= len(chapters):
-        return chapters[chapter_number - 1]
-    return None
-
-
 def check(session: Session, story: Story, chapter: Chapter) -> list[QualityReviewIssueOut]:
-    """Run quality + originality check on the just-written chapter.
-
-    Returns all issues found. Logging and rewrite logic live in the
-    orchestrator's verification loop — this function only checks.
-    """
     system = load_prompt("quality_reviewer")
-    source_chapter = _source_chapter_for(story, chapter.number)
+
+    # For REWRITE, include the new graph's planned event node for this chapter
+    graph_event_section = ""
+    if story.input_type == "REWRITE" and story.new_graph_built:
+        event_context = context_builder.format_chapter_context_from_graph(
+            session, story.id, chapter.number
+        )
+        graph_event_section = (
+            f"\n## New graph — planned event for this chapter\n"
+            f"(Check that the chapter follows this plan, not the source story)\n"
+            f"---\n{event_context}\n---\n"
+        )
 
     user_content = (
+        f"language: {story.language}\n"
         f"input_type: {story.input_type}\n"
         f"chapter_number: {chapter.number}\n"
-        f"words_per_chapter (mục tiêu): {story.words_per_chapter}\n"
-        f"word_count thực tế: {chapter.word_count}\n\n"
-        f"## world.md — thế giới của truyện MỚI (dùng làm chuẩn cho world-consistency)\n"
-        f"---\n{story.world_bible or '(chưa có)'}\n---\n\n"
-        f"## story-bible.md — tone, setting, thể loại của truyện MỚI\n"
-        f"---\n{story.story_bible or '(chưa có)'}\n---\n\n"
-        f"## Chương vừa viết (tiêu đề: {chapter.title})\n"
+        f"words_per_chapter (target): {story.words_per_chapter}\n"
+        f"word_count actual: {chapter.word_count}\n\n"
+        f"## world.md — new story world (standard for world-consistency)\n"
+        f"---\n{story.world_bible or '(not yet available)'}\n---\n\n"
+        f"## story-bible.md — tone, setting, genre of new story\n"
+        f"---\n{story.story_bible or '(not yet available)'}\n---\n"
+        f"{graph_event_section}\n"
+        f"## Chapter just written (title: {chapter.title})\n"
         f"---\n{chapter.content}\n---\n"
     )
-    if source_chapter is not None:
-        user_content += (
-            f"\n## Chương gốc tương ứng — kiểm ĐỘ GIỐNG BỀ MẶT\n"
-            f"(Giống mạch truyện/tình tiết là ĐÚNG chủ đích — KHÔNG phạt. "
-            f"Chỉ phạt khi rò tên gốc / chép câu / bê nguyên bối cảnh.)\n"
-            f"---\n{source_chapter}\n---\n"
-        )
 
     output: QualityReviewerOutput = generate_structured(
         PROVIDER,

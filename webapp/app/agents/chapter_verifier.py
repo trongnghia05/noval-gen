@@ -34,6 +34,7 @@ def check(
         else ""
     )
     user_content = (
+        f"language: {story.language}\n"
         f"chapter_number: {chapter.number}\n\n"
         f"## Nhân vật (đầy đủ)\n{context_builder.format_characters(session, story.id)}\n\n"
         f"## world-state hiện tại\n{context_builder.format_world_state(session, story.id)}\n\n"
