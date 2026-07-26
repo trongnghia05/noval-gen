@@ -334,12 +334,108 @@ class QualityReviewerOutput(BaseModel):
     verdict_note: str
 
 
+# ── new_graph_builder Phase 2 (surface rename) ────────────────────────────────
+
+class NodeSurfaceOut(BaseModel):
+    node_key: str
+    new_label: str
+    # CHARACTER text fields
+    new_profile_md: str | None = None
+    new_wants: str | None = None
+    new_fears: str | None = None
+    new_arc_stage: str | None = None
+    new_background: str | None = None
+    new_speech_pattern: str | None = None
+    # EVENT text fields
+    new_summary: str | None = None
+    # LOCATION / FACTION / THEME / OBJECT
+    new_description: str | None = None
+
+
+class EdgeSurfaceOut(BaseModel):
+    source_key: str
+    target_key: str
+    edge_type: str
+    new_label: str = ""
+    new_mechanism: str | None = None   # CAUSES
+    new_condition: str | None = None   # RELATION
+    new_old_val: str | None = None     # ARC_CHANGE
+    new_new_val: str | None = None     # ARC_CHANGE
+
+
+class NewGraphSurfaceOutput(BaseModel):
+    narrative_summary: str
+    node_surfaces: list[NodeSurfaceOut]
+    edge_surfaces: list[EdgeSurfaceOut] = []
+
+    @model_validator(mode="after")
+    def check_unique_labels(self) -> "NewGraphSurfaceOutput":
+        seen: dict[str, str] = {}
+        for s in self.node_surfaces:
+            key = s.new_label.strip().lower()
+            if key in seen:
+                raise ValueError(
+                    f"Duplicate new label '{s.new_label}': used by both {seen[key]} and {s.node_key}. "
+                    f"Every node must have a completely unique label — assign a different name to {s.node_key}."
+                )
+            seen[key] = s.node_key
+        return self
+
+
+# ── graph_enricher Phase 3 (creative enrichment) ──────────────────────────────
+
+class GraphEnrichmentOutput(BaseModel):
+    new_nodes: list[GraphNodeOut] = []
+    new_edges: list[GraphEdgeOut] = []
+    enrichment_note: str
+
+    @model_validator(mode="after")
+    def check_enrichment_constraints(self) -> "GraphEnrichmentOutput":
+        for n in self.new_nodes:
+            if n.node_type == "event":
+                raise ValueError(
+                    f"Enrichment cannot add EVENT nodes (node {n.id}: '{n.label}'). "
+                    "Only character, location, object, theme, faction nodes are allowed."
+                )
+        for e in self.new_edges:
+            if e.edge_type in ("CAUSES", "ARC_CHANGE"):
+                raise ValueError(
+                    f"Enrichment cannot add {e.edge_type} edges ({e.source_id}→{e.target_id}). "
+                    "Allowed edge types: FORESHADOWS, MEMBER_OF, INVOLVES, OWNS, EMBODIES, PARTICIPATES, RELATION."
+                )
+        return self
+
+
+# ── graph_surface_rewriter (targeted surface repair) ──────────────────────────
+
+class SurfaceNodePatchOut(BaseModel):
+    node_key: str
+    new_label: str | None = None
+    new_summary: str | None = None       # EVENT
+    new_profile_md: str | None = None    # CHARACTER
+    new_description: str | None = None   # LOCATION / FACTION / THEME / OBJECT
+
+
+class SurfaceEdgePatchOut(BaseModel):
+    source_key: str
+    target_key: str
+    edge_type: str
+    new_mechanism: str | None = None     # CAUSES
+    new_label: str | None = None
+
+
+class GraphSurfaceRepairOutput(BaseModel):
+    node_patches: list[SurfaceNodePatchOut] = []
+    edge_patches: list[SurfaceEdgePatchOut] = []
+    repair_note: str
+
+
 # ── graph_verifier ─────────────────────────────────────────────────────────────
 
 class GraphVerifyIssueOut(BaseModel):
-    check_type: Literal["consistency", "reskin"] = "consistency"
+    check_type: Literal["narrative_logic", "reskin", "enrichment"] = "narrative_logic"
     node_key: str | None = None       # which node has the issue (None if general)
-    edge_desc: str | None = None      # describe the edge (e.g. "C001→C002 RELATION Ch.1")
+    edge_desc: str | None = None      # describe the edge (e.g. "C001→C002 CAUSES Ch.5")
     description: str
     suggestion: str
     severity: Literal["critical", "minor"]

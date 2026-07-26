@@ -1,17 +1,18 @@
-"""Verify the NEW story graph on two axes:
+"""Verify the new story graph on three axes:
 
-1. CONSISTENCY (all input types): character arcs, causal chains, relation edges,
-   structural integrity. On critical issues → graph_repair (surgical fixes).
+1. NARRATIVE LOGIC (all input types): check that surface content is coherent —
+   CAUSES mechanisms make sense, ARC_CHANGE events justify arc shifts, overall
+   story has a clear shape. Critical → graph_surface_rewriter (targeted patch).
 
-2. RESKIN QUALITY (REWRITE only): compare new graph against source graph to
-   ensure the creative transformation is genuine — different names, different
-   settings, no surface copying. On critical reskin issues → new_graph_builder
-   with targeted feedback (rename/redesign, not surgical graph surgery).
+2. RESKIN QUALITY (REWRITE only): surface is genuinely different from source —
+   no copied names, no near-verbatim summaries. Critical → new_graph_builder
+   surface rebuild with feedback.
 
-Max 10 iterations total (bounded cost). Sets story.planning_verified = True
-when done or when iterations exhausted — keeps the pipeline from getting stuck.
+3. ENRICHMENT VALIDITY (always): Phase 3 additions don't violate constraints —
+   no EVENT nodes added, no CAUSES/ARC_CHANGE from enrichment nodes. Critical →
+   remove the offending enrichment node/edge directly.
 
-Note: PlanningVerifyLog reused for audit trail (artifact="graph") — no new table.
+Max 5 iterations. Sets story.planning_verified = True when done or exhausted.
 """
 
 import logging
@@ -20,32 +21,39 @@ from sqlalchemy.orm import Session
 
 from .. import context_builder
 from ..config import AGENT_MODELS, PROVIDER
-from ..db.models import PlanningVerifyLog, Story
+from ..db.models import PlanningVerifyLog, Story, StoryGraphEdge, StoryGraphNode
 from ..llm_json import generate_structured
 from ..prompts.loader import load_prompt
 from ..schemas import GraphVerifierOutput
-from . import graph_repair, new_graph_builder
+from . import graph_surface_rewriter, new_graph_builder
 
-MAX_ITERATIONS = 10
+MAX_ITERATIONS = 5
 logger = logging.getLogger(__name__)
 
 
-def run(session: Session, story: Story) -> None:
-    """Verify the new graph. Routes critical issues to the right repair agent.
+def _remove_enrichment_nodes(session: Session, story_id: int, node_keys: list[str]) -> None:
+    """Remove invalid enrichment nodes and their edges."""
+    for key in node_keys:
+        session.query(StoryGraphEdge).filter_by(story_id=story_id, graph_type="new").filter(
+            (StoryGraphEdge.source_key == key) | (StoryGraphEdge.target_key == key)
+        ).delete(synchronize_session="fetch")
+        session.query(StoryGraphNode).filter_by(
+            story_id=story_id, graph_type="new", node_key=key
+        ).delete(synchronize_session="fetch")
+    session.flush()
 
-    - consistency critical → graph_repair (node/edge surgery)
-    - reskin critical → new_graph_builder with feedback (creative redo)
-    """
-    # Source graph text only needed for REWRITE reskin-quality check
+
+def run(session: Session, story: Story) -> None:
+    """Verify the new graph. Routes critical issues to the right repair agent."""
     source_graph_text = ""
     if story.input_type == "REWRITE":
         source_graph_text = context_builder.format_story_graph(
             session, story.id, graph_type="source"
         )
-        logger.info("[%s] graph_verifier: REWRITE — will check consistency + reskin quality vs source",
+        logger.info("[%s] graph_verifier: REWRITE — checking narrative_logic + reskin + enrichment",
                     story.slug)
     else:
-        logger.info("[%s] graph_verifier: checking consistency only (input_type=%s)",
+        logger.info("[%s] graph_verifier: checking narrative_logic + enrichment (input_type=%s)",
                     story.slug, story.input_type)
 
     for iteration in range(MAX_ITERATIONS):
@@ -61,8 +69,7 @@ def run(session: Session, story: Story) -> None:
         )
         if source_graph_text:
             user_content += (
-                f"\n## SOURCE GRAPH (for RESKIN QUALITY check — compare labels/surface only)\n"
-                f"{source_graph_text}\n"
+                f"\n## SOURCE GRAPH (for RESKIN QUALITY check)\n{source_graph_text}\n"
             )
 
         output: GraphVerifierOutput = generate_structured(
@@ -85,33 +92,31 @@ def run(session: Session, story: Story) -> None:
                         issue.description, issue.suggestion)
 
         for issue in output.issues:
-            session.add(
-                PlanningVerifyLog(
-                    story_id=story.id,
-                    artifact="graph",
-                    severity=issue.severity,
-                    description=f"[{issue.check_type}] {issue.description}",
-                    suggestion=issue.suggestion,
-                    action_taken=(
-                        f"{'rebuild' if issue.check_type == 'reskin' else 'repair'}"
-                        f"_iter_{iteration + 1}"
-                        if issue.severity == "critical"
-                        else "logged_only"
-                    ),
-                )
-            )
+            session.add(PlanningVerifyLog(
+                story_id=story.id,
+                artifact="graph",
+                severity=issue.severity,
+                description=f"[{issue.check_type}] {issue.description}",
+                suggestion=issue.suggestion,
+                action_taken=(
+                    f"{issue.check_type}_repair_iter_{iteration + 1}"
+                    if issue.severity == "critical"
+                    else "logged_only"
+                ),
+            ))
         session.flush()
 
         if not critical:
             break
 
-        consistency_critical = [i for i in critical if i.check_type == "consistency"]
-        reskin_critical = [i for i in critical if i.check_type == "reskin"]
+        narrative_critical = [i for i in critical if i.check_type == "narrative_logic"]
+        reskin_critical    = [i for i in critical if i.check_type == "reskin"]
+        enrichment_critical = [i for i in critical if i.check_type == "enrichment"]
 
-        if consistency_critical:
-            logger.info("[%s] graph_verifier repairing %d consistency issues",
-                        story.slug, len(consistency_critical))
-            graph_repair.run(session, story, consistency_critical)
+        if narrative_critical:
+            logger.info("[%s] graph_verifier: surface-rewriting %d narrative_logic issues",
+                        story.slug, len(narrative_critical))
+            graph_surface_rewriter.run(session, story, narrative_critical)
             session.flush()
 
         if reskin_critical:
@@ -120,12 +125,17 @@ def run(session: Session, story: Story) -> None:
                 for i in reskin_critical
             ]
             feedback = "\n".join(feedback_lines)
-            logger.info("[%s] graph_verifier rebuilding new graph: %d reskin issues",
+            logger.info("[%s] graph_verifier: rebuilding surface for %d reskin issues",
                         story.slug, len(reskin_critical))
             new_graph_builder.run(session, story, feedback=feedback)
             session.flush()
-            # After a full rebuild, source_graph_text doesn't change — reuse it
 
-    # Mark gate as passed whether the graph is clean or iterations exhausted.
+        if enrichment_critical:
+            bad_keys = [i.node_key for i in enrichment_critical if i.node_key]
+            if bad_keys:
+                logger.info("[%s] graph_verifier: removing %d invalid enrichment nodes: %s",
+                            story.slug, len(bad_keys), bad_keys)
+                _remove_enrichment_nodes(session, story.id, bad_keys)
+
     story.planning_verified = True
     logger.info("[%s] graph_verifier: done — planning_verified=True", story.slug)
