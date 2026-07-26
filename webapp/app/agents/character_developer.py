@@ -37,8 +37,12 @@ plot-outline.md:
         thinking=True,
     )
 
-    # Save to DB (existing logic)
+    seen_names: set[str] = set()
     for character in output.characters:
+        name_key = character.name.strip().lower()
+        if name_key in seen_names:
+            continue
+        seen_names.add(name_key)
         session.add(
             Character(
                 story_id=story.id,
@@ -48,6 +52,7 @@ plot-outline.md:
                 profile_md=character.profile_md,
             )
         )
+    session.flush()
 
     # Init CSV knowledge graph
     graph_rows = []
