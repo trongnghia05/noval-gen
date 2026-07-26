@@ -5,9 +5,13 @@ their local subgraphs (from both source and new graph), then outputs only
 the minimal node/edge changes needed to fix the critical issues.
 """
 
+import logging
+
 from sqlalchemy.orm import Session
 
 from .. import context_builder
+
+logger = logging.getLogger(__name__)
 from ..config import AGENT_MODELS, PROVIDER
 from ..db.models import PlanningVerifyLog, Story, StoryGraphEdge, StoryGraphNode
 from ..llm_json import generate_structured
@@ -86,7 +90,10 @@ def run(session: Session, story: Story, issues: list[GraphVerifyIssueOut]) -> No
         )
         if d.chapter_from is not None:
             q = q.filter(StoryGraphEdge.chapter_from == d.chapter_from)
-        q.delete(synchronize_session=False)
+        deleted = q.delete(synchronize_session=False)
+        if deleted == 0:
+            logger.warning("[%s] graph_repair: edge_delete %s→%s %s not found (LLM may have used label instead of node_key)",
+                           story.slug, d.source_key, d.target_key, d.edge_type)
 
     for a in output.edge_adds:
         src_exists = (
