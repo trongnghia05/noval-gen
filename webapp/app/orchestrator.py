@@ -73,13 +73,16 @@ def _decide_next_step(session: Session, story: Story) -> str:
             )
             if extracted < story.source_chapter_count:
                 return "graph_extract"
-            # REWRITE: verify source graph before building new graph.
+            # Verify source graph before building new graph.
             if not story.source_graph_verified:
                 return "verify_source_graph"
-            # REWRITE: build new story graph from source graph (once all source
-            # chapters have been extracted and verified).
+            # Build new story graph from source graph.
             if not story.new_graph_built:
                 return "new_graph"
+            # Verify the new graph before deriving narrative artifacts from it.
+            if not story.new_graph_verified:
+                return "verify_graph"
+        # Narrative artifacts — same path for REWRITE (after graph) and IDEA/PREMISE.
         if not story.plot_outline:
             return "plot_outline"
         has_characters = session.query(Character).filter_by(story_id=story.id).first() is not None
@@ -88,9 +91,6 @@ def _decide_next_step(session: Session, story: Story) -> str:
         if not story.world_bible:
             return "world"
         if not story.planning_verified:
-            # REWRITE uses graph-based verification; IDEA/PREMISE uses artifact verification.
-            if story.input_type == "REWRITE":
-                return "verify_graph"
             return "verify_planning"
         return "planning_complete"
 
@@ -182,7 +182,12 @@ def run_story_bible_step(session: Session, story: Story) -> dict:
 def run_plot_outline_step(session: Session, story: Story) -> dict:
     logger.info("[%s] START plot_outline", story.slug)
     from . import context_builder
-    graph_ctx = context_builder.format_story_graph(session, story.id)
+    # REWRITE: use the new (reskinned) graph as the event anchor.
+    # IDEA/PREMISE: use source graph if available, otherwise no graph context.
+    if story.new_graph_built:
+        graph_ctx = context_builder.format_story_graph(session, story.id, graph_type="new")
+    else:
+        graph_ctx = context_builder.format_story_graph(session, story.id, graph_type="source")
     story.plot_outline = plot_architect.run(story, story_graph=graph_ctx)
     session.commit()
     return {"phase": "PLANNING", "step": "plot_outline"}
@@ -197,7 +202,11 @@ def run_characters_step(session: Session, story: Story) -> dict:
 
 def run_world_step(session: Session, story: Story) -> dict:
     logger.info("[%s] START world", story.slug)
-    story.world_bible = worldbuilder.run(story)
+    from . import context_builder
+    graph_ctx = ""
+    if story.new_graph_built:
+        graph_ctx = context_builder.format_story_graph(session, story.id, graph_type="new")
+    story.world_bible = worldbuilder.run(story, story_graph=graph_ctx)
     session.commit()
     return {"phase": "PLANNING", "step": "world"}
 

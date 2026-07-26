@@ -12,7 +12,7 @@
    no EVENT nodes added, no CAUSES/ARC_CHANGE from enrichment nodes. Critical →
    remove the offending enrichment node/edge directly.
 
-Max 5 iterations. Sets story.planning_verified = True when done or exhausted.
+Max 5 iterations. Sets story.new_graph_verified = True when done or exhausted.
 """
 
 import logging
@@ -137,5 +137,5 @@ def run(session: Session, story: Story) -> None:
                             story.slug, len(bad_keys), bad_keys)
                 _remove_enrichment_nodes(session, story.id, bad_keys)
 
-    story.planning_verified = True
-    logger.info("[%s] graph_verifier: done — planning_verified=True", story.slug)
+    story.new_graph_verified = True
+    logger.info("[%s] graph_verifier: done — new_graph_verified=True", story.slug)

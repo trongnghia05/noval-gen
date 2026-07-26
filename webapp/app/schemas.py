@@ -334,6 +334,47 @@ class QualityReviewerOutput(BaseModel):
     verdict_note: str
 
 
+# ── new_graph_builder Phase 0 (world design) ─────────────────────────────────
+
+class WorldDesignOutput(BaseModel):
+    setting: str              # e.g. "1990s Hong Kong financial district"
+    time_period: str          # e.g. "1994-1997, pre-handover"
+    genre: str                # e.g. "corporate thriller with political undercurrent"
+    tone: str                 # e.g. "tense, morally ambiguous, atmospheric"
+    protagonist_archetype: str  # e.g. "junior auditor who discovers embezzlement"
+    antagonist_archetype: str   # e.g. "senior partner exploiting political transition"
+    location_concepts: list[str]  # 3-5 key settings in new world
+    thematic_core: str          # e.g. "loyalty vs integrity when institutions collapse"
+    narrative_summary: str      # 300-400 word prose summary of the new story
+
+
+# ── new_graph_builder Phase 1 (name lexicon) ─────────────────────────────────
+
+class NameLexiconEntry(BaseModel):
+    node_key: str       # e.g. "C001"
+    node_type: str      # character | location | faction | object
+    source_label: str   # original name from source
+    new_label: str      # new name for the reimagined world
+
+
+class NameLexiconOutput(BaseModel):
+    entries: list[NameLexiconEntry]
+    world_note: str     # 1-2 sentences on naming convention chosen
+
+    @model_validator(mode="after")
+    def check_unique_labels(self) -> "NameLexiconOutput":
+        seen: dict[str, str] = {}
+        for e in self.entries:
+            key = e.new_label.strip().lower()
+            if key in seen:
+                raise ValueError(
+                    f"Duplicate new label '{e.new_label}': used by {seen[key]} and {e.node_key}. "
+                    f"Every node must have a completely unique label."
+                )
+            seen[key] = e.node_key
+        return self
+
+
 # ── new_graph_builder Phase 2 (surface rename) ────────────────────────────────
 
 class NodeSurfaceOut(BaseModel):

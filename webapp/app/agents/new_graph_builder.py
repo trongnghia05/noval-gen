@@ -1,18 +1,23 @@
 """Build the NEW story graph from the source graph — three phases.
 
+Phase 0 (LLM): design the new world — setting, genre, tone, protagonist/antagonist
+  archetypes, location concepts. Output stored in story.story_bible.
+
 Phase 1 (Python): copy ALL nodes and edges from source graph verbatim,
   preserving exact structure (chapter_from, chapter_to, edge types, timing).
 
-Phase 2 (LLM): rename every piece of visible text — character names,
-  locations, event summaries, profiles, mechanism text — while the structure
-  stays locked. Output: NewGraphSurfaceOutput (labels + text fields only).
+Phase 1b (LLM): build a name lexicon (source_label → new_label) for all
+  characters, locations, factions, and objects. Names decided once upfront.
+
+Phase 2 (LLM): write rich content for every node and edge using the world
+  design + lexicon as anchors. No name invention — focus purely on quality.
 
 Phase 3 (LLM): creative enrichment — add minor characters, objects, themes,
-  foreshadowing threads that make the world feel original without touching
-  the plot structure. Output: GraphEnrichmentOutput.
+  foreshadowing without touching the plot structure.
 
-After all three phases: derives story.plot_outline, story.world_bible, and
-Character rows so downstream agents keep working unchanged.
+After all phases: rebuilds Character rows so downstream agents work unchanged.
+story.plot_outline and story.world_bible are NOT set here — plot_architect and
+worldbuilder run as separate orchestrator steps after graph_verifier.
 """
 
 import logging
@@ -24,7 +29,12 @@ from ..config import AGENT_MODELS, PROVIDER
 from ..db.models import Character, Story, StoryGraphEdge, StoryGraphNode
 from ..llm_json import generate_structured
 from ..prompts.loader import load_prompt
-from ..schemas import GraphEnrichmentOutput, GraphNodeOut, NewGraphSurfaceOutput
+from ..schemas import (
+    GraphEnrichmentOutput,
+    NameLexiconOutput,
+    NewGraphSurfaceOutput,
+    WorldDesignOutput,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -34,55 +44,6 @@ logger = logging.getLogger(__name__)
 def _clear_new_graph(session: Session, story_id: int) -> None:
     session.query(StoryGraphEdge).filter_by(story_id=story_id, graph_type="new").delete(synchronize_session="fetch")
     session.query(StoryGraphNode).filter_by(story_id=story_id, graph_type="new").delete(synchronize_session="fetch")
-
-
-def _build_plot_outline(session: Session, story_id: int) -> str:
-    events = (
-        session.query(StoryGraphNode)
-        .filter_by(story_id=story_id, graph_type="new", node_type="event")
-        .order_by(StoryGraphNode.chapter_introduced)
-        .all()
-    )
-    lines = ["# Plot Outline\n"]
-    for e in events:
-        p = e.properties or {}
-        ch = e.chapter_introduced or "?"
-        lines.append(f"## Chapter {ch}: {e.label}")
-        lines.append(p.get("summary", ""))
-        if p.get("event_type"):
-            lines.append(f"Type: {p['event_type']} | Weight: {p.get('emotional_weight', '')}")
-        lines.append("")
-    return "\n".join(lines)
-
-
-def _build_world_bible(session: Session, story_id: int) -> str:
-    lines = ["# World\n"]
-    for ntype, header in [
-        ("location", "Locations"),
-        ("faction", "Factions"),
-        ("theme", "Themes"),
-        ("object", "Key Objects"),
-    ]:
-        nodes = (
-            session.query(StoryGraphNode)
-            .filter_by(story_id=story_id, graph_type="new", node_type=ntype)
-            .all()
-        )
-        if nodes:
-            lines.append(f"## {header}")
-            for n in nodes:
-                p = n.properties or {}
-                desc = (
-                    p.get("description")
-                    or p.get("goal")
-                    or p.get("central_question")
-                    or p.get("symbolic_meaning")
-                    or ""
-                )
-                lines.append(f"### {n.label} ({n.node_key})")
-                lines.append(desc)
-                lines.append("")
-    return "\n".join(lines)
 
 
 def _rebuild_characters(session: Session, story: Story) -> None:
@@ -124,58 +85,34 @@ def _rebuild_characters(session: Session, story: Story) -> None:
         ))
 
 
-# ── Phase 1: Python structure copy ────────────────────────────────────────────
-
-def _copy_source_structure(session: Session, story_id: int) -> None:
-    """Copy all source nodes/edges to new graph, preserving structure exactly."""
-    _clear_new_graph(session, story_id)
-
-    source_nodes = (
+def _format_source_compact(session: Session, story_id: int) -> str:
+    """Compact source-node listing for world_designer and name_lexicon."""
+    nodes = (
         session.query(StoryGraphNode)
         .filter_by(story_id=story_id, graph_type="source")
+        .order_by(StoryGraphNode.node_type, StoryGraphNode.chapter_introduced)
         .all()
     )
-    for n in source_nodes:
-        session.add(StoryGraphNode(
-            story_id=story_id,
-            graph_type="new",
-            node_key=n.node_key,
-            node_type=n.node_type,
-            label=n.label,                        # placeholder; Phase 2 overwrites
-            properties=dict(n.properties or {}),  # placeholder; Phase 2 overwrites
-            chapter_introduced=n.chapter_introduced,
-        ))
-    session.flush()
+    lines = []
+    for n in nodes:
+        p = n.properties or {}
+        line = f"[{n.node_key}] {n.node_type.upper()}: '{n.label}'"
+        if n.node_type == "character":
+            line += (f" | role: {p.get('role', '')}"
+                     f" | wants: {p.get('wants', '')}"
+                     f" | arc: {p.get('arc_stage', '')}")
+        elif n.node_type == "event":
+            summary = (p.get("summary") or "")[:100]
+            line += f" | ch{n.chapter_introduced} | {p.get('event_type', '')} | {summary}"
+        elif n.node_type == "location":
+            desc = (p.get("description") or "")[:80]
+            line += f" | {desc}"
+        lines.append(line)
+    return "\n".join(lines)
 
-    source_edges = (
-        session.query(StoryGraphEdge)
-        .filter_by(story_id=story_id, graph_type="source")
-        .all()
-    )
-    for e in source_edges:
-        session.add(StoryGraphEdge(
-            story_id=story_id,
-            graph_type="new",
-            source_key=e.source_key,
-            target_key=e.target_key,
-            edge_type=e.edge_type,
-            label=e.label or "",
-              # structural metadata — locked from source:
-            chapter_from=e.chapter_from,
-            chapter_to=e.chapter_to,
-            trigger_event_key=e.trigger_event_key,
-            condition=e.condition,
-            properties=dict(e.properties or {}),
-        ))
-    session.flush()
-    logger.info("[story %d] Phase 1: copied %d nodes, %d edges from source",
-                story_id, len(source_nodes), len(source_edges))
-
-
-# ── Phase 2: LLM surface rename ────────────────────────────────────────────────
 
 def _format_source_for_surface(session: Session, story_id: int) -> str:
-    """Build a compact source-node listing for the LLM surface prompt."""
+    """Detailed source-node listing for the surface content call (Phase 2)."""
     nodes = (
         session.query(StoryGraphNode)
         .filter_by(story_id=story_id, graph_type="source")
@@ -208,7 +145,6 @@ def _format_source_for_surface(session: Session, story_id: int) -> str:
             line += f" | {desc}"
         node_lines.append(line)
 
-    # Include only text-bearing edges (CAUSES mechanism, RELATION condition)
     edge_lines = []
     for e in edges:
         p = e.properties or {}
@@ -220,42 +156,145 @@ def _format_source_for_surface(session: Session, story_id: int) -> str:
                 f"[{e.source_key}↔{e.target_key}] RELATION {p.get('rel_type', '')} "
                 f"ch{e.chapter_from}-{e.chapter_to}: {e.condition[:80]}"
             )
+        elif e.edge_type == "ARC_CHANGE":
+            old_v = p.get("old_val", "")
+            new_v = p.get("new_val", "")
+            edge_lines.append(f"[{e.source_key}] ARC_CHANGE ch{e.chapter_from}: {old_v} → {new_v}")
 
     parts = ["## NODES\n" + "\n".join(node_lines)]
     if edge_lines:
-        parts.append("## KEY EDGES (text only — structure is preserved)\n" + "\n".join(edge_lines[:40]))
+        parts.append("## KEY EDGES (text fields to rewrite)\n" + "\n".join(edge_lines[:60]))
     return "\n\n".join(parts)
 
 
-def _rename_surface(session: Session, story: Story, feedback: str | None = None) -> str:
-    """Phase 2: ask LLM to rename all surface content; apply to new graph nodes/edges."""
+# ── Phase 1: Python structure copy ────────────────────────────────────────────
+
+def _copy_source_structure(session: Session, story_id: int) -> None:
+    _clear_new_graph(session, story_id)
+    source_nodes = (
+        session.query(StoryGraphNode)
+        .filter_by(story_id=story_id, graph_type="source")
+        .all()
+    )
+    for n in source_nodes:
+        session.add(StoryGraphNode(
+            story_id=story_id, graph_type="new",
+            node_key=n.node_key, node_type=n.node_type,
+            label=n.label, properties=dict(n.properties or {}),
+            chapter_introduced=n.chapter_introduced,
+        ))
+    session.flush()
+
+    source_edges = (
+        session.query(StoryGraphEdge)
+        .filter_by(story_id=story_id, graph_type="source")
+        .all()
+    )
+    for e in source_edges:
+        session.add(StoryGraphEdge(
+            story_id=story_id, graph_type="new",
+            source_key=e.source_key, target_key=e.target_key,
+            edge_type=e.edge_type, label=e.label or "",
+            chapter_from=e.chapter_from, chapter_to=e.chapter_to,
+            trigger_event_key=e.trigger_event_key, condition=e.condition,
+            properties=dict(e.properties or {}),
+        ))
+    session.flush()
+    logger.info("[story %d] Phase 1: copied %d nodes, %d edges",
+                story_id, len(source_nodes), len(source_edges))
+
+
+# ── Phase 0: World design ──────────────────────────────────────────────────────
+
+def _design_world(session: Session, story: Story) -> WorldDesignOutput:
+    source_summary = _format_source_compact(session, story.id)
+    system = load_prompt("world_designer")
+    user_content = (
+        f"language: {story.language}\n"
+        f"genre_hint: {story.genre or '(derive from source)'}\n"
+        f"total_chapters: {story.total_chapters}\n\n"
+        f"## SOURCE GRAPH\n{source_summary}\n"
+    )
+    output: WorldDesignOutput = generate_structured(
+        PROVIDER, system=system, user_content=user_content,
+        model=AGENT_MODELS["world_designer"], schema=WorldDesignOutput,
+        max_tokens=4096, thinking=True,
+    )
+    logger.info("[%s] Phase 0: world — %s / %s", story.slug, output.genre, output.setting)
+    return output
+
+
+# ── Phase 1b: Name lexicon ─────────────────────────────────────────────────────
+
+def _build_name_lexicon(
+    session: Session, story: Story,
+    world_design_text: str,
+    feedback: str | None = None,
+) -> dict[str, str]:
+    nodes = (
+        session.query(StoryGraphNode)
+        .filter_by(story_id=story.id, graph_type="source")
+        .all()
+    )
+    nameable = [n for n in nodes if n.node_type in ("character", "location", "faction", "object")]
+    lines = []
+    for n in nameable:
+        p = n.properties or {}
+        role = p.get("role", "")
+        lines.append(f"[{n.node_key}] {n.node_type.upper()}: '{n.label}'" + (f" | {role}" if role else ""))
+
+    system = load_prompt("name_lexicon")
+    user_content = (
+        f"language: {story.language}\n\n"
+        f"## NEW WORLD DESIGN\n{world_design_text}\n\n"
+        f"## SOURCE NODES TO RENAME\n" + "\n".join(lines)
+    )
+    if feedback:
+        user_content += f"\n\n## FEEDBACK — these names were too similar to source, change them:\n{feedback}\n"
+
+    output: NameLexiconOutput = generate_structured(
+        PROVIDER, system=system, user_content=user_content,
+        model=AGENT_MODELS["name_lexicon"], schema=NameLexiconOutput,
+        max_tokens=4096, thinking=False,
+    )
+    lexicon = {e.node_key: e.new_label for e in output.entries}
+    logger.info("[%s] Phase 1b: lexicon — %d names | %s", story.slug, len(lexicon), output.world_note)
+    return lexicon
+
+
+# ── Phase 2: LLM surface content ──────────────────────────────────────────────
+
+def _rename_surface(
+    session: Session, story: Story,
+    lexicon: dict[str, str],
+    world_design_text: str,
+    feedback: str | None = None,
+) -> None:
     source_summary = _format_source_for_surface(session, story.id)
+    lexicon_block = "\n".join(f'  {k}: "{v}"' for k, v in sorted(lexicon.items()))
 
     system = load_prompt("new_graph_builder")
     user_content = (
         f"language: {story.language}\n"
-        f"genre: {story.genre or '(AI decides)'}\n"
+        f"genre: {story.genre or '(see world design)'}\n"
         f"total_chapters: {story.total_chapters}\n\n"
+        f"## WORLD DESIGN\n{world_design_text}\n\n"
+        f"## NAME LEXICON (use EXACTLY these names)\n{lexicon_block}\n\n"
         f"## SOURCE NODES TO REIMAGINE\n{source_summary}\n"
     )
     if feedback:
         user_content += f"\n## FEEDBACK — fix these specific issues:\n{feedback}\n"
 
     output: NewGraphSurfaceOutput = generate_structured(
-        PROVIDER,
-        system=system,
-        user_content=user_content,
-        model=AGENT_MODELS["new_graph_builder"],
-        schema=NewGraphSurfaceOutput,
-        max_tokens=32768,
-        thinking=True,
+        PROVIDER, system=system, user_content=user_content,
+        model=AGENT_MODELS["new_graph_builder"], schema=NewGraphSurfaceOutput,
+        max_tokens=32768, thinking=True,
     )
 
     node_map = {
         n.node_key: n
         for n in session.query(StoryGraphNode)
-        .filter_by(story_id=story.id, graph_type="new")
-        .all()
+        .filter_by(story_id=story.id, graph_type="new").all()
     }
 
     for surf in output.node_surfaces:
@@ -273,129 +312,103 @@ def _rename_surface(session: Session, story: Story, feedback: str | None = None)
             if surf.new_speech_pattern: props["speech_pattern"] = surf.new_speech_pattern
         elif node.node_type == "event":
             if surf.new_summary: props["summary"] = surf.new_summary
-        else:  # location, faction, theme, object
+        else:
             if surf.new_description: props["description"] = surf.new_description
         node.properties = props
 
     for surf in output.edge_surfaces:
         edge = (
             session.query(StoryGraphEdge)
-            .filter_by(
-                story_id=story.id, graph_type="new",
-                source_key=surf.source_key, target_key=surf.target_key,
-                edge_type=surf.edge_type,
-            )
+            .filter_by(story_id=story.id, graph_type="new",
+                       source_key=surf.source_key, target_key=surf.target_key,
+                       edge_type=surf.edge_type)
             .first()
         )
         if not edge:
             continue
-        if surf.new_label:
-            edge.label = surf.new_label
-        if surf.new_condition:
-            edge.condition = surf.new_condition
+        if surf.new_label:     edge.label = surf.new_label
+        if surf.new_condition: edge.condition = surf.new_condition
         props = dict(edge.properties or {})
-        if surf.new_mechanism:  props["mechanism"] = surf.new_mechanism
-        if surf.new_old_val:    props["old_val"]   = surf.new_old_val
-        if surf.new_new_val:    props["new_val"]   = surf.new_new_val
+        if surf.new_mechanism: props["mechanism"] = surf.new_mechanism
+        if surf.new_old_val:   props["old_val"]   = surf.new_old_val
+        if surf.new_new_val:   props["new_val"]   = surf.new_new_val
         edge.properties = props
 
     session.flush()
-    logger.info("[%s] Phase 2: renamed surface for %d nodes, %d edges",
+    logger.info("[%s] Phase 2: surface written %d nodes, %d edges",
                 story.slug, len(output.node_surfaces), len(output.edge_surfaces))
-    return output.narrative_summary
 
 
 # ── Phase 3: LLM creative enrichment ─────────────────────────────────────────
 
 def _enrich_graph(session: Session, story: Story) -> None:
-    """Phase 3: add minor characters, objects, foreshadowing without touching plot."""
     new_graph_text = context_builder.format_story_graph(session, story.id, graph_type="new")
-
     system = load_prompt("graph_enricher")
     user_content = (
         f"language: {story.language}\n"
         f"total_chapters: {story.total_chapters}\n\n"
         f"## NEW GRAPH (after surface rename)\n{new_graph_text}\n"
     )
-
     output: GraphEnrichmentOutput = generate_structured(
-        PROVIDER,
-        system=system,
-        user_content=user_content,
-        model=AGENT_MODELS["graph_enricher"],
-        schema=GraphEnrichmentOutput,
-        max_tokens=8192,
-        thinking=False,
+        PROVIDER, system=system, user_content=user_content,
+        model=AGENT_MODELS["graph_enricher"], schema=GraphEnrichmentOutput,
+        max_tokens=8192, thinking=False,
     )
-
     for node in output.new_nodes:
         session.add(StoryGraphNode(
-            story_id=story.id,
-            graph_type="new",
-            node_key=node.id,
-            node_type=node.node_type,
-            label=node.label,
-            properties=node.properties or {},
-            chapter_introduced=node.chapter_introduced,
+            story_id=story.id, graph_type="new", node_key=node.id,
+            node_type=node.node_type, label=node.label,
+            properties=node.properties or {}, chapter_introduced=node.chapter_introduced,
         ))
     session.flush()
-
     for edge in output.new_edges:
-        # Build properties from typed fields
-        if edge.edge_type == "PARTICIPATES":
-            db_props = {"role": edge.role}
-        elif edge.edge_type == "FORESHADOWS":
-            db_props = edge.properties or {}
-        else:
-            db_props = edge.properties or {}
-
+        db_props = {"role": edge.role} if edge.edge_type == "PARTICIPATES" else (edge.properties or {})
         session.add(StoryGraphEdge(
-            story_id=story.id,
-            graph_type="new",
-            source_key=edge.source_id,
-            target_key=edge.target_id,
-            edge_type=edge.edge_type,
-            label=edge.label or "",
-            chapter_from=edge.chapter_from,
-            chapter_to=edge.chapter_to,
-            trigger_event_key=edge.trigger_event_id,
-            condition=edge.condition,
+            story_id=story.id, graph_type="new",
+            source_key=edge.source_id, target_key=edge.target_id,
+            edge_type=edge.edge_type, label=edge.label or "",
+            chapter_from=edge.chapter_from, chapter_to=edge.chapter_to,
+            trigger_event_key=edge.trigger_event_id, condition=edge.condition,
             properties=db_props,
         ))
     session.flush()
-
-    logger.info("[%s] Phase 3: enriched with %d nodes, %d edges — %s",
-                story.slug, len(output.new_nodes), len(output.new_edges),
-                output.enrichment_note)
+    logger.info("[%s] Phase 3: +%d nodes, +%d edges — %s",
+                story.slug, len(output.new_nodes), len(output.new_edges), output.enrichment_note)
 
 
 # ── Public entry point ────────────────────────────────────────────────────────
 
 def run(session: Session, story: Story, feedback: str | None = None) -> None:
-    """Build (or rebuild) the new graph in three phases.
+    """Build (or rebuild) the new graph.
 
-    feedback: if set (from graph_verifier reskin issues), passed to Phase 2
-    to guide the surface rename toward fixing the flagged problems.
-    On feedback rebuild, Phase 1 re-copies the source structure from scratch.
+    feedback: if set (from graph_verifier reskin issues), world design is
+    preserved but name lexicon rebuilds with feedback context and Phase 2
+    reruns. Phase 3 is skipped on feedback rebuilds.
     """
     logger.info("[%s] new_graph_builder: start (feedback=%s)", story.slug, bool(feedback))
 
-    # Phase 1 — always re-copy structure from source (even on feedback rebuild,
-    # to ensure structure stays clean)
+    # Phase 1 — copy structure (always, even on feedback rebuild)
     _copy_source_structure(session, story.id)
 
-    # Phase 2 — LLM rename surface
-    narrative_summary = _rename_surface(session, story, feedback)
-    story.story_bible = narrative_summary
+    if not feedback:
+        # Phase 0 — design the world (first run only)
+        world_design = _design_world(session, story)
+        story.story_bible = world_design.narrative_summary
+        world_design_text = world_design.narrative_summary
+    else:
+        # Rebuild — reuse existing world design from story.story_bible
+        world_design_text = story.story_bible or ""
 
-    # Phase 3 — creative enrichment (skip on feedback rebuild to save cost;
-    # verifier will re-run and can flag enrichment issues separately)
+    # Phase 1b — name lexicon (re-runs on feedback with context)
+    lexicon = _build_name_lexicon(session, story, world_design_text, feedback)
+
+    # Phase 2 — write surface content
+    _rename_surface(session, story, lexicon, world_design_text, feedback)
+
+    # Phase 3 — enrichment (skip on feedback rebuild)
     if not feedback:
         _enrich_graph(session, story)
 
-    # Derive downstream text artifacts
-    story.plot_outline = _build_plot_outline(session, story.id)
-    story.world_bible = _build_world_bible(session, story.id)
     _rebuild_characters(session, story)
     story.new_graph_built = True
     logger.info("[%s] new_graph_builder: done", story.slug)
