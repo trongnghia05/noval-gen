@@ -537,6 +537,14 @@ def run(session: Session, story: Story, feedback: str | None = None) -> None:
     _rewrite_story_bible(session, story, world_design)
     _verify_story_bible(session, story, world_design)
 
+    # story_bible was rewritten with a new world — downstream planning artifacts
+    # (plot_outline, world_bible) must be rebuilt from the updated story_bible.
+    # _rebuild_characters handles Character rows; planning_verified must also
+    # reset so verify_planning re-gates everything after the artifacts regenerate.
+    story.plot_outline = None
+    story.world_bible = None
+    story.planning_verified = False
+
     _rebuild_characters(session, story)
     story.new_graph_built = True
     logger.info("[%s] new_graph_builder: done", story.slug)
