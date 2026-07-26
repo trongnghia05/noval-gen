@@ -42,6 +42,11 @@ def run(session: Session, story: Story) -> None:
         source_graph_text = context_builder.format_story_graph(
             session, story.id, graph_type="source"
         )
+        logger.info("[%s] graph_verifier: REWRITE — will check consistency + reskin quality vs source",
+                    story.slug)
+    else:
+        logger.info("[%s] graph_verifier: checking consistency only (input_type=%s)",
+                    story.slug, story.input_type)
 
     for iteration in range(MAX_ITERATIONS):
         new_graph_text = context_builder.format_story_graph(
@@ -123,3 +128,4 @@ def run(session: Session, story: Story) -> None:
 
     # Mark gate as passed whether the graph is clean or iterations exhausted.
     story.planning_verified = True
+    logger.info("[%s] graph_verifier: done — planning_verified=True", story.slug)
