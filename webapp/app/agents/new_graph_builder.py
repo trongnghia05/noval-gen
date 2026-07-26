@@ -213,8 +213,13 @@ def _design_world(session: Session, story: Story) -> WorldDesignOutput:
         f"language: {story.language}\n"
         f"genre_hint: {story.genre or '(derive from source)'}\n"
         f"total_chapters: {story.total_chapters}\n\n"
-        f"## SOURCE GRAPH\n{source_summary}\n"
     )
+    if story.source_spirit:
+        user_content += (
+            "## SOURCE SPIRIT (tone, plot arc — role-based, no source names)\n"
+            f"{story.source_spirit}\n\n"
+        )
+    user_content += f"## SOURCE GRAPH\n{source_summary}\n"
     output: WorldDesignOutput = generate_structured(
         PROVIDER, system=system, user_content=user_content,
         model=AGENT_MODELS["world_designer"], schema=WorldDesignOutput,
@@ -392,6 +397,14 @@ def _rewrite_story_bible(
     world_design: provided on first run; None on feedback rebuilds (uses current
     story_bible as world context instead).
     feedback: list of forbidden source names to explicitly avoid.
+
+    The output bible has two parts:
+    1. LLM-generated narrative prose (premise, tone, characters, theme).
+    2. Programmatically-appended structured sections (required for planning_verifier
+       to pass for REWRITE without looping): "Bản đồ cốt truyện gốc (theo chương)"
+       and "Sơ đồ quan hệ nhân vật". These are derived from the new graph's EVENT
+       nodes and RELATION edges — guaranteed to be present every call, zero source-
+       name contamination.
     """
     char_nodes = (
         session.query(StoryGraphNode)
@@ -435,8 +448,12 @@ def _rewrite_story_bible(
             f"Antagonist archetype: {world_design.antagonist_archetype}"
         )
     else:
-        # Feedback rebuild — existing story_bible is already clean; use as world context
-        world_block = story.story_bible or ""
+        # Feedback rebuild — existing story_bible is already clean; use as world context.
+        # Strip off the programmatic sections we appended last time so the LLM doesn't
+        # see its own structured output as "world context" prose.
+        existing = story.story_bible or ""
+        split_marker = "\n\n## Bản đồ cốt truyện gốc"
+        world_block = existing.split(split_marker)[0]
 
     system = (
         "You are a story bible writer for a novel project. "
@@ -463,8 +480,39 @@ def _rewrite_story_bible(
         max_tokens=2048,
         thinking=False,
     )
-    story.story_bible = response.text.strip()
-    logger.info("[%s] story_bible rewritten: %d chars", story.slug, len(story.story_bible))
+    prose = response.text.strip()
+
+    # ── Append required structured sections (planning_verifier checks these) ──
+
+    # "Bản đồ cốt truyện gốc (theo chương)": one bullet per event node, ordered
+    # by chapter. Derived from new graph — all names are new-world, no source leakage.
+    plot_map_lines = ["## Bản đồ cốt truyện gốc (theo chương)\n"]
+    for n in event_nodes:
+        summary = ((n.properties or {}).get("summary") or "")[:150]
+        plot_map_lines.append(f"- Chương {n.chapter_introduced}: **{n.label}** — {summary}")
+    plot_map_section = "\n".join(plot_map_lines)
+
+    # "Sơ đồ quan hệ nhân vật": from RELATION edges — mirrors the source structure
+    # under new names, which planning_verifier cross-checks against characters.md.
+    relation_edges = (
+        session.query(StoryGraphEdge)
+        .filter_by(story_id=story.id, graph_type="new", edge_type="RELATION")
+        .all()
+    )
+    node_label_map = {n.node_key: n.label for n in char_nodes}
+    rel_lines = ["## Sơ đồ quan hệ nhân vật\n"]
+    for e in relation_edges:
+        src = node_label_map.get(e.source_key, e.source_key)
+        tgt = node_label_map.get(e.target_key, e.target_key)
+        p = e.properties or {}
+        rel_type = p.get("rel_type", "") or e.label or "RELATION"
+        cond = (e.condition or "")[:100]
+        rel_lines.append(f"- {src} ↔ {tgt}: {rel_type}" + (f" — {cond}" if cond else ""))
+    rel_section = "\n".join(rel_lines) if len(rel_lines) > 1 else ""
+
+    story.story_bible = prose + "\n\n" + plot_map_section + (("\n\n" + rel_section) if rel_section else "")
+    logger.info("[%s] story_bible rewritten: %d chars (prose=%d, events=%d, relations=%d)",
+                story.slug, len(story.story_bible), len(prose), len(event_nodes), len(relation_edges))
 
 
 def _verify_story_bible(
