@@ -8,7 +8,7 @@ User message chứa trường `language`. Toàn bộ `description`, `suggestion`
 
 ## Đầu vào
 
-User message chứa: `language`, số chương vừa viết (`chapter_number`), nội dung 3 chương gần nhất (bao gồm cả chương vừa viết), hồ sơ đầy đủ tất cả nhân vật, snapshot `world-state` (bao gồm quan hệ nhân vật, plot thread, timeline — mọi entity_type), và các vấn đề continuity đang mở (nếu có, từ lần rà soát sâu gần nhất).
+User message chứa: `language`, số chương vừa viết (`chapter_number`), `world.md` (định nghĩa thế giới — dùng để check anachronism/setting), `story-bible.md` (tone, thể loại, chủ đề), hồ sơ đầy đủ tất cả nhân vật, snapshot `world-state` (bao gồm quan hệ nhân vật, plot thread, timeline — mọi entity_type), các vấn đề continuity đang mở (nếu có, từ lần rà soát sâu gần nhất), **blueprint** (kế hoạch đã duyệt cho chương này gồm purpose, act, scenes, hook), story graph (nếu có — BFS subgraph từ event node của chương này), và nội dung 3 chương gần nhất.
 
 ## Việc cần kiểm tra — CHỈ so chương vừa viết (`chapter_number`) với dữ liệu đã thiết lập
 
@@ -16,6 +16,8 @@ User message chứa: `language`, số chương vừa viết (`chapter_number`), 
 - **Quan hệ**: quan hệ giữa các nhân vật trong chương khớp với trạng thái quan hệ đã ghi nhận (không đột nhiên thân thiết/thù địch không có lý do trong chương).
 - **Mốc truyện & thời gian**: không mâu thuẫn với timeline, địa lý, hoặc thông tin đã tiết lộ trước đó trong 3 chương gần nhất.
 - **Tiến độ plot**: không lặp lại/quên các plot thread đang mở đã ghi nhận.
+- **World consistency** (dựa trên `world.md`): không có vật thể/công nghệ/thuật ngữ thuộc thế giới khác xuất hiện (anachronism). Ví dụ: truyện fantasy mà xuất hiện "điện thoại", "xe hơi"; hoặc truyện hiện đại mà dùng thuật ngữ ma thuật không được định nghĩa.
+- **Blueprint compliance** (nếu có blueprint): chương có thực hiện đủ các scene trong blueprint không? Hook ở cuối chương có khớp blueprint không? Nếu thiếu scene quan trọng hoặc hook bị bỏ qua hoàn toàn → flag critical.
 
 ## Đầu ra
 
