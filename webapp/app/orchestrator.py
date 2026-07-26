@@ -14,6 +14,7 @@ continuous LangGraph run. Neither duplicates the other's logic.
 """
 
 import logging
+from pathlib import Path
 
 from sqlalchemy.orm import Session
 
@@ -35,6 +36,7 @@ from .agents import (
     story_analyzer,
     worldbuilder,
 )
+from .config import OUTPUT_BASE
 from .db.models import Character, Chapter, ChapterSummary, ChapterVerifyLog, Story
 from .schemas import ChapterWriterOutput
 
@@ -377,11 +379,46 @@ def run_write_chapter_step(session: Session, story: Story) -> dict:
     }
 
 
+def _compile_manuscript_to_file(session: Session, story: Story) -> Path:
+    """Compile all done chapters into a single markdown file.
+
+    Saves to /data/output/{story.id}/novel.md and returns the path.
+    """
+    chapters = (
+        session.query(Chapter)
+        .filter_by(story_id=story.id, status="done")
+        .order_by(Chapter.number)
+        .all()
+    )
+
+    toc_lines = [f"{c.number}. {c.title or f'Chương {c.number}'}" for c in chapters]
+    toc = "\n".join(toc_lines)
+
+    chapter_parts = [
+        f"# Chương {c.number}: {c.title or f'Chương {c.number}'}\n\n{c.content}"
+        for c in chapters
+    ]
+    chapters_text = "\n\n---\n\n".join(chapter_parts)
+
+    meta_parts = [p for p in [story.genre, story.language] if p]
+    meta_parts += [f"{len(chapters)} chương", f"{story.current_words or 0:,} từ"]
+    meta = " · ".join(meta_parts)
+    manuscript = f"# {story.title}\n\n*{meta}*\n\n---\n\n## Mục lục\n\n{toc}\n\n---\n\n{chapters_text}\n"
+
+    out_dir = OUTPUT_BASE / str(story.id)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_path = out_dir / "novel.md"
+    out_path.write_text(manuscript, encoding="utf-8")
+    logger.info("[%s] manuscript compiled → %s (%d chars)", story.slug, out_path, len(manuscript))
+    return out_path
+
+
 def run_complete_step(session: Session, story: Story) -> dict:
+    out_path = _compile_manuscript_to_file(session, story)
     if story.phase != "COMPLETE":
         story.phase = "COMPLETE"
         session.commit()
-    return {"phase": "COMPLETE", "step": None}
+    return {"phase": "COMPLETE", "step": None, "output_file": str(out_path)}
 
 
 _STEP_EXECUTORS = {

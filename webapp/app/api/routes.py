@@ -1,10 +1,11 @@
 import logging
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from .. import graph, length_calc, orchestrator
-from ..config import AGENT_MODELS, PROVIDER
+from ..config import AGENT_MODELS, OUTPUT_BASE, PROVIDER
 from ..db.models import Chapter, Story
 from ..db.session import SessionLocal
 from ..slug import generate_title, slugify
@@ -159,6 +160,27 @@ def get_chapter(story_id: int, number: int):
             "word_count": chapter.word_count,
             "status": chapter.status,
         }
+
+
+@router.get("/stories/{story_id}/export")
+def export_manuscript(story_id: int):
+    """Download the compiled novel as a single markdown file.
+
+    Only available once the story is COMPLETE (run_complete_step saves the file).
+    Returns the file as a downloadable text/markdown attachment.
+    """
+    with SessionLocal() as session:
+        story = session.get(Story, story_id)
+        if not story:
+            raise HTTPException(404, "story not found")
+        out_path = OUTPUT_BASE / str(story_id) / "novel.md"
+        if not out_path.exists():
+            raise HTTPException(404, "compiled manuscript not found — story must be COMPLETE first")
+        return FileResponse(
+            str(out_path),
+            media_type="text/markdown",
+            filename=f"{story.slug}.md",
+        )
 
 
 @router.get("/stories/{story_id}/manuscript")

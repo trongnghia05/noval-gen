@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 from dotenv import load_dotenv
 
@@ -50,3 +51,4 @@ AGENT_MODELS = {
 }
 
 DB_URL = os.getenv("DATABASE_URL", "sqlite:///./novelgen.db")
+OUTPUT_BASE = Path(os.getenv("OUTPUT_DIR", "/data/output"))
