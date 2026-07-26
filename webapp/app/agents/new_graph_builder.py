@@ -21,6 +21,7 @@ worldbuilder run as separate orchestrator steps after graph_verifier.
 """
 
 import logging
+import re
 
 from sqlalchemy.orm import Session
 
@@ -89,6 +90,90 @@ def _rebuild_characters(session: Session, story: Story) -> None:
             tier=tier,
             profile_md=profile_md,
         ))
+    session.flush()
+
+
+def build_characters_from_graph(session: Session, story: Story) -> None:
+    """Deterministically build Character rows + CSV graph from the new graph.
+
+    The new graph's CHARACTER nodes are the single source of truth for REWRITE —
+    they carry fully-enriched role/wants/fears/arc/speech data. This avoids a
+    second, independent LLM pass (character_developer) that could invent names or
+    roles that drift from the graph. Also seeds the CSV knowledge graph
+    (characters + voices + initial relationships) so chapter_writer and
+    chapter_blueprinter read state consistent with the graph.
+    """
+    from .. import csv_graph
+
+    _rebuild_characters(session, story)
+
+    char_nodes = (
+        session.query(StoryGraphNode)
+        .filter_by(story_id=story.id, graph_type="new", node_type="character")
+        .all()
+    )
+    node_label = {n.node_key: n.label for n in char_nodes}
+
+    # ── CSV character rows ──────────────────────────────────────────────────
+    graph_rows = []
+    voice_lines = []
+    seen: set[str] = set()
+    for n in char_nodes:
+        if n.label.strip().lower() in seen:
+            continue
+        seen.add(n.label.strip().lower())
+        p = n.properties or {}
+        graph_rows.append({
+            "id": n.node_key,
+            "name": n.label,
+            "aliases": ", ".join(p.get("aliases", []) or []),
+            "role": p.get("role", ""),
+            "arc_status": "active",
+            "location": p.get("initial_location", ""),
+            "emotional_state": p.get("arc_stage", ""),
+            "goals": p.get("wants", ""),
+            "secrets": p.get("secrets", ""),
+            "speech_pattern": p.get("speech_pattern", ""),
+            "last_seen_chapter": "0",
+        })
+        if p.get("speech_pattern"):
+            voice_lines.append(f"## {n.label}\n{p['speech_pattern']}")
+
+    voices_md = "\n\n".join(voice_lines) if voice_lines else "(chưa có dữ liệu giọng nói)"
+
+    # ── Initial relationships (RELATION edges active before chapter 1) ──────
+    rel_edges = (
+        session.query(StoryGraphEdge)
+        .filter_by(story_id=story.id, graph_type="new", edge_type="RELATION")
+        .filter(
+            (StoryGraphEdge.chapter_from.is_(None)) |
+            (StoryGraphEdge.chapter_from <= 1)
+        )
+        .all()
+    )
+    rel_rows = []
+    seen_pairs: set[tuple] = set()
+    for e in rel_edges:
+        a = node_label.get(e.source_key)
+        b = node_label.get(e.target_key)
+        if not a or not b:
+            continue
+        pair = tuple(sorted([a, b]))
+        if pair in seen_pairs:
+            continue
+        seen_pairs.add(pair)
+        p = e.properties or {}
+        rel_rows.append({
+            "char_a": a,
+            "char_b": b,
+            "type": p.get("rel_type", e.label or ""),
+            "strength": p.get("strength", "medium"),
+            "status": "active",
+            "last_event": e.condition or "",
+            "last_updated_chapter": "0",
+        })
+
+    csv_graph.init_graph(story.id, graph_rows, voices_md, relationships=rel_rows)
 
 
 def _format_source_compact(session: Session, story_id: int) -> str:
@@ -212,38 +297,35 @@ def _copy_source_structure(session: Session, story_id: int) -> None:
 
 # ── Phase 1.5: Python name substitution (deterministic) ──────────────────────
 
-def _apply_lexicon_substitution(
-    session: Session,
-    story_id: int,
-    lexicon: dict[str, str],          # node_key → new_label
-) -> None:
-    """Replace all source labels with new labels in every text field — no LLM, fully deterministic."""
-    source_labels = {
-        n.node_key: n.label
-        for n in session.query(StoryGraphNode)
-        .filter_by(story_id=story_id, graph_type="source").all()
-    }
-    # source_label → new_label, longest first to avoid partial replacements
-    label_map: dict[str, str] = {}
-    for key, src_label in source_labels.items():
-        new_label = lexicon.get(key)
-        if new_label and new_label != src_label:
-            label_map[src_label] = new_label
-    if not label_map:
-        return
+_NODE_TEXT_FIELDS = ("arc_stage", "wants", "fears", "summary", "description",
+                     "background", "speech_pattern", "old_val", "new_val", "hint", "profile_md")
+_EDGE_TEXT_FIELDS = ("old_val", "new_val", "mechanism", "hint")
 
+
+def substitute_labels(session: Session, story_id: int, label_map: dict[str, str]) -> int:
+    """Replace source labels → new labels in every text field of the new graph.
+
+    Deterministic, no LLM. Uses word-boundary matching so a short source label
+    (e.g. "An", "Bar") never corrupts an unrelated substring. Also rewrites
+    the `aliases` list on character nodes. Returns the number of label pairs.
+    """
+    if not label_map:
+        return 0
+
+    # Longest source label first so multi-word names are replaced before any of
+    # their component words. Each gets a compiled word-boundary pattern.
     pairs = sorted(label_map.items(), key=lambda x: len(x[0]), reverse=True)
+    compiled = [
+        (re.compile(r"(?<!\w)" + re.escape(src) + r"(?!\w)"), new)
+        for src, new in pairs
+    ]
 
     def sub(text: str | None) -> str | None:
         if not text:
             return text
-        for src, new in pairs:
-            text = text.replace(src, new)
+        for pattern, new in compiled:
+            text = pattern.sub(new, text)
         return text
-
-    _NODE_TEXT_FIELDS = ("arc_stage", "wants", "fears", "summary", "description",
-                         "background", "speech_pattern", "old_val", "new_val", "hint", "profile_md")
-    _EDGE_TEXT_FIELDS = ("old_val", "new_val", "mechanism", "hint")
 
     for node in session.query(StoryGraphNode).filter_by(story_id=story_id, graph_type="new").all():
         node.label = sub(node.label) or node.label
@@ -255,6 +337,13 @@ def _apply_lexicon_substitution(
                 if new_val != props[f]:
                     props[f] = new_val
                     changed = True
+        # aliases is a list of strings — substitute each element
+        aliases = props.get("aliases")
+        if isinstance(aliases, list) and aliases:
+            new_aliases = [sub(a) for a in aliases]
+            if new_aliases != aliases:
+                props["aliases"] = new_aliases
+                changed = True
         if changed:
             node.properties = props
 
@@ -275,7 +364,27 @@ def _apply_lexicon_substitution(
             edge.properties = props
 
     session.flush()
-    logger.info("[story %d] Phase 1.5: applied %d name substitutions", story_id, len(pairs))
+    return len(pairs)
+
+
+def _apply_lexicon_substitution(
+    session: Session,
+    story_id: int,
+    lexicon: dict[str, str],          # node_key → new_label
+) -> None:
+    """Build source_label → new_label map from the lexicon and apply it."""
+    source_labels = {
+        n.node_key: n.label
+        for n in session.query(StoryGraphNode)
+        .filter_by(story_id=story_id, graph_type="source").all()
+    }
+    label_map: dict[str, str] = {}
+    for key, src_label in source_labels.items():
+        new_label = lexicon.get(key)
+        if new_label and new_label != src_label:
+            label_map[src_label] = new_label
+    count = substitute_labels(session, story_id, label_map)
+    logger.info("[story %d] Phase 1.5: applied %d name substitutions", story_id, count)
 
 
 # ── Phase 2: Per-group LLM enrichment ─────────────────────────────────────────

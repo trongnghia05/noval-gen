@@ -1,3 +1,5 @@
+import logging
+
 from sqlalchemy.orm import Session
 
 from .. import length_calc
@@ -6,6 +8,8 @@ from ..db.models import Story, StoryGraphEdge, StoryGraphNode
 from ..llm_json import generate_structured
 from ..prompts.loader import load_prompt
 from ..schemas import StoryAnalyzerOutput
+
+logger = logging.getLogger(__name__)
 
 
 def _clear_graph(session: Session, story_id: int) -> None:
@@ -58,15 +62,20 @@ def run(session: Session, story: Story, feedback: str | None = None) -> None:
     if output.source_spirit:
         story.source_spirit = output.source_spirit
 
-    # For REWRITE, store source chapter count so orchestrator knows how many
-    # graph_extract steps to run. Use the model's self-reported count if given;
-    # fall back to regex-based detection from the raw source text.
+    # For REWRITE, source_chapter_count MUST equal the number of chunks
+    # split_source_chapters() produces — the graph_extract loop indexes that
+    # exact array (source_chapters[extracted_count]). Trusting the model's
+    # self-reported count instead would either over-count → IndexError crash, or
+    # under-count → source chapters silently never extracted. The regex split is
+    # the single ground truth; the model's count is only logged as a cross-check.
     if story.input_type == "REWRITE":
-        if output.source_chapter_count and output.source_chapter_count > 0:
-            story.source_chapter_count = output.source_chapter_count
-        else:
-            story.source_chapter_count = len(
-                length_calc.split_source_chapters(story.source_content)
+        actual = len(length_calc.split_source_chapters(story.source_content))
+        story.source_chapter_count = actual
+        reported = output.source_chapter_count
+        if reported and reported != actual:
+            logger.warning(
+                "[%s] story_analyzer: model reported %d source chapters but split found %d — using %d",
+                story.slug, reported, actual, actual,
             )
 
     # Repopulate entity nodes (clear first — safe pre-WRITING, idempotent on regen).

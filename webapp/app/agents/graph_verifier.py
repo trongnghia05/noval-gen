@@ -26,14 +26,20 @@ from ..db.models import PlanningVerifyLog, Story, StoryGraphEdge, StoryGraphNode
 from ..llm_json import generate_structured
 from ..prompts.loader import load_prompt
 from ..schemas import GraphVerifierOutput
-from . import graph_surface_rewriter, new_graph_builder
+from . import graph_surface_rewriter
+from .new_graph_builder import substitute_labels
 
 MAX_ITERATIONS = 10
 logger = logging.getLogger(__name__)
 
 
 def _apply_reskin_substitution(session: Session, story: Story) -> None:
-    """Replace leaked source labels with new labels — derived from DB, no LLM."""
+    """Replace leaked source labels with new labels — derived from DB, no LLM.
+
+    Builds a source_label → new_label map by matching node_keys between the
+    source and new graphs, then delegates to the shared substitute_labels()
+    (word-boundary safe, covers aliases). Deterministic and convergent.
+    """
     source_map = {
         n.node_key: n.label
         for n in session.query(StoryGraphNode)
@@ -50,51 +56,9 @@ def _apply_reskin_substitution(session: Session, story: Story) -> None:
         new_label = new_map.get(key)
         if new_label and new_label != src_label:
             label_map[src_label] = new_label
-    if not label_map:
-        return
 
-    pairs = sorted(label_map.items(), key=lambda x: len(x[0]), reverse=True)
-
-    def sub(text: str | None) -> str | None:
-        if not text:
-            return text
-        for src, new in pairs:
-            text = text.replace(src, new)
-        return text
-
-    _NODE_FIELDS = ("arc_stage", "wants", "fears", "summary", "description",
-                    "background", "speech_pattern", "old_val", "new_val", "hint", "profile_md")
-    _EDGE_FIELDS = ("old_val", "new_val", "mechanism", "hint")
-
-    for node in session.query(StoryGraphNode).filter_by(story_id=story.id, graph_type="new").all():
-        props = dict(node.properties or {})
-        changed = False
-        for f in _NODE_FIELDS:
-            if props.get(f):
-                v = sub(props[f])
-                if v != props[f]:
-                    props[f] = v
-                    changed = True
-        if changed:
-            node.properties = props
-
-    for edge in session.query(StoryGraphEdge).filter_by(story_id=story.id, graph_type="new").all():
-        if edge.label:
-            edge.label = sub(edge.label)
-        if edge.condition:
-            edge.condition = sub(edge.condition)
-        props = dict(edge.properties or {})
-        changed = False
-        for f in _EDGE_FIELDS:
-            if props.get(f):
-                v = sub(props[f])
-                if v != props[f]:
-                    props[f] = v
-                    changed = True
-        if changed:
-            edge.properties = props
-
-    logger.info("[%s] reskin substitution: %d replacements applied", story.slug, len(pairs))
+    count = substitute_labels(session, story.id, label_map)
+    logger.info("[%s] reskin substitution: %d replacements applied", story.slug, count)
 
 
 def _remove_enrichment_nodes(session: Session, story_id: int, node_keys: list[str]) -> None:

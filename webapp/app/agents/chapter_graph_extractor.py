@@ -156,10 +156,26 @@ def _extract_chapter(session: Session, story: Story, chapter_number: int, chapte
         thinking=False,
     )
 
+    # Canonicalize this chapter's EVENT key to E{chapter:03d} regardless of what
+    # the LLM emitted. The whole pipeline (source_graph_verifier, context_builder
+    # subgraph lookups, chapter_writer) assumes chapter N's event is exactly
+    # E{N:03d}. Enforce it here by construction, then remap every edge endpoint
+    # and trigger reference that pointed at the LLM's original id.
+    canonical_event_key = f"E{chapter_number:03d}"
+    original_event_id = output.event.id
+    if original_event_id != canonical_event_key:
+        for edge in output.edges:
+            if edge.source_id == original_event_id:
+                edge.source_id = canonical_event_key
+            if edge.target_id == original_event_id:
+                edge.target_id = canonical_event_key
+            if edge.trigger_event_id == original_event_id:
+                edge.trigger_event_id = canonical_event_key
+
     session.add(StoryGraphNode(
         story_id=story.id,
         graph_type="source",
-        node_key=output.event.id,
+        node_key=canonical_event_key,
         node_type="event",
         label=output.event.label,
         properties=output.event.properties or {},
@@ -337,6 +353,14 @@ def run(session: Session, story: Story) -> int:
         .filter_by(story_id=story.id, graph_type="source", node_type="event")
         .count()
     )
+    # Defensive: source_chapter_count is clamped to len(source_chapters) in
+    # story_analyzer, so this should never trip — but guard against an out-of-range
+    # index turning into an opaque IndexError if that invariant is ever broken.
+    if extracted_count >= len(source_chapters):
+        raise ValueError(
+            f"graph_extract overrun: already extracted {extracted_count} events but "
+            f"source only splits into {len(source_chapters)} chapters"
+        )
     chapter_number = extracted_count + 1
     _extract_chapter(session, story, chapter_number, source_chapters[extracted_count])
     return chapter_number

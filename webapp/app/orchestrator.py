@@ -197,9 +197,18 @@ def run_plot_outline_step(session: Session, story: Story) -> dict:
 
 def run_characters_step(session: Session, story: Story) -> dict:
     logger.info("[%s] START characters", story.slug)
-    character_developer.run(session, story)
+    # REWRITE: the verified new graph already holds fully-enriched character
+    # nodes — build Character rows + CSV graph deterministically from it so
+    # there's a single source of truth (no second LLM pass that could drift from
+    # the graph). IDEA/PREMISE: no graph, so character_developer invents them.
+    if story.new_graph_built:
+        new_graph_builder.build_characters_from_graph(session, story)
+        source = "graph"
+    else:
+        character_developer.run(session, story)
+        source = "llm"
     session.commit()
-    return {"phase": "PLANNING", "step": "characters"}
+    return {"phase": "PLANNING", "step": "characters", "source": source}
 
 
 def run_world_step(session: Session, story: Story) -> dict:

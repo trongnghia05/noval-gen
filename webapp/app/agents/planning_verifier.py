@@ -98,14 +98,17 @@ def _regenerate(session: Session, story: Story, artifact: str, feedback: str | N
             from .new_graph_builder import _rewrite_story_bible, _verify_story_bible
             _rewrite_story_bible(session, story, world_design=None, feedback=feedback)
             _verify_story_bible(session, story, world_design=None)
-            # story_bible now uses new-world names — plot_outline and world_bible
-            # were built from the previous bible and are now stale. Rebuild them
-            # immediately so the next _verify() sees a consistent set of all 4
-            # artifacts (same names throughout). Without this, the verifier flags
-            # story_bible inconsistent with plot_outline on every iteration.
-            graph_ctx = cb.format_story_graph(session, story.id, graph_type="new")
-            story.plot_outline = plot_architect.run(story, story_graph=graph_ctx)
-            story.world_bible = worldbuilder.run(story, story_graph=graph_ctx)
+            # NOTE: We intentionally do NOT rebuild plot_outline/world_bible here.
+            # After graph_verifier completes, all character names are fixed in the
+            # new graph. _rewrite_story_bible() uses exactly those names each time,
+            # so only the prose changes between rewrites (not the names). The
+            # plot_outline/world_bible built by the orchestrator's dedicated steps
+            # (which also use the same graph names) remain consistent without a
+            # rebuild. Rebuilding them here caused repeated 48000-token
+            # plot_architect responses across N iterations → OOM crashes.
+            # If the verifier later flags plot_outline/world inconsistency, it
+            # will dispatch _regenerate("plot_outline") or _regenerate("world")
+            # in that specific iteration — one targeted call, not N×call.
         else:
             story_analyzer.run(session, story, feedback=feedback)
     elif artifact == "plot_outline":
@@ -118,15 +121,20 @@ def _regenerate(session: Session, story: Story, artifact: str, feedback: str | N
             graph_ctx = cb.format_story_graph(session, story.id, graph_type="new")
         story.world_bible = worldbuilder.run(story, feedback=feedback, story_graph=graph_ctx)
     elif artifact == "characters":
-        # Wipe + rebuild is safe pre-WRITING: nothing references these rows yet,
-        # and character_developer re-inits the CSV graph from scratch.
+        # Wipe + rebuild is safe pre-WRITING: nothing references these rows yet.
         # synchronize_session="fetch" loads objects into identity map before
         # deleting, so SQLAlchemy's unit-of-work doesn't treat them as "pending
         # inserts" on the next autoflush. The explicit flush ensures the DELETE
-        # hits SQLite before character_developer adds new rows with the same names.
+        # hits SQLite before new rows with the same names are added.
         session.query(Character).filter_by(story_id=story.id).delete(synchronize_session="fetch")
         session.flush()
-        character_developer.run(session, story, feedback=feedback)
+        # REWRITE rebuilds deterministically from the graph (single source of
+        # truth); IDEA/PREMISE re-runs the LLM character_developer with feedback.
+        if story.new_graph_built:
+            from .new_graph_builder import build_characters_from_graph
+            build_characters_from_graph(session, story)
+        else:
+            character_developer.run(session, story, feedback=feedback)
 
 
 def run(session: Session, story: Story) -> None:
