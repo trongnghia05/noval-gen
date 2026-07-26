@@ -41,6 +41,10 @@ def check(session: Session, story: Story, chapter: Chapter) -> list[QualityRevie
         f"chapter_number: {chapter.number}\n"
         f"words_per_chapter (mục tiêu): {story.words_per_chapter}\n"
         f"word_count thực tế: {chapter.word_count}\n\n"
+        f"## world.md — thế giới của truyện MỚI (dùng làm chuẩn cho world-consistency)\n"
+        f"---\n{story.world_bible or '(chưa có)'}\n---\n\n"
+        f"## story-bible.md — tone, setting, thể loại của truyện MỚI\n"
+        f"---\n{story.story_bible or '(chưa có)'}\n---\n\n"
         f"## Chương vừa viết (tiêu đề: {chapter.title})\n"
         f"---\n{chapter.content}\n---\n"
     )

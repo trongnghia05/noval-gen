@@ -102,16 +102,9 @@ class GraphEdgeOut(BaseModel):
         elif t == "LOCATED_AT":
             src = (self.source_id or "")
             tgt = (self.target_id or "")
-            if src and src[0].upper() != "E":
-                raise ValueError(
-                    f"LOCATED_AT edge: source_id phải là EVENT (E###), nhận được '{self.source_id}'. "
-                    "Hướng đúng: EVENT → LOCATION (không phải ngược lại)"
-                )
-            if tgt and tgt[0].upper() != "L":
-                raise ValueError(
-                    f"LOCATED_AT edge: target_id phải là LOCATION (L###), nhận được '{self.target_id}'. "
-                    "Hướng đúng: EVENT → LOCATION (không phải ngược lại)"
-                )
+            # Auto-swap if LLM reverses direction (L→E instead of E→L)
+            if src and tgt and src[0].upper() == "L" and tgt[0].upper() == "E":
+                self.source_id, self.target_id = self.target_id, self.source_id
         return self
 
 
@@ -307,7 +300,7 @@ class PlanningVerifierOutput(BaseModel):
 # ── quality_reviewer ───────────────────────────────────────────────────────────
 
 class QualityReviewIssueOut(BaseModel):
-    dimension: Literal["quality", "originality"]
+    dimension: Literal["quality", "originality", "world_consistency"]
     description: str
     suggestion: str
     severity: Literal["critical", "minor"]

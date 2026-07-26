@@ -87,6 +87,23 @@ Trả về nội dung chương dưới dạng văn bản thuần (không JSON, k
 
 Không thêm phần đếm số từ, không thêm ghi chú continuity ở cuối — việc đó do chapter-summarizer đảm nhiệm từ chính nội dung chương.
 
+## Dùng "Tinh thần truyện gốc" đúng cách (chỉ áp dụng khi có section này trong context)
+
+Nếu context chứa `## Tinh thần truyện gốc`, đây là hướng dẫn tone/nhịp điệu cho REWRITE — dùng đúng cách:
+
+**ĐƯỢC dùng:**
+- Nhịp điệu câu văn (nhanh/chậm, ngắn/dài)
+- Cung bậc cảm xúc (căng thẳng, nhẹ nhàng, u ám...)
+- Cách xây dựng tension và resolve
+
+**TUYỆT ĐỐI KHÔNG:**
+- Sao chép hay dịch bất kỳ vật thể cụ thể nào từ excerpts (đồ nội thất, thức ăn, thiết bị, kiến trúc...)
+- Dùng bất kỳ setting hiện đại nào (căn hộ, điện thoại, cà phê, văn phòng...) nếu truyện đang viết là fantasy/historical
+- Dùng terminology không thuộc thế giới của truyện (shell corporations, digital infiltration, v.v.)
+- Sao chép tên nhân vật/địa điểm từ source (chúng đã được tái tạo thành tên mới)
+
+Mọi chi tiết vật lý phải xuất phát từ `world.md` và `story-bible.md` — không phải từ source excerpts.
+
 ## Nguyên tắc tuyệt đối
 
 - **Không tóm tắt** — viết đầy đủ từng cảnh, không dùng "... và rồi X xảy ra"
