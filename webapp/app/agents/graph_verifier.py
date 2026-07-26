@@ -28,7 +28,7 @@ from ..llm_json import generate_structured
 from ..prompts.loader import load_prompt
 from ..schemas import GraphVerifierOutput
 from . import graph_surface_rewriter
-from .new_graph_builder import substitute_labels
+from .new_graph_builder import _character_source_labels, substitute_labels
 
 MAX_ITERATIONS = 10
 logger = logging.getLogger(__name__)
@@ -58,8 +58,11 @@ def _apply_reskin_substitution(session: Session, story: Story) -> None:
         if new_label and new_label != src_label:
             label_map[src_label] = new_label
 
-    count = substitute_labels(session, story.id, label_map)
-    logger.info("[%s] reskin substitution: %d replacements applied", story.slug, count)
+    count = substitute_labels(
+        session, story.id, label_map,
+        name_labels=_character_source_labels(session, story.id),
+    )
+    logger.info("[%s] reskin substitution: %d label pairs applied", story.slug, count)
 
 
 def _remove_enrichment_nodes(session: Session, story_id: int, node_keys: list[str]) -> None:

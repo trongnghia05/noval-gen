@@ -297,11 +297,6 @@ def _copy_source_structure(session: Session, story_id: int) -> None:
 
 # ── Phase 1.5: Python name substitution (deterministic) ──────────────────────
 
-_NODE_TEXT_FIELDS = ("arc_stage", "wants", "fears", "summary", "description",
-                     "background", "speech_pattern", "old_val", "new_val", "hint", "profile_md")
-_EDGE_TEXT_FIELDS = ("old_val", "new_val", "mechanism", "hint")
-
-
 # Honorifics / titles that are never a character's distinctive given name — a
 # name token equal to one of these is not worth substituting on its own.
 _NAME_TITLES = {
@@ -311,18 +306,36 @@ _NAME_TITLES = {
 }
 
 
-def _expand_with_name_tokens(label_map: dict[str, str]) -> dict[str, str]:
+def _is_clean_person_label(label: str) -> bool:
+    """A label safe to mine given-name tokens from: a plain personal name, not a
+    derived/possessive label like "Phineas' Father" or "Prenup (Phineas')" whose
+    tokens refer to *another* entity and would poison the token → new-name map."""
+    if any(ch in label for ch in "'\"()[]"):
+        return False
+    return 1 <= len(label.split()) <= 3
+
+
+def _expand_with_name_tokens(
+    label_map: dict[str, str],
+    name_labels: set[str] | None = None,
+) -> dict[str, str]:
     """Add given-name / distinctive-token entries to a full-label substitution map.
 
     Source labels are full names ("Juniper Kennedy") but prose references the
     character by a bare token ("Juniper"). Full-label-only substitution leaves
     those bare references untouched — the #1 source of un-reskinned name leaks.
-    For each source label we add its distinctive tokens (len ≥ 4, not a title)
-    mapping to the full new label, but drop any token that maps to more than one
-    new label (e.g. a shared surname "Kennedy") to avoid ambiguous replacement.
+    For each *clean personal* source label we add its distinctive tokens
+    (len ≥ 4, not a title) mapping to the full new label, but drop any token that
+    maps to more than one new label (e.g. a shared surname "Kennedy") to avoid
+    ambiguous replacement. `name_labels` restricts which source labels contribute
+    tokens (character names only) so possessive labels don't poison a given name.
     """
     token_targets: dict[str, set[str]] = {}
     for src, new in label_map.items():
+        if name_labels is not None and src not in name_labels:
+            continue
+        if not _is_clean_person_label(src):
+            continue
         for raw in src.split():
             tok = raw.strip(".,;:'\"()").strip()
             if len(tok) < 4 or tok.lower() in _NAME_TITLES:
@@ -338,19 +351,47 @@ def _expand_with_name_tokens(label_map: dict[str, str]) -> dict[str, str]:
     return expanded
 
 
-def substitute_labels(session: Session, story_id: int, label_map: dict[str, str]) -> int:
+def _sub_props(props: dict, sub) -> bool:
+    """Substitute every string / list-of-string value in a properties dict.
+
+    No field allowlist — any property may embed a source name (goal, significance,
+    chapter_spirit, symbolic_meaning, …). Returns True if anything changed.
+    Non-string scalars (ints, enums) are left untouched; a string enum with no
+    source name is a harmless no-op. Mutates `props` in place.
+    """
+    changed = False
+    for k, v in list(props.items()):
+        if isinstance(v, str) and v:
+            nv = sub(v)
+            if nv != v:
+                props[k] = nv
+                changed = True
+        elif isinstance(v, list) and v and all(isinstance(x, str) for x in v):
+            nv = [sub(x) for x in v]
+            if nv != v:
+                props[k] = nv
+                changed = True
+    return changed
+
+
+def substitute_labels(
+    session: Session,
+    story_id: int,
+    label_map: dict[str, str],
+    name_labels: set[str] | None = None,
+) -> int:
     """Replace source labels → new labels in every text field of the new graph.
 
-    Deterministic, no LLM. Uses word-boundary matching so a short source label
-    (e.g. "An", "Bar") never corrupts an unrelated substring. Expands full-name
-    labels to their bare given-name tokens (so "Juniper" is replaced, not just
-    "Juniper Kennedy"). Also rewrites the `aliases` list. Returns the number of
-    (expanded) label pairs.
+    Deterministic, no LLM. Word-boundary matching so a short source label never
+    corrupts an unrelated substring. Expands clean personal names to their bare
+    given-name tokens (so "Juniper" is replaced, not just "Juniper Kennedy").
+    Substitutes every string-valued property (no field allowlist). Returns the
+    number of (expanded) label pairs.
     """
     if not label_map:
         return 0
 
-    label_map = _expand_with_name_tokens(label_map)
+    label_map = _expand_with_name_tokens(label_map, name_labels)
     # Longest source label first so multi-word names are replaced before any of
     # their component words. Each gets a compiled word-boundary pattern.
     pairs = sorted(label_map.items(), key=lambda x: len(x[0]), reverse=True)
@@ -367,23 +408,11 @@ def substitute_labels(session: Session, story_id: int, label_map: dict[str, str]
         return text
 
     for node in session.query(StoryGraphNode).filter_by(story_id=story_id, graph_type="new").all():
-        node.label = sub(node.label) or node.label
+        new_label = sub(node.label)
+        if new_label and new_label != node.label:
+            node.label = new_label
         props = dict(node.properties or {})
-        changed = False
-        for f in _NODE_TEXT_FIELDS:
-            if props.get(f):
-                new_val = sub(props[f])
-                if new_val != props[f]:
-                    props[f] = new_val
-                    changed = True
-        # aliases is a list of strings — substitute each element
-        aliases = props.get("aliases")
-        if isinstance(aliases, list) and aliases:
-            new_aliases = [sub(a) for a in aliases]
-            if new_aliases != aliases:
-                props["aliases"] = new_aliases
-                changed = True
-        if changed:
+        if _sub_props(props, sub):
             node.properties = props
 
     for edge in session.query(StoryGraphEdge).filter_by(story_id=story_id, graph_type="new").all():
@@ -392,18 +421,21 @@ def substitute_labels(session: Session, story_id: int, label_map: dict[str, str]
         if edge.condition:
             edge.condition = sub(edge.condition)
         props = dict(edge.properties or {})
-        changed = False
-        for f in _EDGE_TEXT_FIELDS:
-            if props.get(f):
-                new_val = sub(props[f])
-                if new_val != props[f]:
-                    props[f] = new_val
-                    changed = True
-        if changed:
+        if _sub_props(props, sub):
             edge.properties = props
 
     session.flush()
     return len(pairs)
+
+
+def _character_source_labels(session: Session, story_id: int) -> set[str]:
+    """Source labels that are character names — the only labels allowed to
+    contribute bare given-name tokens for substitution."""
+    return {
+        n.label
+        for n in session.query(StoryGraphNode)
+        .filter_by(story_id=story_id, graph_type="source", node_type="character").all()
+    }
 
 
 def _apply_lexicon_substitution(
@@ -422,7 +454,10 @@ def _apply_lexicon_substitution(
         new_label = lexicon.get(key)
         if new_label and new_label != src_label:
             label_map[src_label] = new_label
-    count = substitute_labels(session, story_id, label_map)
+    count = substitute_labels(
+        session, story_id, label_map,
+        name_labels=_character_source_labels(session, story_id),
+    )
     logger.info("[story %d] Phase 1.5: applied %d name substitutions", story_id, count)
 
 
