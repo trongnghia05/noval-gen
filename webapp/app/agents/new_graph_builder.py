@@ -468,7 +468,7 @@ def _verify_story_bible(
     session: Session,
     story: Story,
     world_design: WorldDesignOutput | None = None,
-    max_retries: int = 2,
+    max_retries: int = 10,
 ) -> None:
     """Check story_bible for leaked source character names; retry rewrite if found."""
     source_labels = [
