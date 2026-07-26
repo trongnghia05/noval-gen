@@ -144,6 +144,7 @@ class ChapterSummary(Base):
     chapter_number = Column(Integer, nullable=False)
     summary_text = Column(Text)
     short_summary = Column(Text)  # 1-2 câu, dùng cho chapter_writer
+    hook = Column(Text)           # exact last sentence / cliffhanger, dùng cho chapter_list
 
     __table_args__ = (UniqueConstraint("story_id", "chapter_number", name="uq_chapter_summary"),)
 

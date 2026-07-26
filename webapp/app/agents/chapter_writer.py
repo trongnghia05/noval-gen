@@ -8,11 +8,12 @@ from sqlalchemy.orm import Session
 from .. import context_builder, csv_graph
 from ..config import AGENT_MODELS, PROVIDER
 from ..db.models import Chapter, Story
+from ..llm_json import generate_structured
 from ..prompts.loader import load_prompt
+from ..schemas import ChapterWriterOutput
 
 logger = logging.getLogger(__name__)
 
-_TITLE_RE = re.compile(r"^#\s*\S+\.?\s*\d+\s*[:.]?\s*(.+)$")
 _HEADING_RE = re.compile(r"^#+\s+.+$")
 
 
@@ -24,19 +25,14 @@ def _strip_leading_heading(text: str) -> str:
         return "\n".join(lines[1:]).lstrip()
     return text
 
+
 MIN_WORD_RATIO = 0.85
-# Expand a single scene inline if it falls below this fraction of its per-scene target.
 MIN_SCENE_WORD_RATIO = 0.60
 MAX_EXPAND_ATTEMPTS = 2
 
 
-def _parse_chapter(text: str, chapter_number: int) -> tuple[str, str]:
-    text = text.strip()
-    first_line, _, rest = text.partition("\n")
-    match = _TITLE_RE.match(first_line.strip())
-    title = match.group(1).strip() if match else f"Chapter {chapter_number}"
-    content = rest.strip() if match else text
-    return title, content
+def _word_count(text: str) -> int:
+    return len(text.split())
 
 
 def _format_blueprint(chapter: Chapter) -> str:
@@ -254,6 +250,16 @@ Rules:
 6. Return ONLY the polished chapter text — no commentary, no explanation.
 """
 
+_FINALIZE_SYSTEM = """\
+You receive a complete, polished chapter. Extract structured metadata and return ONLY a JSON object — no markdown fence, no commentary.
+
+Fields:
+- "title": chapter title text only — strip the "Chapter N:" / "Chương N:" prefix completely (e.g. "Whispers of Betrayal Unmasked", NOT "Chapter 5: Whispers of...")
+- "content": full prose starting on the line AFTER the heading (do not include the heading line in content)
+- "short_summary": 1-2 sentences — who does what, what changes, what is at stake going into next chapter
+- "hook": copy the exact last sentence of the chapter verbatim (the cliffhanger or closing image the reader carries into the next chapter)
+"""
+
 
 def _synthesize_chapter(story: "Story", chapter: "Chapter", draft: str) -> str:
     """Polish the scene-assembled draft: remove duplicates, smooth transitions."""
@@ -273,20 +279,37 @@ def _synthesize_chapter(story: "Story", chapter: "Chapter", draft: str) -> str:
     return response.text.strip()
 
 
+def _finalize_chapter(story: "Story", chapter: "Chapter", full_text: str) -> ChapterWriterOutput:
+    """Extract title, content (sans heading), short_summary, hook from the finished chapter."""
+    user_content = (
+        f"chapter_number: {chapter.number} | language: {story.language}\n\n"
+        f"## COMPLETE CHAPTER\n---\n{full_text}\n---\n"
+    )
+    return generate_structured(
+        PROVIDER,
+        system=_FINALIZE_SYSTEM,
+        user_content=user_content,
+        model=AGENT_MODELS["chapter_writer"],
+        schema=ChapterWriterOutput,
+        max_tokens=40000,
+        thinking=False,
+    )
+
+
 _FEEDBACK_HEADER = (
     "## LỖI CONTINUITY CẦN SỬA KHI VIẾT LẠI (từ verifier) — bắt buộc khắc phục\n"
 )
 
 
-def run(session: Session, story: Story, chapter: Chapter, feedback: str | None = None) -> None:
+def run(session: Session, story: Story, chapter: Chapter, feedback: str | None = None) -> ChapterWriterOutput:
     logger.info("[%s] chapter_writer START ch%d/%d%s",
                 story.slug, chapter.number, story.total_chapters,
                 " [rewrite]" if feedback else "")
     system = load_prompt("chapter_writer")
     min_words = int(story.words_per_chapter * MIN_WORD_RATIO)
     fb_block = f"{_FEEDBACK_HEADER}{feedback}\n\n" if feedback else ""
-    title: str | None = None
-    content: str | None = None
+    # full_text retains the heading line — needed for _finalize_chapter to extract title
+    full_text: str | None = None
 
     # --- Primary path: scene-by-scene when blueprint has scenes ---
     if chapter.blueprint:
@@ -307,13 +330,11 @@ def run(session: Session, story: Story, chapter: Chapter, feedback: str | None =
                         i, len(scenes), scene_data,
                         scene_texts, shared_context, words_per_scene,
                     )
-                    # Non-first scenes must not start with a heading; strip if model added one.
                     if i > 0:
                         scene_text = _strip_leading_heading(scene_text)
-                    # Inline expand if this scene is too short
-                    if len(scene_text.split()) < min_scene_words:
+                    if _word_count(scene_text) < min_scene_words:
                         logger.info("[%s] ch%d scene %d short (%d words), expanding",
-                                    story.slug, chapter.number, i + 1, len(scene_text.split()))
+                                    story.slug, chapter.number, i + 1, _word_count(scene_text))
                         scene_text = _expand_scene(
                             system, story, chapter, i, scene_text, words_per_scene
                         )
@@ -322,40 +343,38 @@ def run(session: Session, story: Story, chapter: Chapter, feedback: str | None =
                 draft = "\n\n---scene-break---\n\n".join(scene_texts)
                 logger.info("[%s] ch%d synthesizing %d scenes", story.slug, chapter.number, len(scenes))
                 full_text = _synthesize_chapter(story, chapter, draft)
-                title, content = _parse_chapter(full_text, chapter.number)
         except Exception:
             logger.warning("[%s] ch%d scene-by-scene failed, falling back to single call",
                            story.slug, chapter.number, exc_info=True)
 
     # --- Fallback: single call (no blueprint or exception in scene loop) ---
-    if content is None:
+    if full_text is None:
         logger.info("[%s] ch%d single-call path", story.slug, chapter.number)
         base_context = fb_block + _build_context(session, story, chapter)
-        max_tokens = 40000
         response = PROVIDER.generate(
             system=system, user_content=base_context,
             model=AGENT_MODELS["chapter_writer"],
-            max_tokens=max_tokens, thinking=True,
+            max_tokens=40000, thinking=True,
         )
-        title, content = _parse_chapter(response.text, chapter.number)
+        full_text = response.text.strip()
 
-    word_count = len(content.split())
+    # Use content-only text (heading stripped) for word count checks in expand loop
+    content_only = _strip_leading_heading(full_text)
+    word_count = _word_count(content_only)
     logger.info("[%s] ch%d assembled: %d words (target %d, min %d)",
                 story.slug, chapter.number, word_count, story.words_per_chapter, min_words)
 
-    # Safety net: if the assembled chapter is still short, deepen existing scenes.
-    # The prompt explicitly says "same order, no new events" to prevent restructuring.
+    # Safety net: expand if still too short
     attempts = 0
     while word_count < min_words and attempts < MAX_EXPAND_ATTEMPTS:
         attempts += 1
         logger.info("[%s] ch%d expand attempt %d/%d (%d words)",
                     story.slug, chapter.number, attempts, MAX_EXPAND_ATTEMPTS, word_count)
-        max_tokens = 40000
         expand_content = (
             f"chapter_number: {chapter.number} | language: {story.language} "
             f"| words_per_chapter: {story.words_per_chapter}\n\n"
             f"## DRAFT ({word_count}/{story.words_per_chapter} words — needs expansion)\n"
-            f"---\n{content}\n---\n\n"
+            f"---\n{full_text}\n---\n\n"
             f"The draft is too short. Expand it to ~{story.words_per_chapter} words:\n"
             f"- Keep every scene and event in the EXACT same order.\n"
             f"- Add depth within each scene: sensory detail, internal monologue, dialogue.\n"
@@ -365,15 +384,21 @@ def run(session: Session, story: Story, chapter: Chapter, feedback: str | None =
         response = PROVIDER.generate(
             system=system, user_content=expand_content,
             model=AGENT_MODELS["chapter_writer"],
-            max_tokens=max_tokens, thinking=True,
+            max_tokens=40000, thinking=True,
         )
-        title, content = _parse_chapter(response.text, chapter.number)
-        word_count = len(content.split())
+        full_text = response.text.strip()
+        content_only = _strip_leading_heading(full_text)
+        word_count = _word_count(content_only)
         logger.info("[%s] ch%d after expand: %d words", story.slug, chapter.number, word_count)
 
+    # --- Finalize: structured extraction of title / short_summary / hook ---
+    logger.info("[%s] ch%d finalizing metadata", story.slug, chapter.number)
+    output = _finalize_chapter(story, chapter, full_text)
+
     logger.info("[%s] chapter_writer DONE ch%d: %d words | title=%r",
-                story.slug, chapter.number, word_count, title)
-    chapter.title = title
-    chapter.content = content
-    chapter.word_count = word_count
+                story.slug, chapter.number, _word_count(output.content), output.title)
+    chapter.title = output.title
+    chapter.content = output.content
+    chapter.word_count = _word_count(output.content)
     chapter.status = "done"
+    return output

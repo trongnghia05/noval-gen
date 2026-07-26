@@ -35,7 +35,8 @@ from .agents import (
     story_analyzer,
     worldbuilder,
 )
-from .db.models import Character, Chapter, ChapterVerifyLog, Story
+from .db.models import Character, Chapter, ChapterSummary, ChapterVerifyLog, Story
+from .schemas import ChapterWriterOutput
 
 logger = logging.getLogger(__name__)
 
@@ -273,6 +274,7 @@ def _verify_chapter_loop(session: Session, story: Story, chapter: Chapter) -> in
 
     accumulated_feedback: list[str] = []
     rewrites = 0
+    last_rewrite_output: ChapterWriterOutput | None = None
 
     for iteration in range(_MAX_VERIFY_ITERATIONS):
         v_issues = chapter_verifier.check(session, story, chapter, graph_context)
@@ -310,11 +312,11 @@ def _verify_chapter_loop(session: Session, story: Story, chapter: Chapter) -> in
             )
 
         feedback_text = "\n".join(accumulated_feedback)
-        chapter_writer.run(session, story, chapter, feedback=feedback_text)
+        last_rewrite_output = chapter_writer.run(session, story, chapter, feedback=feedback_text)
         session.flush()
         rewrites += 1
 
-    return rewrites
+    return rewrites, last_rewrite_output
 
 
 def run_write_chapter_step(session: Session, story: Story) -> dict:
@@ -326,19 +328,32 @@ def run_write_chapter_step(session: Session, story: Story) -> dict:
         .first()
     )
     logger.info("[%s] write_chapter ch%d/%d", story.slug, next_chapter.number, story.total_chapters)
-    chapter_writer.run(session, story, next_chapter)
+    initial_output = chapter_writer.run(session, story, next_chapter)
     session.commit()
 
     # Verify + quality gate before summarizing — a wrong/truncated chapter must
     # be fixed before it enters memory (world-state, chapter-summaries).
     # Loop up to _MAX_VERIFY_ITERATIONS times; each rewrite gets accumulated
     # feedback from all previous iterations.
-    rewrites = _verify_chapter_loop(session, story, next_chapter)
+    rewrites, rewrite_output = _verify_chapter_loop(session, story, next_chapter)
     logger.info("[%s] verify_loop ch%d: %d rewrite(s)", story.slug, next_chapter.number, rewrites)
     session.commit()
 
+    # The final output (after any rewrites) carries the chapter's hook sentence.
+    final_output: ChapterWriterOutput = rewrite_output or initial_output
+
     chapter_summarizer.run(session, story, next_chapter)
     logger.info("[%s] summarizer DONE ch%d", story.slug, next_chapter.number)
+
+    # Backfill hook onto the ChapterSummary row created by the summarizer.
+    summary_row = (
+        session.query(ChapterSummary)
+        .filter_by(story_id=story.id, chapter_number=next_chapter.number)
+        .one_or_none()
+    )
+    if summary_row:
+        summary_row.hook = final_output.hook
+
     story.current_words = (story.current_words or 0) + next_chapter.word_count
     session.commit()
 

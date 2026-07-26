@@ -152,6 +152,15 @@ class CharacterDeveloperOutput(BaseModel):
     character_voices_md: str  # full markdown voice guide, one section per character
 
 
+# ── chapter_writer ─────────────────────────────────────────────────────────────
+
+class ChapterWriterOutput(BaseModel):
+    title: str          # chapter title only — no "Chapter X:" prefix
+    content: str        # full prose, starting AFTER the heading line
+    short_summary: str  # 1-2 sentences: key event + emotional shift
+    hook: str           # exact last sentence / cliffhanger
+
+
 # ── chapter_summarizer ─────────────────────────────────────────────────────────
 
 class StateChangeOut(BaseModel):

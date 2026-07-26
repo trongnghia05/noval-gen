@@ -64,7 +64,8 @@ def format_chapter_list(session: Session, story_id: int, current_chapter: int) -
         title = title_map.get(row.chapter_number, "")
         title_part = f' "{title}"' if title else ""
         short = row.short_summary or (row.summary_text or "")[:120].replace("\n", " ")
-        lines.append(f"Ch{row.chapter_number:02d}{title_part}: {short}")
+        hook_part = f" | Hook: {row.hook}" if row.hook else ""
+        lines.append(f"Ch{row.chapter_number:02d}{title_part}: {short}{hook_part}")
     if not rows:
         lines.append("(chưa có chương nào được viết)")
     return "\n".join(lines)
