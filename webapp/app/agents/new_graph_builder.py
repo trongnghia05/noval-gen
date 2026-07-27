@@ -136,8 +136,9 @@ def build_characters_from_graph(session: Session, story: Story) -> None:
             "speech_pattern": p.get("speech_pattern", ""),
             "last_seen_chapter": "0",
         })
-        if p.get("speech_pattern"):
-            voice_lines.append(f"## {n.label}\n{p['speech_pattern']}")
+        vp = p.get("voice_profile") or p.get("speech_pattern")
+        if vp:
+            voice_lines.append(f"## {n.label}\n{vp}")
 
     voices_md = "\n\n".join(voice_lines) if voice_lines else "(chưa có dữ liệu giọng nói)"
 
@@ -508,6 +509,7 @@ def _enrich_characters(
         if surf.new_fears:          props["fears"]          = surf.new_fears
         if surf.new_background:     props["background"]     = surf.new_background
         if surf.new_speech_pattern: props["speech_pattern"] = surf.new_speech_pattern
+        if surf.new_voice_profile:  props["voice_profile"]  = surf.new_voice_profile
         node.properties = props
     session.flush()
     logger.info("[%s] Phase 2a: enriched %d characters", story.slug, len(output.characters))

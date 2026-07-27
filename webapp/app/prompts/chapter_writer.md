@@ -72,7 +72,13 @@ Tính 3 phần theo tỷ lệ trên `words_per_chapter` (W) — KHÔNG dùng s�
 ### Nhịp điệu
 - Câu ngắn khi action nhanh, căng thẳng
 - Câu dài khi suy tư, mô tả cảnh quan
-- Đoạn văn không quá 6-7 dòng
+
+### Trình bày / xuống dòng (QUAN TRỌNG — dễ đọc)
+- **Mỗi lượt thoại của MỘT nhân vật là MỘT đoạn riêng, xuống dòng.** Khi người khác lên tiếng → đoạn mới. TUYỆT ĐỐI không nhồi lời của hai nhân vật khác nhau vào cùng một đoạn.
+- Action beat / cử chỉ đi kèm lời thoại của ai thì nằm cùng đoạn với lời của người đó.
+- **Đoạn văn NGẮN**: 2-4 câu (~40-60 từ). Hết một ý / một nhịp → xuống đoạn. Đừng viết khối 7-8 câu liền.
+- Giữa các đoạn cách nhau bằng một dòng trống.
+- Mục tiêu: trang văn thoáng, mắt lướt được — giống nhịp "một ý / một lượt thoại là xuống dòng", không phải khối chữ liền ri rít.
 
 ### Nội tâm nhân vật
 - POV nhất quán trong từng cảnh (không nhảy giữa đầu nhiều người)

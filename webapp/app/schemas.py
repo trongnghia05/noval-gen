@@ -501,7 +501,11 @@ class CharacterSurfaceOut(BaseModel):
     new_wants: str
     new_fears: str
     new_background: str = ""
-    new_speech_pattern: str = ""
+    new_speech_pattern: str = ""      # short one-liner (CSV column)
+    # Rich, multi-line voice guide the chapter_writer uses to make dialogue
+    # distinct: register, vocabulary, sentence rhythm, verbal tic/"tell",
+    # and 2-3 sample lines — all in the NEW world, no source prose.
+    new_voice_profile: str = ""
 
 
 class CharacterGroupEnrichOutput(BaseModel):

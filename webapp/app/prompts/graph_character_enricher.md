@@ -17,14 +17,21 @@ For each character, produce:
 - `new_wants` — concrete external goal (what they're actively pursuing)
 - `new_fears` — core vulnerability (what they're afraid of losing or becoming)
 - `new_background` — 2-3 sentences of backstory grounding them in the new world's setting
-- `new_speech_pattern` — how they talk: vocabulary level, tone, habits (e.g. "formal Victorian diction, avoids direct confrontation, uses rhetorical questions")
+- `new_speech_pattern` — ONE short line summary of how they talk (CSV field)
+- `new_voice_profile` — the **rich voice guide** the chapter-writer will follow to make this character's dialogue instantly recognizable. Multi-line, covering:
+  - **register**: crude / formal / clipped / florid / warm / cold …
+  - **vocabulary & diction**: simple & blunt? ornate? jargon of their trade? profanity?
+  - **sentence rhythm**: short jabs? long winding sentences? fragments when angry?
+  - **verbal tics / "tell"**: a habit that betrays them (e.g. "clears throat when lying", "answers a question with a question", "over-uses 'my dear friend'")
+  - **2-3 SAMPLE LINES** they might say — written in the NEW world, showing the voice in action (these are illustrations of manner, not real plot lines)
 
 ## Rules
 
 - Preserve the CHARACTER ROLE (protagonist/antagonist/supporting) and the emotional arc DIRECTION (e.g. betrayed→empowered, deceiver→exposed) — only change the surface expression to fit the new world
-- NEVER use source character names — only new names from the lexicon
-- Write all text fields in the specified `language`
-- speech_pattern describes HOW they speak, not WHAT they say
+- **Make voices MAXIMALLY DISTINCT across the cast.** No two characters should sound alike — deliberately vary register, rhythm, and tic so a reader can tell who is speaking with the dialogue tag removed. A cast where everyone speaks the same elevated tone is a FAILURE.
+- Voice must fit the character's role, class, and the world's setting (a scheming aristocrat and a blunt dockworker do not talk the same).
+- NEVER use source character names — only new names from the lexicon; sample lines are new-world, invent them.
+- Write all text fields in the specified `language`.
 
 ## Output — JSON schema: CharacterGroupEnrichOutput
 
@@ -37,7 +44,8 @@ For each character, produce:
       "new_wants": "...",
       "new_fears": "...",
       "new_background": "...",
-      "new_speech_pattern": "..."
+      "new_speech_pattern": "one-line summary",
+      "new_voice_profile": "REGISTER: ...\nVOCABULARY: ...\nRHYTHM: ...\nTIC/TELL: ...\nSAMPLE LINES:\n- \"...\"\n- \"...\""
     }
   ],
   "note": "brief summary of enrichment decisions"
