@@ -46,3 +46,7 @@ class LLMProvider(ABC):
         Optional capability — only providers that support image generation
         override this. Callers must handle NotImplementedError."""
         raise NotImplementedError(f"{type(self).__name__} does not support image generation")
+
+    def read_image_text(self, *, image_bytes: bytes, model: str) -> str:
+        """OCR: return the text visible in an image. Optional capability."""
+        raise NotImplementedError(f"{type(self).__name__} does not support image OCR")

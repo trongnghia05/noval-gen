@@ -154,3 +154,16 @@ class VertexProvider(LLMProvider):
                     time.sleep(_RATE_LIMIT_SLEEP)
                     continue
                 raise
+
+    def read_image_text(self, *, image_bytes: bytes, model: str) -> str:
+        """OCR via a multimodal Gemini model — returns text visible in the image."""
+        resp = self.client.models.generate_content(
+            model=model,
+            contents=[
+                types.Part.from_bytes(data=image_bytes, mime_type="image/png"),
+                "Read ALL text that appears in this image, exactly as written. "
+                "Return only that text, nothing else.",
+            ],
+            config=types.GenerateContentConfig(),
+        )
+        return resp.text or ""

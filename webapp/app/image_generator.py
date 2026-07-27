@@ -1,13 +1,15 @@
 """Generate poster art for a finished novel — a wide cover + two portrait
-thumbnails — with Vertex Imagen, then overlay the title with Pillow.
+thumbnails — with a Gemini image model, with the title rendered by the model and
+OCR-verified for correct spelling.
 
-Runs best-effort at story completion: any failure (Imagen not enabled, safety
+Runs best-effort at story completion: any failure (image gen not enabled, safety
 filter, provider without image support) is logged and skipped so the novel export
 is never blocked. Images land next to novel.md in the host-mounted output folder.
 """
 
 import io
 import logging
+import re
 
 from PIL import Image, ImageOps
 from sqlalchemy.orm import Session
@@ -19,6 +21,17 @@ from .prompts.loader import load_prompt
 from .schemas import ImagePromptSetOut, NovelMetadataOut
 
 logger = logging.getLogger(__name__)
+
+
+def _norm(s: str) -> str:
+    """Lowercase, strip everything but a-z0-9 — for spelling-tolerant compare."""
+    return re.sub(r"[^a-z0-9]", "", (s or "").lower())
+
+
+def _title_ok(title: str, ocr_text: str) -> bool:
+    """True if the full title (normalized) appears in the OCR'd image text."""
+    t = _norm(title)
+    return bool(t) and t in _norm(ocr_text)
 
 # (filename, width, height, aspect-ratio, attr, crop-centering)
 # The model now outputs each aspect ratio natively (image_config), so cropping to
@@ -81,6 +94,8 @@ def generate(session: Session, story: Story, out_dir, meta: NovelMetadataOut | N
         "fit this new composition, but each returning character must be instantly "
         "recognizable as the same person from the reference."
     )
+    ocr_model = AGENT_MODELS.get("quality_reviewer") or IMAGE_MODEL
+    _MAX_ATTEMPTS = 4
     written: list[str] = []
     cover_ref: bytes | None = None
     for filename, w, h, aspect, attr, centering in _SPECS:
@@ -90,29 +105,50 @@ def generate(session: Session, story: Story, out_dir, meta: NovelMetadataOut | N
         is_cover = attr == "cover"
         refs = None if (is_cover or not cover_ref) else [cover_ref]
         full_prompt = prompt if is_cover else prompt + _CONSISTENCY
-        # Gemini image gen occasionally returns a text-only response (or trips a
-        # transient safety block) — retry a couple times before giving up.
-        for attempt in range(3):
+
+        best_raw: bytes | None = None  # keep a usable image even if none verify
+        verified_raw: bytes | None = None
+        for attempt in range(_MAX_ATTEMPTS):
             try:
                 raw = PROVIDER.generate_image(
                     prompt=full_prompt, model=IMAGE_MODEL,
                     aspect_ratio=aspect, reference_images=refs,
                 )
-                img = Image.open(io.BytesIO(raw)).convert("RGB")
-                # Cover the target box then symmetric center-crop — the model draws
-                # the title in the lower third within safe margins, so we must NOT
-                # bias the crop toward the bottom or it could clip the title.
-                img = ImageOps.fit(img, (w, h), method=Image.LANCZOS, centering=centering)
-                img.save(out_dir / filename, format="PNG")
-                if is_cover:
-                    cover_ref = raw  # full-res reference for the thumbnails
-                written.append(filename)
-                logger.info("[%s] image written: %s (%dx%d)", story.slug, filename, w, h)
-                break
             except NotImplementedError:
                 logger.warning("[%s] provider has no image support — skipping all images", story.slug)
                 return written
             except Exception as exc:
-                logger.warning("[%s] image %s attempt %d failed: %s",
+                logger.warning("[%s] image %s attempt %d gen failed: %s",
                                story.slug, filename, attempt + 1, exc)
+                continue
+
+            best_raw = best_raw or raw
+            # OCR-verify the rendered title spelling; regenerate if it's wrong.
+            try:
+                ocr = PROVIDER.read_image_text(image_bytes=raw, model=ocr_model)
+                if _title_ok(story.title, ocr):
+                    verified_raw = raw
+                    break
+                logger.info("[%s] %s attempt %d: title misspelled in art (ocr=%r), retrying",
+                            story.slug, filename, attempt + 1, (ocr or "")[:60])
+            except NotImplementedError:
+                verified_raw = raw  # no OCR available → accept first good image
+                break
+            except Exception as exc:
+                logger.warning("[%s] %s OCR check failed: %s — accepting image",
+                               story.slug, filename, exc)
+                verified_raw = raw
+                break
+
+        chosen = verified_raw or best_raw
+        if not chosen:
+            continue
+        img = Image.open(io.BytesIO(chosen)).convert("RGB")
+        img = ImageOps.fit(img, (w, h), method=Image.LANCZOS, centering=centering)
+        img.save(out_dir / filename, format="PNG")
+        if is_cover:
+            cover_ref = chosen  # reference for thumbnail character consistency
+        written.append(filename)
+        logger.info("[%s] image written: %s (%dx%d)%s", story.slug, filename, w, h,
+                    "" if verified_raw else " [title unverified]")
     return written
