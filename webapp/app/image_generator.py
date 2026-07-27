@@ -105,14 +105,33 @@ _PALETTES = [
 ]
 
 
+# How the central PAIR is staged in thumb2 — drawn per run so it isn't always the
+# same "two people facing each other". Each expresses the relationship differently.
+_PAIR_STAGINGS = [
+    "back-to-back, bound together yet looking opposite ways — divided loyalties",
+    "one standing behind the other, a hand on the shoulder or throat — protection or possession",
+    "standing apart with charged tension across the empty gap, NOT touching",
+    "one seated/reclining in power, the other looming or kneeling close",
+    "crossing profiles, looking past each other rather than at each other",
+    "a close embrace from behind, her eyes open and wary over his arm",
+    "one sharp in the foreground, the other a soft watchful presence deep behind",
+    "mirrored symmetrical opposition, like two duelists before a move",
+    "one reaching out while the other turns away, caught mid-gesture",
+    "seen from above/below at an unusual angle, bodies close but faces hidden or turned",
+    "framed through a doorway/beaded curtain/smoke, the pair glimpsed in a private moment",
+    "face to face, foreheads nearly touching, on the edge of a kiss or a threat",
+]
+
+
 def _art_direction(seed: int | None = None) -> str:
-    """One randomly-drawn composition / lens / lighting / palette recipe."""
+    """One randomly-drawn composition / lens / lighting / palette / pair-staging recipe."""
     rnd = random.Random(seed)
     return (
         f"- Composition (anchor for the cover): {rnd.choice(_COMPOSITIONS)}\n"
         f"- Lens: {rnd.choice(_LENSES)}\n"
         f"- Lighting: {rnd.choice(_LIGHTING)}\n"
         f"- Palette direction: {rnd.choice(_PALETTES)}\n"
+        f"- Pair staging (for thumb2, the couple/relationship shot): {rnd.choice(_PAIR_STAGINGS)}\n"
     )
 
 

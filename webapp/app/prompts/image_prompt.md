@@ -78,7 +78,11 @@ keeping the same world, palette family and the same faces.
 - **cover** — the 3-5 most important characters, arranged by the ART DIRECTION
   composition (not necessarily a row of faces).
 - **thumb1** — the protagonist alone (or + one secondary behind them).
-- **thumb2** — the central pair / key relationship, emotionally charged.
+- **thumb2** — the central pair / key relationship, emotionally charged, staged
+  according to the **Pair staging** in ART DIRECTION. **Do NOT default to two people
+  simply facing each other** — realise the given staging concretely (back-to-back,
+  one behind the other, apart across tension, through a doorway, etc.) so this shot
+  differs run to run. Still a portrait, faces/figures clear.
 
 ## Output — JSON schema: ImagePromptSetOut
 Each value is one dense paragraph following the FORMULA. The skeleton below marks
@@ -89,7 +93,7 @@ skeleton; those slots exist precisely so each run differs.
 {
   "cover": "photorealistic cinematic <genre> movie poster key art. <characters, each described concretely, expressions, heads fully in frame, faces legible>. <THE COMPOSITION FROM ART DIRECTION, realised concretely — who sits where, what dominates>. <in-world backdrop>. <palette + lighting from ART DIRECTION, in this story's concrete colours; never muddy>. Shot on a full-frame camera, <FOCAL LENGTH FROM ART DIRECTION> at <fitting aperture>, sharp focus on faces, subtle film grain, 8k. The COMPLETE title \"<TITLE>\" rendered left-to-right and easy to read (horizontal or gently arched/wavy, never vertical), large and fully legible, every letter present and entirely inside the frame with a safe margin from all edges, not covering any face; only the title text. photorealistic live-action, real actors, not 3D render, not CGI, not cartoon, not anime, not illustration, not painting, no extra text, no watermark, no logo",
   "thumb1": "photorealistic cinematic <genre> poster of <protagonist, described identically to the cover, face legible>. <a composition and subject scale DIFFERENT from the cover's>. <in-world backdrop>. <same palette family, lighting from a different angle>. Shot on <a focal length DIFFERENT from the cover's> at <fitting aperture>, sharp focus on the face, film grain, 8k. Title \"<TITLE>\" placed creatively, complete and fully inside the frame with a safe margin. photorealistic live-action, real actor, not 3D render, not CGI, not cartoon, not anime, not illustration, not painting, no extra text, no watermark, no logo",
-  "thumb2": "photorealistic cinematic <genre> poster of <the central pair, described identically to the cover, charged emotion between them>. <a composition DIFFERENT from both the cover and thumb1>. <in-world backdrop>. <same palette family, its own lighting angle>. Shot on <a third focal length> at <fitting aperture>, sharp focus on faces, film grain, 8k. Title \"<TITLE>\" placed creatively, complete and fully inside the frame with a safe margin. photorealistic live-action, real actors, not 3D render, not CGI, not cartoon, not anime, not illustration, not painting, no extra text, no watermark, no logo"
+  "thumb2": "photorealistic cinematic <genre> poster of <the central pair, described identically to the cover, staged as the PAIR STAGING from ART DIRECTION — not simply facing each other>. <a composition DIFFERENT from both the cover and thumb1>. <in-world backdrop>. <same palette family, its own lighting angle>. Shot on <a third focal length> at <fitting aperture>, sharp focus on faces, film grain, 8k. Title \"<TITLE>\" placed creatively, complete and fully inside the frame with a safe margin. photorealistic live-action, real actors, not 3D render, not CGI, not cartoon, not anime, not illustration, not painting, no extra text, no watermark, no logo"
 }
 ```
 Return ONLY the JSON object — no markdown fences, no preamble.
