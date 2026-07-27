@@ -76,7 +76,8 @@ Tính 3 phần theo tỷ lệ trên `words_per_chapter` (W) — KHÔNG dùng s�
 ### Trình bày / xuống dòng (QUAN TRỌNG — dễ đọc)
 - **Mỗi lượt thoại của MỘT nhân vật là MỘT đoạn riêng, xuống dòng.** Khi người khác lên tiếng → đoạn mới. TUYỆT ĐỐI không nhồi lời của hai nhân vật khác nhau vào cùng một đoạn.
 - Action beat / cử chỉ đi kèm lời thoại của ai thì nằm cùng đoạn với lời của người đó.
-- **Đoạn RẤT NGẮN**: thường **1-2 câu** (~15-40 từ), tối đa 3 câu. Hết một nhịp/ý/hành động → xuống đoạn ngay. KHÔNG viết khối 4+ câu liền.
+- **Đoạn NGẮN, ưu tiên 1-2 câu**, hiếm khi tới 3. Hết một nhịp/ý/hành động → xuống đoạn. Tránh những khối 4-5 câu dồn liền.
+- **Cả đoạn TƯỜNG THUẬT và NỘI TÂM cũng nên chẻ nhỏ theo nhịp** — đây là chỗ hay bị viết dài. Một mô tả/nội tâm dài: tách thành vài đoạn ngắn, mỗi đoạn một hình ảnh/ý. Nhưng **ngắt ở chỗ TỰ NHIÊN, HỢP LÝ** (hết một ý/một hình ảnh), KHÔNG chẻ máy móc giữa một mạch liền. Ưu tiên trang văn thoáng hơn là dồn khối — nhưng phải mượt.
 - **Câu nhấn / phản ứng / khoảnh khắc quan trọng → tách riêng MỘT câu một dòng** để tạo nhịp và sức nặng.
 - **NGUYÊN TẮC (điều cần đạt), không phải công thức:** mục tiêu là *chia nhỏ theo nhịp* — mỗi hành động, mỗi phản ứng, mỗi lượt thoại tự đứng thành đoạn ngắn; câu quan trọng đứng một mình. **Nhịp phải BIẾN HÓA theo cảnh**, KHÔNG lặp một khuôn cố định:
   - Cảnh căng/nhanh → nhiều câu cực ngắn liên tiếp, mỗi câu một dòng.
