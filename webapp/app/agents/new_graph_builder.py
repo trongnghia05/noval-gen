@@ -1248,8 +1248,21 @@ def run(session: Session, story: Story, feedback: str | None = None) -> None:
         world_design = None
         world_design_text = story.story_bible or ""
 
-    # Phase 1b — name lexicon
-    lexicon = _build_name_lexicon(session, story, world_design_text, feedback)
+    # Phase 1b — name lexicon. Feed the lexicon EVERY name the world design already
+    # coined (narrative prose + the named locations/archetypes it lists), not just
+    # the narrative, so it can adopt them ALL (rule 0) and become the single source
+    # of names — no entity ends up with one name in the world design and a different
+    # one in the lexicon.
+    if world_design is not None:
+        lexicon_world_text = (
+            f"{world_design.narrative_summary}\n\n"
+            f"Named locations already coined: {', '.join(world_design.location_concepts)}\n"
+            f"Protagonist archetype: {world_design.protagonist_archetype}\n"
+            f"Antagonist archetype: {world_design.antagonist_archetype}"
+        )
+    else:
+        lexicon_world_text = world_design_text
+    lexicon = _build_name_lexicon(session, story, lexicon_world_text, feedback)
 
     # Phase 1.5 — Python name substitution (deterministic, convergent)
     _apply_lexicon_substitution(session, story.id, lexicon)
