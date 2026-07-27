@@ -18,14 +18,33 @@ from ..schemas import GraphSurfaceRepairOutput, GraphVerifyIssueOut, NewEdgeForR
 logger = logging.getLogger(__name__)
 
 
+_RESKIN_DIRECTIVE = (
+    "## MODE: RESKIN-ORIGINALITY REWRITE\n"
+    "The listed nodes/edges are too close to the SOURCE (near-verbatim copy or "
+    "direct translation). Rewrite each flagged field (summary / mechanism / "
+    "description / label / arc) COMPLETELY in fresh wording of THIS new world.\n"
+    "- KEEP: the same events, the same causal function (which event causes which), "
+    "the same participants, and the same chapter timing. Do NOT change story logic.\n"
+    "- CHANGE: the sentence structure entirely (no translating/mirroring the source), "
+    "AND the concrete surface details — the MEANS, props, setting and imagery — to "
+    "things native to this world (e.g. a spied-on camera → a scrying ritual; a prenup "
+    "→ a blood-oath covenant). This is a copyright-safety rewrite: the result must not "
+    "read as a paraphrase of the source.\n\n"
+)
+
+
 def run(
     session: Session,
     story: Story,
     issues: list[GraphVerifyIssueOut],
+    reason: str = "logic",
 ) -> None:
-    """Rewrite surface content for nodes/edges flagged as narrative_logic issues.
+    """Rewrite surface content for flagged nodes/edges.
 
-    Only patches what's listed — structure (chapter_from, chapter_to, etc.) is
+    reason="logic": repair narrative-logic problems.
+    reason="reskin": rewrite content that is too close to the source (originality/
+    copyright), changing wording AND surface detail while preserving story logic.
+    Only patches the listed items — structure (chapter_from, chapter_to, etc.) is
     never touched.
     """
     new_graph_text = context_builder.format_story_graph(session, story.id, graph_type="new")
@@ -37,8 +56,10 @@ def run(
     issues_text = "\n".join(issue_lines)
 
     system = load_prompt("graph_surface_rewriter")
+    directive = _RESKIN_DIRECTIVE if reason == "reskin" else ""
     user_content = (
         f"language: {story.language}\n\n"
+        f"{directive}"
         f"## NEW STORY GRAPH\n{new_graph_text}\n\n"
         f"## ISSUES TO FIX\n{issues_text}\n"
     )

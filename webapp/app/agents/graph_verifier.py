@@ -31,6 +31,10 @@ from . import graph_surface_rewriter
 from .new_graph_builder import _character_source_labels, substitute_labels
 
 MAX_ITERATIONS = 10
+# Cap on how many near-verbatim nodes/edges get an LLM content-rewrite per
+# iteration (prioritising the flagged ones) so a 60-issue iteration doesn't fan
+# out into 60 rewrite calls. No early-stop: the loop still runs all iterations.
+_MAX_RESKIN_REWRITE = 12
 logger = logging.getLogger(__name__)
 
 
@@ -210,12 +214,21 @@ def run(session: Session, story: Story) -> None:
             session.flush()
 
         if reskin_critical:
-            # Python substitution only — derive reverse map from existing DB nodes.
-            # Convergent and deterministic: never triggers a full graph rebuild.
-            logger.info("[%s] graph_verifier: reskin fix — Python name substitution for %d issues",
+            # Two-part reskin fix:
+            #  (a) leaked NAMES → deterministic Python substitution (cheap, exact).
+            #  (b) near-verbatim CONTENT (summary/mechanism/description that is a
+            #      direct translation of the source) → surface rewrite, since
+            #      substitution only swaps names and can't fix copied phrasing.
+            logger.info("[%s] graph_verifier: reskin fix — name substitution + content rewrite for %d issues",
                         story.slug, len(reskin_critical))
             _apply_reskin_substitution(session, story)
             session.flush()
+            reskin_targeted = [i for i in reskin_critical if i.node_key][:_MAX_RESKIN_REWRITE]
+            if reskin_targeted:
+                logger.info("[%s] graph_verifier: reskin content-rewrite for %d node(s)",
+                            story.slug, len(reskin_targeted))
+                graph_surface_rewriter.run(session, story, reskin_targeted, reason="reskin")
+                session.flush()
 
         if enrichment_critical:
             bad_keys = [i.node_key for i in enrichment_critical if i.node_key]

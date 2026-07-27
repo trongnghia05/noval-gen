@@ -16,6 +16,11 @@ For each CAUSES edge, produce:
 - `new_mechanism` — 1-2 sentences explaining HOW event A causes event B, using new-world logic and character motivations (not source references)
 - `new_label` — 3-6 words summarizing the causal link (e.g. "overheard confession triggers investigation")
 
+## ORIGINALITY — RE-CREATE, DON'T TRANSLATE (copyright-critical)
+The source mechanism is a REFERENCE for causal logic only — never a text to paraphrase.
+- **KEEP:** which event causes which (the causal STRUCTURE is fixed).
+- **CHANGE:** the wording entirely (no mirroring/translating the source sentence) AND the concrete MEANS by which A causes B — re-imagined for this world (e.g. "a leaked photo forces his hand" → "a whispered omen in the Archive forces his hand"). The mechanism must read as this world's own, not a reskinned source line.
+
 ## Rules
 
 - Keep the same CAUSAL STRUCTURE — do not change which event causes which

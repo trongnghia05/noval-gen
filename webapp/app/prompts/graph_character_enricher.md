@@ -31,6 +31,7 @@ For each character, produce:
 - **Make voices MAXIMALLY DISTINCT across the cast.** No two characters should sound alike — deliberately vary register, rhythm, and tic so a reader can tell who is speaking with the dialogue tag removed. A cast where everyone speaks the same elevated tone is a FAILURE.
 - Voice must fit the character's role, class, and the world's setting (a scheming aristocrat and a blunt dockworker do not talk the same).
 - NEVER use source character names — only new names from the lexicon; sample lines are new-world, invent them.
+- **ORIGINALITY (copyright):** the source fields are a REFERENCE for role/arc direction only — do NOT paraphrase or translate them. Write arc/wants/fears/background in fresh wording with this world's own concrete details; the result must not read as a reskinned copy of the source text. Keep only the role and arc DIRECTION.
 - **OUTPUT LANGUAGE — HARD RULE:** every text value (arc/wants/fears/background/voice_profile/sample lines, everything) MUST be in the requested `language`. Absolute — do NOT copy the source's language, and do NOT follow the language THIS prompt is written in. If `language` is English, every value is English.
 
 ## Output — JSON schema: CharacterGroupEnrichOutput

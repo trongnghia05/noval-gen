@@ -21,6 +21,7 @@ For each RELATION edge, produce:
 - Multiple RELATION edges between the same pair are valid when the relationship CHANGES across chapters — match the chapter_from to understand the timeline
 - NEVER invent a rel_type outside the allowed list above
 - Do not change source_key, target_key, or chapter_from — only provide the new values
+- **ORIGINALITY (copyright):** describe the relationship in fresh, world-native wording — do NOT paraphrase/translate the source label/condition. Keep only the relationship's nature and timing.
 - **OUTPUT LANGUAGE — HARD RULE:** every text value (`new_label`, `new_condition`, anything) MUST be in the requested `language`. Absolute — do NOT copy the source's language, and do NOT follow the language THIS prompt is written in. If `language` is English, every value is English.
 
 ## Output — JSON schema: RelationGroupEnrichOutput
