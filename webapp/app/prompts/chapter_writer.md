@@ -78,19 +78,13 @@ Tính 3 phần theo tỷ lệ trên `words_per_chapter` (W) — KHÔNG dùng s�
 - Action beat / cử chỉ đi kèm lời thoại của ai thì nằm cùng đoạn với lời của người đó.
 - **Đoạn RẤT NGẮN**: thường **1-2 câu** (~15-40 từ), tối đa 3 câu. Hết một nhịp/ý/hành động → xuống đoạn ngay. KHÔNG viết khối 4+ câu liền.
 - **Câu nhấn / phản ứng / khoảnh khắc quan trọng → tách riêng MỘT câu một dòng** để tạo nhịp và sức nặng.
-- **Sơ đồ nhịp cần đạt** (đây là KHUÔN ngắt dòng bằng placeholder — KHÔNG phải văn mẫu để mô phỏng câu chữ; hãy điền nội dung của CHÍNH truyện bạn đang viết):
-
-  > ‹1-2 câu hành động ngắn›
-  >
-  > "‹lời thoại A›," ‹dẫn thoại + cử chỉ›.
-  >
-  > ‹1 câu phản ứng/nội tâm — đứng riêng›
-  >
-  > "‹lời thoại B đáp›."
-  >
-  > ‹1 câu nhấn, đứng riêng để dồn nhịp›
-
-  Quy tắc rút ra từ khuôn: hành động, phản ứng, mỗi lượt thoại — mỗi thứ một dòng ngắn; câu quan trọng đứng một mình.
+- **NGUYÊN TẮC (điều cần đạt), không phải công thức:** mục tiêu là *chia nhỏ theo nhịp* — mỗi hành động, mỗi phản ứng, mỗi lượt thoại tự đứng thành đoạn ngắn; câu quan trọng đứng một mình. **Nhịp phải BIẾN HÓA theo cảnh**, KHÔNG lặp một khuôn cố định:
+  - Cảnh căng/nhanh → nhiều câu cực ngắn liên tiếp, mỗi câu một dòng.
+  - Cảnh lắng/suy tư → có thể một đoạn 2-3 câu rồi mới ngắt.
+  - Cảnh đối thoại → thoại qua lại, chen action beat ngắn.
+  
+  Đừng máy móc kiểu "1 câu hành động → 1 thoại → 1 phản ứng" lặp đi lặp lại — đó là dấu hiệu viết như công thức. Hãy để nội dung quyết định chỗ ngắt: **hết một nhịp cảm xúc/hành động thì xuống dòng**, dài ngắn tùy nhịp đó.
+- Ví dụ MINH HỌA (chỉ để thấy độ mịn của việc ngắt — KHÔNG phải thứ tự bắt buộc, KHÔNG copy văn): một chuỗi có thể là ‹hành động ngắn› / "‹thoại›" / ‹phản ứng một câu› / "‹thoại đáp›" / ‹câu nhấn đứng riêng›; chuỗi khác lại có thể là ba câu hành động dồn dập rồi một câu lặng.
 - Giữa các đoạn cách nhau bằng một dòng trống.
 - Mục tiêu: trang văn thoáng, nhịp dồn — mỗi hành động, mỗi phản ứng, mỗi lượt thoại đứng riêng; KHÔNG dồn nhiều nhịp vào một khối.
 
