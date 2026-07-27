@@ -53,9 +53,13 @@ lens, a different subject scale, light from another side) while keeping the same
 world, palette family, the same faces, and the same story dynamic.
 
 ## Rules — IMPORTANT
-- **PHOTOREALISTIC LIVE-ACTION, real actors.** True skin texture and pores, real
-  hair, catchlights in the eyes, natural cinematic light. Looks photographed, not
-  rendered.
+- **PHOTOREALISTIC LIVE-ACTION, real actors.** True skin texture WITH VISIBLE PORES,
+  fine lines and natural blemishes, real hair with stray strands, catchlights in the
+  eyes, natural cinematic light. Looks like a real photograph of real people.
+- **NOT glossy or over-polished.** Avoid the plastic/airbrushed/CGI-render look:
+  no waxy smooth skin, no beauty-retouched perfection, no shiny artificial sheen.
+  Aim for CANDID, grounded, slightly imperfect realism — real film photography with
+  natural grain and true-to-life skin, as if shot on set, not a glossy ad.
 - **Characters clearly visible and legible at thumbnail size** — the cast still
   carries the poster; never tiny specks lost in scenery. **Keep every character's
   HEAD and FACE fully inside the frame** with a little margin — no face cropped by
@@ -76,6 +80,9 @@ world, palette family, the same faces, and the same story dynamic.
   accent, subtle glow/shadow, darker backing behind the letters if the art is busy).
   **The one hard rule: it must read LEFT-TO-RIGHT and be EASY TO READ at a glance** —
   no vertical/sideways lettering, nothing so warped or low-contrast it's hard to read.
+  **Make the title LARGE — it must span most of the image width** (especially on the
+  small portrait thumbnails, where the title should fill roughly 70-90% of the width
+  and be the clear second focal point after the faces). Never tiny.
   - **NON-NEGOTIABLE:** the **ENTIRE title appears, every letter present, fully
     INSIDE the frame with a safe margin from all edges** — never cut off, never
     running off an edge, never hidden behind a subject or covering a face. Render
@@ -86,11 +93,15 @@ world, palette family, the same faces, and the same story dynamic.
 - Poster-safe: no gore, no explicit content.
 - End every prompt with this negatives tail: "photorealistic live-action, real
   actors, not 3D render, not CGI, not cartoon, not anime, not illustration, not
-  painting, no extra text, no watermark, no logo".
+  painting, not glossy, not airbrushed, not plastic skin, no extra text, no
+  watermark, no logo".
 
 ## Per-image subjects
-- **cover** — the 3-5 most important characters, arranged by the ART DIRECTION
-  composition (not necessarily a row of faces).
+- **cover** — an ENSEMBLE of the story's main characters: include **at least 4 (up
+  to 5-6) of the most important characters together** whenever the cast allows —
+  never just the central couple. Arrange them by the ART DIRECTION composition
+  (layered, montage, grouped — not necessarily a row of faces), but the several main
+  characters must all be present and recognisable.
 - **thumb1** — the protagonist alone (or + one secondary behind them).
 - **thumb2** — the central pair / key relationship, staged to embody the STORY
   DIRECTION dynamic (see that section) — who pursues/controls/is captive to whom.
@@ -104,9 +115,9 @@ DIRECTION.** Do not copy any composition, focal length or palette wording from t
 skeleton; those slots exist precisely so each run differs.
 ```json
 {
-  "cover": "photorealistic cinematic <genre> movie poster key art. <characters, each described concretely, expressions, heads fully in frame, faces legible>. <THE COMPOSITION FROM ART DIRECTION, realised concretely — who sits where, what dominates>. <in-world backdrop>. <palette + lighting from ART DIRECTION, in this story's concrete colours; never muddy>. Shot on a full-frame camera, <FOCAL LENGTH FROM ART DIRECTION> at <fitting aperture>, sharp focus on faces, subtle film grain, 8k. The COMPLETE title \"<TITLE>\" rendered left-to-right and easy to read (horizontal or gently arched/wavy, never vertical), large and fully legible, every letter present and entirely inside the frame with a safe margin from all edges, not covering any face; only the title text. photorealistic live-action, real actors, not 3D render, not CGI, not cartoon, not anime, not illustration, not painting, no extra text, no watermark, no logo",
-  "thumb1": "photorealistic cinematic <genre> poster of <protagonist, described identically to the cover, face legible>. <a composition and subject scale DIFFERENT from the cover's>. <in-world backdrop>. <same palette family, lighting from a different angle>. Shot on <a focal length DIFFERENT from the cover's> at <fitting aperture>, sharp focus on the face, film grain, 8k. Title \"<TITLE>\" placed creatively, complete and fully inside the frame with a safe margin. photorealistic live-action, real actor, not 3D render, not CGI, not cartoon, not anime, not illustration, not painting, no extra text, no watermark, no logo",
-  "thumb2": "photorealistic cinematic <genre> poster of <the central pair, described identically to the cover, staged to embody the STORY DIRECTION dynamic — who pursues/controls/is captive to whom; not simply facing each other, never reversed>. <a composition DIFFERENT from both the cover and thumb1>. <in-world backdrop>. <same palette family, its own lighting angle>. Shot on <a third focal length> at <fitting aperture>, sharp focus on faces, film grain, 8k. Title \"<TITLE>\" placed creatively, complete and fully inside the frame with a safe margin. photorealistic live-action, real actors, not 3D render, not CGI, not cartoon, not anime, not illustration, not painting, no extra text, no watermark, no logo"
+  "cover": "photorealistic cinematic <genre> movie poster key art. <characters, each described concretely, expressions, heads fully in frame, faces legible>. <THE COMPOSITION FROM ART DIRECTION, realised concretely — who sits where, what dominates>. <in-world backdrop>. <palette + lighting from ART DIRECTION, in this story's concrete colours; never muddy>. Shot on a full-frame camera, <FOCAL LENGTH FROM ART DIRECTION> at <fitting aperture>, sharp focus on faces, subtle film grain, 8k. The COMPLETE title \"<TITLE>\" rendered left-to-right and easy to read (horizontal or gently arched/wavy, never vertical), large and fully legible, every letter present and entirely inside the frame with a safe margin from all edges, not covering any face; only the title text. photorealistic live-action, real actors, not 3D render, not CGI, not cartoon, not anime, not illustration, not painting, not glossy, not airbrushed, not plastic skin, no extra text, no watermark, no logo",
+  "thumb1": "photorealistic cinematic <genre> poster of <protagonist, described identically to the cover, face legible>. <a composition and subject scale DIFFERENT from the cover's>. <in-world backdrop>. <same palette family, lighting from a different angle>. Shot on <a focal length DIFFERENT from the cover's> at <fitting aperture>, sharp focus on the face, film grain, 8k. Title \"<TITLE>\" placed creatively, complete and fully inside the frame with a safe margin. photorealistic live-action, real actor, not 3D render, not CGI, not cartoon, not anime, not illustration, not painting, not glossy, not airbrushed, not plastic skin, no extra text, no watermark, no logo",
+  "thumb2": "photorealistic cinematic <genre> poster of <the central pair, described identically to the cover, staged to embody the STORY DIRECTION dynamic — who pursues/controls/is captive to whom; not simply facing each other, never reversed>. <a composition DIFFERENT from both the cover and thumb1>. <in-world backdrop>. <same palette family, its own lighting angle>. Shot on <a third focal length> at <fitting aperture>, sharp focus on faces, film grain, 8k. Title \"<TITLE>\" placed creatively, complete and fully inside the frame with a safe margin. photorealistic live-action, real actors, not 3D render, not CGI, not cartoon, not anime, not illustration, not painting, not glossy, not airbrushed, not plastic skin, no extra text, no watermark, no logo"
 }
 ```
 Return ONLY the JSON object — no markdown fences, no preamble.
