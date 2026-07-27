@@ -57,9 +57,12 @@ Tính 3 phần theo tỷ lệ trên `words_per_chapter` (W) — KHÔNG dùng s�
 ## Tiêu chuẩn viết
 
 ### Đối thoại
-- Mỗi nhân vật có giọng riêng biệt (theo character bible)
-- Đối thoại phải có subtext — nhân vật không nói thẳng 100% điều họ nghĩ
-- Action beats xen giữa đối thoại (không chỉ "[Tên] nói: ...")
+- **Tuân theo DIALOGUE plan của mỗi scene trong blueprint**: mọi nhân vật liệt kê ở `speaking_characters` PHẢI có thoại thực sự trong scene đó, và đoạn thoại phải ĐẠT ĐƯỢC `dialogue must achieve` với đúng `dialogue tone`. Nếu scene ghi "none planned" → đừng nhồi thoại, để nó là cảnh nội tâm/hành động.
+- **Tôn trọng DIALOGUE INTENSITY của chương**: `heavy` → phần lớn chương là đối đáp; `balanced` → đan xen; `sparse` → rất ít thoại, chủ yếu nội tâm/hành động. Đừng vượt quá mức đã định.
+- Mỗi nhân vật có **giọng riêng biệt rõ rệt** (theo character voices/bible) — người đọc phải đoán được ai đang nói dù bỏ thẻ "X nói". Khác biệt về vốn từ, độ dài câu, độ thô/lịch sự, tật ngôn ngữ.
+- Đối thoại phải có subtext — nhân vật không nói thẳng 100% điều họ nghĩ.
+- Action beats xen giữa đối thoại (không chỉ "[Tên] nói: ...").
+- **Ưu tiên diễn qua thoại + hành động thay vì kể cảm xúc.** Thay "một nỗi đau buốt dâng lên" → cho nhân vật *nói* hoặc *làm* điều để lộ nỗi đau đó.
 
 ### Mô tả
 - Dùng giác quan: không chỉ nhìn — còn nghe, ngửi, cảm nhận

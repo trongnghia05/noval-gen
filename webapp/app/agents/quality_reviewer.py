@@ -8,11 +8,12 @@ belongs at the new_graph_builder level, not the writing phase. The reviewer only
 knows the new story's world and its planned graph event.
 """
 
+import json
 import logging
 
 from sqlalchemy.orm import Session
 
-from .. import context_builder
+from .. import context_builder, csv_graph
 from ..config import AGENT_MODELS, PROVIDER
 from ..db.models import Chapter, Story
 from ..llm_json import generate_structured
@@ -20,6 +21,28 @@ from ..prompts.loader import load_prompt
 from ..schemas import QualityReviewIssueOut, QualityReviewerOutput
 
 logger = logging.getLogger(__name__)
+
+
+def _dialogue_plan_block(chapter: Chapter) -> str:
+    """The blueprint's per-scene dialogue plan, for the reviewer to check against."""
+    if not chapter.blueprint:
+        return ""
+    try:
+        bp = json.loads(chapter.blueprint)
+    except Exception:
+        return ""
+    lines = [f"dialogue_intensity: {bp.get('dialogue_intensity', 'balanced')}"]
+    for i, s in enumerate(bp.get("scenes", [])):
+        speakers = s.get("speaking_characters") or []
+        if speakers:
+            lines.append(
+                f"- Scene {i+1}: speakers={', '.join(speakers)}"
+                + (f" | tone={s['dialogue_nuance']}" if s.get("dialogue_nuance") else "")
+                + (f" | must achieve={s['dialogue_intent']}" if s.get("dialogue_intent") else "")
+            )
+        else:
+            lines.append(f"- Scene {i+1}: (no dialogue planned — interiority/action)")
+    return "\n".join(lines)
 
 
 def check(session: Session, story: Story, chapter: Chapter) -> list[QualityReviewIssueOut]:
@@ -37,6 +60,22 @@ def check(session: Session, story: Story, chapter: Chapter) -> list[QualityRevie
             f"---\n{event_context}\n---\n"
         )
 
+    # Dialogue verification inputs: the planned dialogue, the valid character
+    # roster (only these may speak/appear), and each character's voice profile.
+    dialogue_plan = _dialogue_plan_block(chapter)
+    valid_roster = context_builder.format_character_aliases(session, story.id)
+    voices = ""
+    if csv_graph.graph_exists(story.id):
+        voices = csv_graph.get_character_voices(story.id)
+    dialogue_section = (
+        f"\n## Dialogue plan for this chapter (from blueprint — the contract to check)\n"
+        f"---\n{dialogue_plan or '(no plan)'}\n---\n"
+        f"\n## Valid character roster (ONLY these characters may appear/speak — anyone else is invalid)\n"
+        f"---\n{valid_roster or '(none)'}\n---\n"
+        f"\n## Character voices (each speaker must match their own voice)\n"
+        f"---\n{voices or '(not available)'}\n---\n"
+    )
+
     user_content = (
         f"language: {story.language}\n"
         f"input_type: {story.input_type}\n"
@@ -47,7 +86,8 @@ def check(session: Session, story: Story, chapter: Chapter) -> list[QualityRevie
         f"---\n{story.world_bible or '(not yet available)'}\n---\n\n"
         f"## story-bible.md — tone, setting, genre of new story\n"
         f"---\n{story.story_bible or '(not yet available)'}\n---\n"
-        f"{graph_event_section}\n"
+        f"{graph_event_section}"
+        f"{dialogue_section}\n"
         f"## Chapter just written (title: {chapter.title})\n"
         f"---\n{chapter.content}\n---\n"
     )

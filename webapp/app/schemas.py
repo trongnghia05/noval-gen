@@ -260,6 +260,10 @@ class SceneOut(BaseModel):
     disaster: str          # new problem that emerges from this scene
     characters: list[str] = []  # node keys (C001...) or names — who appears in this scene
     location: str = ""          # location label or node key from graph LOCATED_AT
+    # ── dialogue plan (new-world; derived from the new graph, never source) ──
+    speaking_characters: list[str] = []  # new-world names who actually SPEAK in this scene
+    dialogue_nuance: str = ""   # sắc thái: tone/mood of the exchange (e.g. "cold, clipped confrontation")
+    dialogue_intent: str = ""   # hướng đến: what the dialogue must accomplish this scene
 
 
 class ChapterBlueprintOutput(BaseModel):
@@ -271,6 +275,10 @@ class ChapterBlueprintOutput(BaseModel):
     hook: str                  # exact nature of the final hook/cliffhanger
     foreshadowing_to_plant: str | None = None  # seed to drop (for future payoff)
     characters_featured: list[str]  # character CSV ids who appear in this chapter
+    # heavy | balanced | sparse — how dialogue-driven this chapter should be.
+    # A solitary-introspection chapter is legitimately "sparse"; the verifier
+    # checks dialogue against THIS target, not a global constant.
+    dialogue_intensity: str = "balanced"
 
 
 # ── continuity_editor ─────────────────────────────────────────────────────────
@@ -325,7 +333,7 @@ class PlanningVerifierOutput(BaseModel):
 # ── quality_reviewer ───────────────────────────────────────────────────────────
 
 class QualityReviewIssueOut(BaseModel):
-    dimension: Literal["quality", "world_consistency", "graph_consistency"]
+    dimension: Literal["quality", "world_consistency", "graph_consistency", "dialogue"]
     description: str
     suggestion: str
     severity: Literal["critical", "minor"]

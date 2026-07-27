@@ -46,8 +46,18 @@ Mỗi scene có cấu trúc:
 - **disaster**: hệ quả mới nảy sinh — mỗi scene phải tạo ra vấn đề mới cho scene sau hoặc chương sau
 - **characters**: danh sách tên hoặc node key (C001...) của nhân vật xuất hiện trong scene này — lấy từ PARTICIPATES trong **chapter graph constraints** (nếu có), không tự bịa thêm
 - **location**: địa điểm diễn ra scene — lấy từ LOCATED_AT trong **chapter graph constraints** (nếu có)
+- **speaking_characters**: trong số `characters` của scene, ai **thực sự có thoại** (đối đáp) — dùng ĐÚNG TÊN MỚI trong graph, tuyệt đối không dùng tên gốc. Một scene độc thoại nội tâm có thể để rỗng.
+- **dialogue_nuance** *(sắc thái)*: tông/không khí của đoạn thoại, suy ra từ `emotional_weight` của event + `arc_stage` hiện tại của người tham gia + loại quan hệ đang hoạt động. VD: "đối đầu lạnh lùng, câu cụt", "an ủi ngập ngừng", "mỉa mai ngầm dưới lớp lịch sự".
+- **dialogue_intent** *(hướng đến điều gì)*: đoạn thoại này phải ĐẠT ĐƯỢC gì — cụ thể theo graph: bí mật cần lộ ra, ARC_CHANGE cần được kích hoạt qua lời nói, quan hệ cần chuyển, thông tin cần trao. VD: "buộc hắn tự phơi bày sự chối bỏ; đẩy cô tới quyết tâm ly khai".
 
 Quy tắc scene: outcome không bao giờ là "mọi thứ ổn" — luôn có thứ gì đó sai, hoặc đúng nhưng theo cách không mong đợi.
+
+### 4b. Mức độ thoại của chương (`dialogue_intensity`)
+Quyết định chương này nên **thoại-nhiều** hay không, dựa trên bản chất của nó — KHÔNG ép cứng:
+- `heavy`: chương xoay quanh đối đầu/đàm phán/thẩm vấn — phần lớn nội dung là đối đáp.
+- `balanced`: đan xen thoại và tường thuật/hành động (mặc định).
+- `sparse`: chương nội tâm một mình, di chuyển, hồi tưởng — ít hoặc gần như không có thoại. Với chương như vậy, để `sparse` là ĐÚNG, đừng nhồi thoại giả tạo.
+Chọn theo event: sự kiện có nhiều người tham gia + xung đột trực tiếp → nghiêng `heavy`; sự kiện một nhân vật xử lý cảm xúc riêng → `sparse`.
 
 ### 5. Hook cuối chương
 Câu hỏi, revelation, hoặc tình huống cụ thể ở đoạn cuối — độc giả PHẢI muốn đọc tiếp. Không phải "bầu trời đầy sao" — phải là hành động, thông tin, hoặc cảm xúc khiến câu chuyện chuyển sang một trạng thái mới.
@@ -75,12 +85,16 @@ Trả về **DUY NHẤT một object JSON** hợp lệ, đúng schema:
       "outcome": "success | failure | partial",
       "disaster": "Vấn đề mới nảy sinh",
       "characters": ["<node_key hoặc tên nhân vật thực tế từ graph>", "..."],
-      "location": "<tên địa điểm thực tế từ graph LOCATED_AT>"
+      "location": "<tên địa điểm thực tế từ graph LOCATED_AT>",
+      "speaking_characters": ["<tên MỚI của nhân vật có thoại trong scene này>", "..."],
+      "dialogue_nuance": "tông/sắc thái đoạn thoại",
+      "dialogue_intent": "đoạn thoại phải đạt được gì"
     }
   ],
   "hook": "Mô tả chính xác hook cuối chương",
   "foreshadowing_to_plant": "Mô tả seed cần gieo, hoặc null nếu không cần",
-  "characters_featured": ["<node_key hoặc tên của từng nhân vật xuất hiện trong chương>", "..."]
+  "characters_featured": ["<node_key hoặc tên của từng nhân vật xuất hiện trong chương>", "..."],
+  "dialogue_intensity": "heavy | balanced | sparse"
 }
 ```
 

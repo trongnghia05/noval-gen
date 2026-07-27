@@ -40,16 +40,30 @@ def _format_blueprint(chapter: Chapter) -> str:
         return "(no blueprint — write using your best judgment)"
     try:
         bp = json.loads(chapter.blueprint)
-        scenes = "\n".join(
-            f"  Scene {i+1}: goal={s['goal']} | conflict={s['conflict']} "
-            f"| outcome={s['outcome']} | disaster={s['disaster']}"
-            for i, s in enumerate(bp.get("scenes", []))
-        )
+        scene_lines = []
+        for i, s in enumerate(bp.get("scenes", [])):
+            line = (
+                f"  Scene {i+1}: goal={s['goal']} | conflict={s['conflict']} "
+                f"| outcome={s['outcome']} | disaster={s['disaster']}"
+            )
+            speakers = s.get("speaking_characters") or []
+            if speakers:
+                line += f"\n    DIALOGUE — speakers: {', '.join(speakers)}"
+                if s.get("dialogue_nuance"):
+                    line += f" | tone: {s['dialogue_nuance']}"
+                if s.get("dialogue_intent"):
+                    line += f" | must achieve: {s['dialogue_intent']}"
+            else:
+                line += "\n    DIALOGUE — (none planned; interiority/action scene)"
+            scene_lines.append(line)
+        scenes = "\n".join(scene_lines)
         plant = bp.get("foreshadowing_to_plant") or "none"
+        intensity = bp.get("dialogue_intensity", "balanced")
         return (
             f"PURPOSE: {bp.get('purpose')}\n"
             f"ACT: {bp.get('act_position')} | "
             f"Emotion start: {bp.get('emotional_arc_start')} → end: {bp.get('emotional_arc_end')}\n"
+            f"DIALOGUE INTENSITY: {intensity}\n"
             f"SCENES:\n{scenes}\n"
             f"HOOK: {bp.get('hook')}\n"
             f"FORESHADOWING TO PLANT: {plant}"
@@ -176,12 +190,25 @@ def _write_single_scene(
         f"CHAPTER PURPOSE: {blueprint.get('purpose')}\n"
         f"ACT: {blueprint.get('act_position')} | "
         f"Emotion: {blueprint.get('emotional_arc_start')} → {blueprint.get('emotional_arc_end')}\n"
+        f"DIALOGUE INTENSITY: {blueprint.get('dialogue_intensity', 'balanced')}\n"
         f"HOOK (use in scene 1 opening only): {blueprint.get('hook')}\n"
         f"FORESHADOWING TO PLANT: {blueprint.get('foreshadowing_to_plant') or 'none'}"
     )
 
     chars = scene_data.get("characters", [])
     loc = scene_data.get("location", "")
+    speakers = scene_data.get("speaking_characters") or []
+    if speakers:
+        dlg_line = (
+            f"  DIALOGUE — these characters MUST speak, each in their own distinct voice: "
+            f"{', '.join(speakers)}\n"
+        )
+        if scene_data.get("dialogue_nuance"):
+            dlg_line += f"  dialogue tone: {scene_data['dialogue_nuance']}\n"
+        if scene_data.get("dialogue_intent"):
+            dlg_line += f"  dialogue must achieve: {scene_data['dialogue_intent']}\n"
+    else:
+        dlg_line = "  DIALOGUE — none planned; this is an interiority/action scene, do not force dialogue\n"
     scene_spec = (
         f"Scene {scene_index + 1} of {total_scenes}:\n"
         f"  goal: {scene_data['goal']}\n"
@@ -190,6 +217,7 @@ def _write_single_scene(
         f"  disaster: {scene_data['disaster']}\n"
         + (f"  characters: {', '.join(chars)}\n" if chars else "")
         + (f"  location: {loc}\n" if loc else "")
+        + dlg_line
     ).rstrip()
 
     heading_instruction = (
