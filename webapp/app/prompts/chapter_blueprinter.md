@@ -22,6 +22,8 @@ Ví dụ tốt: "Reveal rằng bí mật của nhân vật A là nguyên nhân t
 
 Ví dụ tệ: "A và B gặp nhau và nói chuyện về quá khứ."
 
+**CHỐNG LẶP CHƯƠNG (bắt buộc):** Đọc kỹ `chapter-summaries` các chương trước. Nếu mục đích/beat của chương này **trùng hoặc gần trùng** một chương đã viết (VD nhiều chương liền đều là "nhân vật chính nhận ra mình bị thao túng" / "trị liệu và chữa lành"), bạn **PHẢI** làm cho chương này TIẾN THÊM một bước KHÁC — một khía cạnh mới, một quyết định/hành động/tiết lộ mới, một nhân vật/quan hệ khác được đẩy tới — chứ KHÔNG lặp lại cùng một nhận thức/cảm xúc đã đạt ở chương trước. Mỗi chương phải để lại một thay đổi trạng thái mà chương trước CHƯA có. Nếu bản outline khiến nhiều chương cùng một beat, hãy phân hóa chúng theo tiến trình (VD: ch A = *nhận ra*, ch B = *đối mặt người liên quan*, ch C = *hành động dứt khoát*), tuyệt đối không ba chương cùng "nhận ra".
+
 ### 2. Phân tích vị trí trong cung truyện
 Dựa vào `act_position` được cung cấp, điều chỉnh:
 - **Act 1**: Thiết lập, introduce conflict — nhịp chậm, xây dựng world và character

@@ -16,6 +16,7 @@ User message chứa: `language`, số chương vừa viết (`chapter_number`), 
 - **Quan hệ**: quan hệ giữa các nhân vật trong chương khớp với trạng thái quan hệ đã ghi nhận (không đột nhiên thân thiết/thù địch không có lý do trong chương).
 - **Mốc truyện & thời gian**: không mâu thuẫn với timeline, địa lý, hoặc thông tin đã tiết lộ trước đó trong 3 chương gần nhất.
 - **Tiến độ plot**: không lặp lại/quên các plot thread đang mở đã ghi nhận.
+- **Lặp chương (QUAN TRỌNG)**: so với nội dung 3 chương gần nhất, chương này có **lặp lại cùng một beat/sự kiện/nhận thức** mà một chương trước đã thực hiện không? (VD chương trước đã "nhân vật chính nhận ra bị thao túng và quyết tâm chữa lành", chương này lại kể đúng điều đó lần nữa mà không tiến thêm). Nếu chương KHÔNG để lại thay đổi trạng thái MỚI so với chương liền trước — chỉ diễn lại cùng cảm xúc/nhận thức — → flag **critical** (mô tả rõ nó trùng chương nào và thiếu tiến triển gì).
 - **World consistency** (dựa trên `world.md`): không có vật thể/công nghệ/thuật ngữ thuộc thế giới khác xuất hiện (anachronism). Ví dụ: truyện fantasy mà xuất hiện "điện thoại", "xe hơi"; hoặc truyện hiện đại mà dùng thuật ngữ ma thuật không được định nghĩa.
 - **Blueprint compliance** (nếu có blueprint): chương có thực hiện đủ các scene trong blueprint không? Hook ở cuối chương có khớp blueprint không? Nếu thiếu scene quan trọng hoặc hook bị bỏ qua hoàn toàn → flag critical.
 

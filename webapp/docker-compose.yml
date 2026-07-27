@@ -5,8 +5,14 @@ services:
       - "8001:8000"
     env_file:
       - .env
+    environment:
+      # Finished novels are written here; bind-mounted to the host (./output)
+      # so completed stories land in a folder you can open and copy.
+      - OUTPUT_DIR=/output
     volumes:
       - novelgen-data:/data
+      # Host-visible export dir: webapp/output/<story-slug>/novel.md
+      - ./output:/output
       # Service-account JSON for Vertex AI (repo-root auth/, read-only).
       # GOOGLE_APPLICATION_CREDENTIALS in .env points at a file under /auth.
       - ../auth:/auth:ro

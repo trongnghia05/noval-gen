@@ -416,8 +416,15 @@ def _compile_manuscript_to_file(session: Session, story: Story) -> Path:
     meta = " · ".join(meta_parts)
     manuscript = f"# {story.title}\n\n*{meta}*\n\n---\n\n## Mục lục\n\n{toc}\n\n---\n\n{chapters_text}\n"
 
-    out_dir = OUTPUT_BASE / str(story.id)
+    # Folder named after the story (slug is the filesystem-safe title). Suffix
+    # with the id only if a different story already claimed that slug, so runs
+    # never overwrite each other.
+    folder_name = story.slug or f"story-{story.id}"
+    out_dir = OUTPUT_BASE / folder_name
+    if out_dir.exists() and not (out_dir / f".story-{story.id}").exists():
+        out_dir = OUTPUT_BASE / f"{folder_name}-{story.id}"
     out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / f".story-{story.id}").write_text("", encoding="utf-8")  # ownership marker
     out_path = out_dir / "novel.md"
     out_path.write_text(manuscript, encoding="utf-8")
     logger.info("[%s] manuscript compiled → %s (%d chars)", story.slug, out_path, len(manuscript))
