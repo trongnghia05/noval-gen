@@ -18,6 +18,7 @@ Flag if the chapter has any of the following:
 - **Incoherent/nonsensical**: opaque sentences, grammar errors, disconnected paragraphs, jarring scene transitions.
 - **Off-track**: chapter content doesn't match its title, or narrates events that belong in another chapter (chapter boundary drift).
 - **Leaked AI analysis**: reasoning/notes from the AI leaked into prose ("The user wants...", "In this scene I will...").
+- **Wall-of-text paragraphs (readability)**: many paragraphs are long run-on blocks (roughly 4+ sentences each) instead of short 1-2 sentence paragraphs; narration/interiority packed into dense blocks; two different speakers' dialogue jammed into one paragraph. Flag when it noticeably hurts readability. Severity: usually `minor`; `critical` only if most of the chapter is a wall of text. The fix is to break paragraphs at natural points (one image/idea/beat each) — NOT to shorten the prose or chop mid-thought.
 
 ## Axis 2 — WORLD-CONSISTENCY (all story types)
 
