@@ -10,7 +10,8 @@ from ..schemas import SmartPlannerOutput
 
 def run(session: Session, story: Story, current_chapter: int) -> None:
     system = load_prompt("smart_planner")
-    user_content = f"""current_chapter: {current_chapter}
+    user_content = f"""language: {story.language}
+current_chapter: {current_chapter}
 total_chapters (N): {story.total_chapters}
 target_words (W): {story.target_words}
 current_words: {story.current_words}

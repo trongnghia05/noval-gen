@@ -62,7 +62,8 @@ def run(session: Session, story: Story, chapter: Chapter) -> None:
         id_list = "\n".join(f"  {r['id']}: {r['name']}" for r in chars)
         graph_ids_section = f"\n## character-graph ids (use these ids in character_updates)\n{id_list}\n"
 
-    user_content = f"""chapter_number: {chapter.number}
+    user_content = f"""language: {story.language}
+chapter_number: {chapter.number}
 
 ## characters.md (tên chính thức + aliases)
 {context_builder.format_character_aliases(session, story.id)}

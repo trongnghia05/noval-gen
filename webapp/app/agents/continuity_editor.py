@@ -10,7 +10,8 @@ from ..schemas import ContinuityEditorOutput
 
 def run(session: Session, story: Story, batch_end: int) -> None:
     system = load_prompt("continuity_editor")
-    user_content = f"""batch_end: {batch_end}
+    user_content = f"""language: {story.language}
+batch_end: {batch_end}
 
 ## characters.md (tên chính thức + aliases)
 {context_builder.format_character_aliases(session, story.id)}
