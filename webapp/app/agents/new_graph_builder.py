@@ -1217,6 +1217,192 @@ def _verify_story_bible(
                    story.slug, max_retries)
 
 
+# ── Phase 3.4: Name reconciliation (deterministic, converges to one name table) ──
+
+# Character-self-description fields — where a stray person-name is almost certainly
+# a variant of THIS character (safe to normalize), unlike event summaries which
+# mention many people.
+_CHAR_SELF_FIELDS = ("arc_stage", "background", "wants", "fears", "profile_md",
+                     "description", "voice_profile", "speech_pattern", "summary")
+
+_NAMEISH_RE = re.compile(r"\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2}\b")
+# Capitalized words that begin sentences / are common nouns, not names.
+_NAME_STOPWORDS = {
+    "the", "a", "an", "she", "he", "her", "his", "they", "it", "but", "and", "for",
+    "with", "when", "then", "this", "that", "as", "at", "in", "on", "of", "to", "her",
+    "raised", "born", "having", "after", "before", "though", "yet", "now", "here",
+    "their", "no", "not", "once", "still", "even", "only", "such", "she'd", "he'd",
+    "register", "sample", "lines", "tic", "tell", "rhythm", "vocabulary", "her",
+}
+
+
+def _all_label_tokens(session: Session, story_id: int) -> set[str]:
+    """Every token that belongs to some node's official label — these are valid
+    names and must never be swept away."""
+    toks: set[str] = set()
+    for n in (session.query(StoryGraphNode)
+              .filter_by(story_id=story_id, graph_type="new").all()):
+        for raw in (n.label or "").replace(",", " ").split():
+            t = raw.strip(".,;:'\"()[]").strip()
+            if t:
+                toks.add(t)
+                toks.add(t.lower())
+    return toks
+
+
+def _source_new_label_map(session: Session, story_id: int) -> dict[str, str]:
+    """source_label → new_label, matched by node_key."""
+    source_map = {
+        n.node_key: n.label
+        for n in session.query(StoryGraphNode)
+        .filter_by(story_id=story_id, graph_type="source").all()
+    }
+    new_map = {
+        n.node_key: n.label
+        for n in session.query(StoryGraphNode)
+        .filter_by(story_id=story_id, graph_type="new").all()
+        if n.node_type in ("character", "location", "faction", "object")
+    }
+    return {src: new_map[k] for k, src in source_map.items()
+            if new_map.get(k) and new_map[k] != src}
+
+
+def _sweep_source_leaks(session: Session, story: Story) -> int:
+    """B — replace any leaked SOURCE proper noun with its new label across all
+    content. Reuses the reverse lexicon (source_label → new_label by node_key)."""
+    label_map = _source_new_label_map(session, story.id)
+    return substitute_labels(session, story.id, label_map,
+                             name_labels=_character_source_labels(session, story.id))
+
+
+def _sweep_orphan_names(session: Session, story: Story, variant_map: dict) -> int:
+    """C — inside each CHARACTER's own self-description fields, replace a stray
+    person-like name (not any node's label, not a stopword) with that character's
+    official label. Catches a draft name (e.g. 'Kaito') left in C005's own profile
+    when its label is 'Kenji'. Scoped to self-fields only, so multi-person event
+    summaries are never touched. Records every orphan→canonical replacement in
+    `variant_map` so the SAME fix can be applied to story_bible etc."""
+    label_tokens = _all_label_tokens(session, story.id)
+    changed = 0
+    chars = (session.query(StoryGraphNode)
+             .filter_by(story_id=story.id, graph_type="new", node_type="character").all())
+    for c in chars:
+        props = dict(c.properties or {})
+        own_tokens = {t.lower() for t in (c.label or "").replace(",", " ").split()}
+        touched = False
+        for f in _CHAR_SELF_FIELDS:
+            v = props.get(f)
+            if not isinstance(v, str) or not v:
+                continue
+            def _fix(m):
+                phrase = m.group(0)
+                toks = phrase.split()
+                if toks[0].lower() in _NAME_STOPWORDS:
+                    return phrase
+                if any(t in label_tokens or t.lower() in label_tokens for t in toks):
+                    return phrase
+                if any(t.lower() in own_tokens for t in toks):
+                    return phrase
+                variant_map[phrase] = c.label   # remember for story_bible sweep
+                return c.label
+            nv = _NAMEISH_RE.sub(_fix, v)
+            if nv != v:
+                props[f] = nv
+                touched = True
+        if touched:
+            c.properties = props
+            changed += 1
+    if changed:
+        session.flush()
+    return changed
+
+
+def _dedupe_character_labels(session: Session, story: Story) -> int:
+    """A — ensure character labels don't share a distinctive given-name token
+    (two different people both readable as 'Kenji'). Colliding lower-tier nodes get
+    a role/descriptor-based distinguisher appended so prose can tell them apart."""
+    chars = (session.query(StoryGraphNode)
+             .filter_by(story_id=story.id, graph_type="new", node_type="character")
+             .order_by(StoryGraphNode.node_key).all())
+    seen: dict[str, StoryGraphNode] = {}   # given-name token → first owner
+    fixed = 0
+    for c in chars:
+        toks = [t.strip(".,;:'\"()[]") for t in (c.label or "").split()]
+        distinctive = [t for t in toks
+                       if len(t) >= 3 and t.lower() not in _NAME_TITLES]
+        collide = next((t for t in distinctive if t.lower() in seen), None)
+        if collide:
+            role = (c.properties or {}).get("role", "") or c.node_type
+            role_word = re.sub(r"[^A-Za-z ]", "", role).split(",")[0].strip().title()
+            suffix = role_word.split()[-1] if role_word else "the Younger"
+            if suffix and suffix.lower() not in (t.lower() for t in toks):
+                new_label = f"{c.label} the {suffix}" if not c.label.lower().startswith(("lord","lady","master","the")) else f"{c.label} ({suffix})"
+                logger.info("[%s] reconcile A: '%s' collides on '%s' → '%s'",
+                            story.slug, c.label, collide, new_label)
+                c.label = new_label
+                fixed += 1
+        for t in distinctive:
+            seen.setdefault(t.lower(), c)
+    if fixed:
+        session.flush()
+    return fixed
+
+
+def _graph_text_snapshot(session: Session, story_id: int) -> str:
+    """All name-bearing text of the new graph, concatenated — used to detect when
+    the reconcile loop has stopped changing anything."""
+    parts: list[str] = []
+    for n in (session.query(StoryGraphNode)
+              .filter_by(story_id=story_id, graph_type="new")
+              .order_by(StoryGraphNode.node_key).all()):
+        parts.append(n.label or "")
+        parts.append("".join(f"{k}={v}" for k, v in sorted((n.properties or {}).items())))
+    for e in (session.query(StoryGraphEdge)
+              .filter_by(story_id=story_id, graph_type="new").all()):
+        parts.append((e.label or "") + (e.condition or ""))
+        parts.append("".join(f"{k}={v}" for k, v in sorted((e.properties or {}).items())))
+    return "".join(parts)
+
+
+def _apply_variant_map_to_text(text: str, variant_map: dict[str, str]) -> str:
+    """Word-boundary replace every variant → canonical in a free-text blob
+    (story_bible, plot_outline…). Longest-first so multi-word names win."""
+    if not text or not variant_map:
+        return text
+    for variant, canon in sorted(variant_map.items(), key=lambda x: -len(x[0])):
+        if variant and variant != canon:
+            text = re.sub(r"(?<!\w)" + re.escape(variant) + r"(?!\w)", canon, text)
+    return text
+
+
+def _reconcile_names(session: Session, story: Story, max_loops: int = 100) -> dict[str, str]:
+    """The single deterministic name referee. Forces the whole new graph onto ONE
+    canonical name table (node labels): A) de-duplicate colliding character labels,
+    then loop B) sweep leaked source names + C) fold draft/variant names into the
+    canonical label, until the graph text stops changing (max 100 loops).
+
+    Returns a variant→canonical map (source-leak pairs + orphan pairs) so the caller
+    can apply the SAME normalization to story_bible / plot_outline — i.e. names are
+    unified EVERYWHERE (world design + graph), not just in the graph."""
+    _dedupe_character_labels(session, story)          # A first: settle labels
+    variant_map: dict[str, str] = dict(_source_new_label_map(session, story.id))
+    prev = None
+    for i in range(max_loops):
+        _sweep_source_leaks(session, story)           # B: kill source-name leaks
+        _sweep_orphan_names(session, story, variant_map)  # C: fold draft names → label
+        session.flush()
+        snap = _graph_text_snapshot(session, story.id)
+        if snap == prev:
+            logger.info("[%s] name reconcile: converged after %d loop(s), %d variant(s) mapped",
+                        story.slug, i + 1, len(variant_map))
+            break
+        prev = snap
+    else:
+        logger.warning("[%s] name reconcile: hit max %d loops without full convergence",
+                       story.slug, max_loops)
+    return variant_map
+
+
 # ── Public entry point ────────────────────────────────────────────────────────
 
 def run(session: Session, story: Story, feedback: str | None = None) -> None:
@@ -1278,8 +1464,18 @@ def run(session: Session, story: Story, feedback: str | None = None) -> None:
     if not feedback:
         _enrich_graph(session, story)
 
+    # Phase 3.4 — name reconciliation: the single deterministic referee that forces
+    # the entire graph onto ONE canonical name table (node labels), sweeping leaked
+    # source names + draft/variant names left by world_designer/enrichers. Returns
+    # a variant→canonical map so the SAME fix applies to story_bible below.
+    variant_map = _reconcile_names(session, story)
+
     # Phase 3.5 — rewrite story_bible using new-graph names, then verify
     _rewrite_story_bible(session, story, world_design)
+    # Apply the same name normalization to story_bible so world-design prose
+    # (which may still carry a draft name like "Kaito") matches the graph exactly.
+    if story.story_bible:
+        story.story_bible = _apply_variant_map_to_text(story.story_bible, variant_map)
     _verify_story_bible(session, story, world_design)
 
     # Phase 3.6 — retitle for the NEW world. The title was invented at creation
