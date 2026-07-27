@@ -788,25 +788,83 @@ def _enrich_causes(
 
 # ── Phase 0: World design ──────────────────────────────────────────────────────
 
-def _design_world(session: Session, story: Story) -> WorldDesignOutput:
+# Words allowed to be capitalized in world design without counting as an invented
+# proper name (sentence starters, genre/era words, generic role/place nouns).
+_WD_ALLOWED_CAPS = {
+    "the", "a", "an", "and", "but", "for", "with", "from", "into", "she", "he",
+    "her", "his", "their", "they", "them", "this", "that", "when", "after", "before",
+    "while", "then", "who", "what", "how", "why", "where", "in", "on", "at", "of",
+    "to", "as", "it", "no", "not", "act", "chapter", "i", "ii", "iii",
+    # genre / era / register descriptors commonly capitalized mid-phrase
+    "dark", "fantasy", "gothic", "romance", "noir", "empire", "dynasty", "kingdom",
+    "victorian", "steampunk", "mafia", "triad", "shanghai", "tokyo", "london",
+}
+
+
+def _world_design_name_leaks(wd: WorldDesignOutput) -> list[str]:
+    """Suspected INVENTED proper names in a world design (should be name-free).
+    Scans all text fields for capitalized words that aren't sentence-start/common;
+    a name that recurs or is a two-word Capitalized phrase is the clearest signal."""
+    fields = [wd.setting, wd.time_period, wd.genre, wd.tone,
+              wd.protagonist_archetype, wd.antagonist_archetype,
+              wd.thematic_core, wd.narrative_summary] + list(wd.location_concepts or [])
+    text = "\n".join(f for f in fields if f)
+    from collections import Counter
+    counts: Counter = Counter()
+    # two-word Capitalized phrases are almost always names (people/places/clans)
+    for m in re.findall(r"\b[A-Z][a-z]+\s+[A-Z][a-z]+\b", text):
+        counts[m] += 1
+    # single capitalized words that are NOT allowed and appear mid-sentence
+    for sent in re.split(r"(?<=[.!?])\s+", text):
+        toks = sent.split()
+        for i, raw in enumerate(toks):
+            w = raw.strip(".,;:'\"()[]—–")
+            if i == 0:
+                continue  # skip sentence starter
+            if re.fullmatch(r"[A-Z][a-z]{2,}", w) and w.lower() not in _WD_ALLOWED_CAPS:
+                counts[w] += 1
+    # keep phrases, and single words that recur (a one-off mid-sentence cap is
+    # likely a legit descriptor; a repeated one is a name being used)
+    leaks = {p for p in counts if " " in p}
+    leaks |= {w for w, c in counts.items() if " " not in w and c >= 2}
+    return sorted(leaks)
+
+
+def _design_world(session: Session, story: Story, max_attempts: int = 5) -> WorldDesignOutput:
+    """Design the new world, then LOOP a strict name-check: regenerate until the
+    world design contains NO invented proper names (people/places/clans), so the
+    draft narrative can't seed a name that later collides with the lexicon."""
     source_summary = _format_source_compact(session, story.id)
     system = load_prompt("world_designer")
-    user_content = (
+    base = (
         f"language: {story.language}\n"
         f"genre_hint: {story.genre or '(derive from source)'}\n"
         f"total_chapters: {story.total_chapters}\n\n"
     )
     if story.source_spirit:
-        user_content += (
-            "## SOURCE SPIRIT (tone, plot arc — role-based, no source names)\n"
-            f"{story.source_spirit}\n\n"
+        base += ("## SOURCE SPIRIT (tone, plot arc — role-based, no source names)\n"
+                 f"{story.source_spirit}\n\n")
+    base += f"## SOURCE GRAPH\n{source_summary}\n"
+
+    user_content = base
+    output = None
+    for attempt in range(max_attempts):
+        output = generate_structured(
+            PROVIDER, system=system, user_content=user_content,
+            model=AGENT_MODELS["world_designer"], schema=WorldDesignOutput,
+            max_tokens=4096, thinking=True,
         )
-    user_content += f"## SOURCE GRAPH\n{source_summary}\n"
-    output: WorldDesignOutput = generate_structured(
-        PROVIDER, system=system, user_content=user_content,
-        model=AGENT_MODELS["world_designer"], schema=WorldDesignOutput,
-        max_tokens=4096, thinking=True,
-    )
+        leaks = _world_design_name_leaks(output)
+        if not leaks:
+            break
+        logger.warning("[%s] Phase 0: world design still has proper names %s — regenerating",
+                       story.slug, leaks[:12])
+        user_content = base + (
+            "\n\n## REJECTED — your previous output contained INVENTED PROPER NAMES, "
+            "which is forbidden. Rewrite EVERY field using only roles/descriptions "
+            "(the protagonist, the rival clan, the riverside teahouse). Remove these "
+            f"names entirely: {', '.join(leaks[:20])}\n"
+        )
     logger.info("[%s] Phase 0: world — %s / %s", story.slug, output.genre, output.setting)
     return output
 
@@ -862,6 +920,32 @@ def _lexicon_collisions(entries, forbidden: set[str]) -> list:
     return bad
 
 
+def _lexicon_duplicate_labels(entries) -> list:
+    """Entries that collide with an earlier entry — either the SAME full label, or a
+    shared distinctive given-name token (so two people aren't both readable as
+    'Elder Lysander' or both 'Kenji'). Titles are ignored so 'Lord X'/'Lord Y' don't
+    false-collide. Returns [(entry, reason)] for regeneration."""
+    bad = []
+    seen_full: dict[str, str] = {}       # full label (lower) → node_key
+    seen_tok: dict[str, str] = {}        # distinctive token (lower) → node_key
+    for e in entries:
+        label = (e.new_label or "").strip()
+        low = label.lower()
+        if low in seen_full:
+            bad.append((e, f"duplicate of {seen_full[low]} (identical name)"))
+            continue
+        seen_full[low] = e.node_key
+        toks = [t.strip(".,;:'\"()[]") for t in label.split()]
+        distinctive = [t.lower() for t in toks
+                       if len(t) >= 3 and t.lower() not in _NAME_TITLES]
+        hit = next((t for t in distinctive if t in seen_tok), None)
+        if hit:
+            bad.append((e, f"shares name '{hit}' with {seen_tok[hit]}"))
+        for t in distinctive:
+            seen_tok.setdefault(t, e.node_key)
+    return bad
+
+
 def _build_name_lexicon(
     session: Session, story: Story,
     world_design_text: str,
@@ -900,21 +984,31 @@ def _build_name_lexicon(
         max_tokens=4096, thinking=False,
     )
 
-    # Validate + bounded regen: any new name reusing a forbidden source token is
-    # re-requested with explicit instruction. This is the deterministic backstop
-    # behind the prompt rule — the lexicon is the ONLY place new names are minted,
-    # so a leak here poisons the whole story.
-    for _attempt in range(2):
-        bad = _lexicon_collisions(output.entries, forbidden)
-        if not bad:
+    # Validate + bounded regen. The lexicon is the ONLY place names are minted, so
+    # two rules are enforced with deterministic backstops behind the prompt:
+    #   1. no new name reuses a forbidden SOURCE proper noun (leak)
+    #   2. every new name is UNIQUE — no identical labels, no two characters sharing
+    #      a distinctive given-name token (collision like 'Elder Lysander' x2)
+    for _attempt in range(3):
+        leaks = _lexicon_collisions(output.entries, forbidden)
+        dups = _lexicon_duplicate_labels(output.entries)
+        if not leaks and not dups:
             break
-        bad_desc = "; ".join(f"'{e.new_label}' (reuses source word '{tok}')" for e, tok in bad)
-        logger.warning("[%s] Phase 1b: lexicon reused source names — regenerating: %s",
-                       story.slug, bad_desc)
+        parts = []
+        if leaks:
+            parts.append("REUSE a source proper noun: " +
+                         "; ".join(f"'{e.new_label}' (source word '{tok}')" for e, tok in leaks))
+        if dups:
+            parts.append("COLLIDE with another new name: " +
+                         "; ".join(f"'{e.new_label}' [{e.node_key}] — {why}" for e, why in dups))
+        violation = "\n".join(parts)
+        logger.warning("[%s] Phase 1b: lexicon violations — regenerating:\n%s",
+                       story.slug, violation)
         retry_user = base_user + (
-            "\n\n## HARD CONSTRAINT VIOLATION — the following invented names REUSE a "
-            "source proper noun and are REJECTED. Re-issue the FULL lexicon with these "
-            f"replaced by genuinely new names sharing NO word with the source:\n{bad_desc}\n"
+            "\n\n## HARD CONSTRAINT VIOLATIONS — the following invented names are REJECTED. "
+            "Re-issue the FULL lexicon: each name must share NO word with the source AND "
+            "be globally unique (no two entries with the same name, and no two characters "
+            f"sharing a first/given name):\n{violation}\n"
         )
         output = generate_structured(
             PROVIDER, system=system, user_content=retry_user,
@@ -923,9 +1017,9 @@ def _build_name_lexicon(
         )
 
     lexicon = {e.node_key: e.new_label for e in output.entries}
-    leftover = _lexicon_collisions(output.entries, forbidden)
+    leftover = _lexicon_collisions(output.entries, forbidden) + _lexicon_duplicate_labels(output.entries)
     if leftover:
-        logger.warning("[%s] Phase 1b: %d source-name reuse(s) survived after retries",
+        logger.warning("[%s] Phase 1b: %d name violation(s) survived after retries",
                        story.slug, len(leftover))
     logger.info("[%s] Phase 1b: lexicon — %d names | %s", story.slug, len(lexicon), output.world_note)
     return lexicon
