@@ -73,7 +73,11 @@ language: {story.language}
         user_content=user_content,
         model=AGENT_MODELS.get("chapter_blueprinter", AGENT_MODELS["chapter_writer"]),
         schema=ChapterBlueprintOutput,
-        max_tokens=4096,
+        # 4096 truncated the JSON mid-string once Gemini's thinking tokens ate
+        # into the budget (unterminated-string parse failures). The blueprint
+        # itself is small; the headroom is for the reasoning pass. See the
+        # "reasoning token budget starvation" gotcha in webapp/CLAUDE.md.
+        max_tokens=16384,
         thinking=True,
     )
 
