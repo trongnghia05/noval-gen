@@ -46,6 +46,36 @@ _SPECS = [
 _TIER_ORDER = {"core": 0, "important": 1, "secondary": 2, "minor": 3}
 
 
+def _relationship_dynamics(session: Session, story_id: int) -> str:
+    """The main power dynamics between top characters — who pursues/controls/is
+    captive to whom — so the poster staging reflects the story instead of a random
+    (possibly reversed) pose."""
+    from .db.models import StoryGraphNode, StoryGraphEdge
+    nodes = {
+        n.node_key: n for n in session.query(StoryGraphNode)
+        .filter_by(story_id=story_id, graph_type="new", node_type="character").all()
+    }
+    if not nodes:
+        return ""
+    _tier = {"protagonist": 0, "antagonist": 1, "love_interest": 1,
+             "antagonist/love_interest": 1, "supporting": 2}
+    top = sorted(nodes.values(),
+                 key=lambda n: _tier.get((n.properties or {}).get("role", ""), 3))[:5]
+    top_keys = {n.node_key for n in top}
+    lines = []
+    for e in session.query(StoryGraphEdge).filter_by(
+            story_id=story_id, graph_type="new", edge_type="RELATION").all():
+        if e.source_key in top_keys and e.target_key in top_keys:
+            a, b = nodes.get(e.source_key), nodes.get(e.target_key)
+            if not a or not b:
+                continue
+            rel = (e.properties or {}).get("rel_type", e.label or "")
+            cond = (e.condition or e.label or "")[:90]
+            lines.append(f"- {a.label} ({(a.properties or {}).get('role','')}) → "
+                         f"{b.label} ({(b.properties or {}).get('role','')}): {rel}. {cond}")
+    return "\n".join(lines[:8])
+
+
 def _character_lines(session: Session, story_id: int) -> str:
     chars = (
         session.query(Character)
@@ -105,33 +135,16 @@ _PALETTES = [
 ]
 
 
-# How the central PAIR is staged in thumb2 — drawn per run so it isn't always the
-# same "two people facing each other". Each expresses the relationship differently.
-_PAIR_STAGINGS = [
-    "back-to-back, bound together yet looking opposite ways — divided loyalties",
-    "one standing behind the other, a hand on the shoulder or throat — protection or possession",
-    "standing apart with charged tension across the empty gap, NOT touching",
-    "one seated/reclining in power, the other looming or kneeling close",
-    "crossing profiles, looking past each other rather than at each other",
-    "a close embrace from behind, her eyes open and wary over his arm",
-    "one sharp in the foreground, the other a soft watchful presence deep behind",
-    "mirrored symmetrical opposition, like two duelists before a move",
-    "one reaching out while the other turns away, caught mid-gesture",
-    "seen from above/below at an unusual angle, bodies close but faces hidden or turned",
-    "framed through a doorway/beaded curtain/smoke, the pair glimpsed in a private moment",
-    "face to face, foreheads nearly touching, on the edge of a kiss or a threat",
-]
-
-
 def _art_direction(seed: int | None = None) -> str:
-    """One randomly-drawn composition / lens / lighting / palette / pair-staging recipe."""
+    """One randomly-drawn composition / lens / lighting / palette recipe. These are
+    VISUAL-style knobs only (dynamic-neutral) — the pair's staging is decided by the
+    LLM from the story's power dynamic, not randomised, so it never reverses it."""
     rnd = random.Random(seed)
     return (
         f"- Composition (anchor for the cover): {rnd.choice(_COMPOSITIONS)}\n"
         f"- Lens: {rnd.choice(_LENSES)}\n"
         f"- Lighting: {rnd.choice(_LIGHTING)}\n"
         f"- Palette direction: {rnd.choice(_PALETTES)}\n"
-        f"- Pair staging (for thumb2, the couple/relationship shot): {rnd.choice(_PAIR_STAGINGS)}\n"
     )
 
 
@@ -140,11 +153,17 @@ def _build_prompts(session: Session, story: Story, meta: NovelMetadataOut | None
     system = load_prompt("image_prompt")
     art_direction = _art_direction()
     logger.info("[%s] art direction for this run:\n%s", story.slug, art_direction)
+    logline = (meta.logline if meta and meta.logline else "")
+    dynamics = _relationship_dynamics(session, story.id)
     user_content = (
         f"title (render EXACTLY this text on each image): {story.title}\n"
         f"tags: {tags}\n\n"
-        f"## ART DIRECTION (use these for this run; vary the three images "
-        f"from each other around them)\n{art_direction}\n"
+        f"## STORY DIRECTION (the plot's power dynamic — ALL three images must honour "
+        f"this; never reverse who pursues/controls/is captive to whom)\n"
+        f"logline: {logline or '(derive from world below)'}\n"
+        f"main relationships:\n{dynamics or '(derive from characters below)'}\n\n"
+        f"## ART DIRECTION (visual style for this run — composition/lens/lighting/palette; "
+        f"vary the three images from each other around them)\n{art_direction}\n"
         f"## world (setting / genre / tone)\n{(story.story_bible or story.world_bible or '')[:3000]}\n\n"
         f"## MAIN CHARACTERS\n{_character_lines(session, story.id)}\n"
     )

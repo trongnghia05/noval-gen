@@ -30,13 +30,27 @@ Write ONE dense paragraph per image, assembling these components:
 7. **Title rendering** (see rule).
 8. **Realism + negatives tail** (see rule).
 
+## STORY DIRECTION drives the staging (read this FIRST)
+The user message includes a **STORY DIRECTION** block (logline + main relationships /
+power dynamic). **Every image — all three — must reflect that dynamic and NEVER
+reverse it.** Read who pursues, controls, protects, threatens, or is captive to whom,
+and stage the characters so the picture *tells that truth*:
+- If a man pursues/dominates the woman, the composition must read that way (he
+  advances/looms/claims; she resists/is cornered/holds her ground) — not the reverse.
+- If the protagonist is a captive breaking free, show that power gap, not equality.
+- The central relationship shot (thumb2) especially must embody the dynamic — decide
+  its staging (looming, cornering, back-to-back, pursued-and-fleeing, one kneeling,
+  guarded embrace, tense distance, through a doorway…) FROM the dynamic, so it varies
+  between stories but is always correct for THIS one. Do not default to "two people
+  simply facing each other."
+
 ## Vary the three images from EACH OTHER
 The cover and the two thumbnails must not look like three crops of one idea.
 Give each a **different composition and a different focal length**, and shift the
-lighting angle between them. ART DIRECTION sets the run's overall direction — treat
-it as the anchor for the cover, then deliberately depart from it for the thumbnails
-(a wider or tighter lens, a different subject scale, light from another side) while
-keeping the same world, palette family and the same faces.
+lighting angle between them. ART DIRECTION sets the run's overall VISUAL direction —
+anchor the cover on it, then deliberately depart for the thumbnails (a wider/tighter
+lens, a different subject scale, light from another side) while keeping the same
+world, palette family, the same faces, and the same story dynamic.
 
 ## Rules — IMPORTANT
 - **PHOTOREALISTIC LIVE-ACTION, real actors.** True skin texture and pores, real
@@ -78,11 +92,10 @@ keeping the same world, palette family and the same faces.
 - **cover** — the 3-5 most important characters, arranged by the ART DIRECTION
   composition (not necessarily a row of faces).
 - **thumb1** — the protagonist alone (or + one secondary behind them).
-- **thumb2** — the central pair / key relationship, emotionally charged, staged
-  according to the **Pair staging** in ART DIRECTION. **Do NOT default to two people
-  simply facing each other** — realise the given staging concretely (back-to-back,
-  one behind the other, apart across tension, through a doorway, etc.) so this shot
-  differs run to run. Still a portrait, faces/figures clear.
+- **thumb2** — the central pair / key relationship, staged to embody the STORY
+  DIRECTION dynamic (see that section) — who pursues/controls/is captive to whom.
+  **Do NOT default to two people simply facing each other**, and never reverse the
+  dynamic. Still a portrait, faces/figures clear.
 
 ## Output — JSON schema: ImagePromptSetOut
 Each value is one dense paragraph following the FORMULA. The skeleton below marks
@@ -93,7 +106,7 @@ skeleton; those slots exist precisely so each run differs.
 {
   "cover": "photorealistic cinematic <genre> movie poster key art. <characters, each described concretely, expressions, heads fully in frame, faces legible>. <THE COMPOSITION FROM ART DIRECTION, realised concretely — who sits where, what dominates>. <in-world backdrop>. <palette + lighting from ART DIRECTION, in this story's concrete colours; never muddy>. Shot on a full-frame camera, <FOCAL LENGTH FROM ART DIRECTION> at <fitting aperture>, sharp focus on faces, subtle film grain, 8k. The COMPLETE title \"<TITLE>\" rendered left-to-right and easy to read (horizontal or gently arched/wavy, never vertical), large and fully legible, every letter present and entirely inside the frame with a safe margin from all edges, not covering any face; only the title text. photorealistic live-action, real actors, not 3D render, not CGI, not cartoon, not anime, not illustration, not painting, no extra text, no watermark, no logo",
   "thumb1": "photorealistic cinematic <genre> poster of <protagonist, described identically to the cover, face legible>. <a composition and subject scale DIFFERENT from the cover's>. <in-world backdrop>. <same palette family, lighting from a different angle>. Shot on <a focal length DIFFERENT from the cover's> at <fitting aperture>, sharp focus on the face, film grain, 8k. Title \"<TITLE>\" placed creatively, complete and fully inside the frame with a safe margin. photorealistic live-action, real actor, not 3D render, not CGI, not cartoon, not anime, not illustration, not painting, no extra text, no watermark, no logo",
-  "thumb2": "photorealistic cinematic <genre> poster of <the central pair, described identically to the cover, staged as the PAIR STAGING from ART DIRECTION — not simply facing each other>. <a composition DIFFERENT from both the cover and thumb1>. <in-world backdrop>. <same palette family, its own lighting angle>. Shot on <a third focal length> at <fitting aperture>, sharp focus on faces, film grain, 8k. Title \"<TITLE>\" placed creatively, complete and fully inside the frame with a safe margin. photorealistic live-action, real actors, not 3D render, not CGI, not cartoon, not anime, not illustration, not painting, no extra text, no watermark, no logo"
+  "thumb2": "photorealistic cinematic <genre> poster of <the central pair, described identically to the cover, staged to embody the STORY DIRECTION dynamic — who pursues/controls/is captive to whom; not simply facing each other, never reversed>. <a composition DIFFERENT from both the cover and thumb1>. <in-world backdrop>. <same palette family, its own lighting angle>. Shot on <a third focal length> at <fitting aperture>, sharp focus on faces, film grain, 8k. Title \"<TITLE>\" placed creatively, complete and fully inside the frame with a safe margin. photorealistic live-action, real actors, not 3D render, not CGI, not cartoon, not anime, not illustration, not painting, no extra text, no watermark, no logo"
 }
 ```
 Return ONLY the JSON object — no markdown fences, no preamble.
