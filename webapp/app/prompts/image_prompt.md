@@ -42,11 +42,12 @@ Write ONE dense paragraph per image, assembling these components:
   wardrobe and framing may differ; the person must be the same. (The cover is also
   fed to the thumbnails as a visual reference.)
 - **RENDER THE TITLE on the image**, spelled EXACTLY and IN FULL as given (quote it
-  in the prompt). It must be **HORIZONTAL and left-to-right readable** (one line, or
-  a tasteful two-line stack / gentle arch — but NEVER vertical or sideways). Pick a
-  premium drama-poster treatment that fits the mood (bold sans/serif, two-tone,
-  gold/white accent, subtle glow/shadow, or a darker backing behind the letters if
-  the art is busy) so it stays legible.
+  in the prompt). **Creative typography is welcome** — horizontal, gently arched,
+  curved or wavy, two-line stacked, integrated into the scene — pick a premium
+  drama-poster treatment that fits the mood (bold sans/serif, two-tone, gold/white
+  accent, subtle glow/shadow, darker backing behind the letters if the art is busy).
+  **The one hard rule: it must read LEFT-TO-RIGHT and be EASY TO READ at a glance** —
+  no vertical/sideways lettering, nothing so warped or low-contrast it's hard to read.
   - **NON-NEGOTIABLE:** the **ENTIRE title appears, every letter present, fully
     INSIDE the frame with a safe margin from all edges** — never cut off, never
     running off an edge, never hidden behind a subject or covering a face. Render
@@ -67,7 +68,7 @@ Write ONE dense paragraph per image, assembling these components:
 ## Output — JSON schema: ImagePromptSetOut
 ```json
 {
-  "cover": "photorealistic cinematic <genre> movie poster key art. <characters, each described, big in foreground, expressions, heads fully in frame, faces brightly lit>. Montage hero layout. <palette + lighting that MATCH the mood — e.g. bright warm golden for romance, or rich high-contrast for dark drama; never muddy>. Shot on a full-frame camera, 85mm f/1.4, shallow depth of field, subtle film grain, 8k. The COMPLETE title \"<TITLE>\" rendered HORIZONTALLY (left-to-right readable), large and fully legible, every letter present and entirely inside the frame with a safe margin from all edges, not covering any face; only the title text. photorealistic live-action, real actors, not 3D render, not CGI, not cartoon, not anime, not illustration, not painting, no extra text, no watermark, no logo",
+  "cover": "photorealistic cinematic <genre> movie poster key art. <characters, each described, big in foreground, expressions, heads fully in frame, faces brightly lit>. Montage hero layout. <palette + lighting that MATCH the mood — e.g. bright warm golden for romance, or rich high-contrast for dark drama; never muddy>. Shot on a full-frame camera, 85mm f/1.4, shallow depth of field, subtle film grain, 8k. The COMPLETE title \"<TITLE>\" rendered left-to-right and easy to read (horizontal or gently arched/wavy, never vertical), large and fully legible, every letter present and entirely inside the frame with a safe margin from all edges, not covering any face; only the title text. photorealistic live-action, real actors, not 3D render, not CGI, not cartoon, not anime, not illustration, not painting, no extra text, no watermark, no logo",
   "thumb1": "photorealistic cinematic <genre> poster portrait of <protagonist, described, large clear brightly-lit face> ... <mood-matched palette + lighting, never muddy>. Shot on 85mm f/1.4, shallow DoF, film grain, 8k. Title \"<TITLE>\" placed creatively, complete and fully inside the frame with a safe margin. photorealistic live-action, real actor, not 3D render, not CGI, not cartoon, not anime, not illustration, not painting, no extra text, no watermark, no logo",
   "thumb2": "photorealistic cinematic <genre> poster of <the central pair, described, faces prominent and brightly lit, charged emotion> ... <mood-matched palette + lighting, never muddy>. Shot on 85mm f/1.4, shallow DoF, film grain, 8k. Title \"<TITLE>\" placed creatively, complete and fully inside the frame with a safe margin. photorealistic live-action, real actors, not 3D render, not CGI, not cartoon, not anime, not illustration, not painting, no extra text, no watermark, no logo"
 }
