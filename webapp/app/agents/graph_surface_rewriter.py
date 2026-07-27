@@ -74,15 +74,28 @@ def run(
         thinking=False,
     )
 
-    node_map = {
-        n.node_key: n
-        for n in session.query(StoryGraphNode)
+    all_nodes = (
+        session.query(StoryGraphNode)
         .filter_by(story_id=story.id, graph_type="new")
         .all()
-    }
+    )
+    node_map = {n.node_key: n for n in all_nodes}
+
+    # Node-id normalization: the verifier/rewriter sometimes returns a node's NAME
+    # (label, e.g. "Seraphina") instead of its node_key ("C001"), which made the
+    # patch miss entirely. Map label→key (case-insensitive) so either form resolves.
+    label_to_key = {(n.label or "").strip().lower(): n.node_key for n in all_nodes if n.label}
+
+    def _resolve_key(raw: str) -> str | None:
+        if not raw:
+            return None
+        if raw in node_map:
+            return raw
+        return label_to_key.get(raw.strip().lower())
 
     for patch in output.node_patches:
-        node = node_map.get(patch.node_key)
+        key = _resolve_key(patch.node_key)
+        node = node_map.get(key) if key else None
         if not node:
             logger.warning("[%s] graph_surface_rewriter: node %s not found", story.slug, patch.node_key)
             continue
@@ -92,14 +105,21 @@ def run(
         if patch.new_summary:      props["summary"]     = patch.new_summary
         if patch.new_profile_md:   props["profile_md"]  = patch.new_profile_md
         if patch.new_description:  props["description"] = patch.new_description
+        if patch.new_arc_stage:    props["arc_stage"]   = patch.new_arc_stage
+        if patch.new_background:   props["background"]  = patch.new_background
+        if patch.new_wants:        props["wants"]       = patch.new_wants
+        if patch.new_fears:        props["fears"]       = patch.new_fears
         node.properties = props
 
     for patch in output.edge_patches:
+        # Resolve source/target too (verifier may hand back names, not keys).
+        src_key = _resolve_key(patch.source_key) or patch.source_key
+        tgt_key = _resolve_key(patch.target_key) or patch.target_key
         edge = (
             session.query(StoryGraphEdge)
             .filter_by(
                 story_id=story.id, graph_type="new",
-                source_key=patch.source_key, target_key=patch.target_key,
+                source_key=src_key, target_key=tgt_key,
                 edge_type=patch.edge_type,
             )
             .first()
@@ -112,7 +132,7 @@ def run(
             candidates = (
                 session.query(StoryGraphEdge)
                 .filter_by(story_id=story.id, graph_type="new",
-                           source_key=patch.source_key, target_key=patch.target_key)
+                           source_key=src_key, target_key=tgt_key)
                 .all()
             )
             raw_upper = patch.edge_type.upper()
@@ -130,10 +150,19 @@ def run(
                 continue
         if patch.new_label:
             edge.label = patch.new_label
-        if patch.new_mechanism or patch.new_rel_type:
+        if patch.new_condition:
+            edge.condition = patch.new_condition
+        _edge_prop_updates = {
+            "mechanism": patch.new_mechanism,
+            "rel_type": patch.new_rel_type,
+            "old_val": patch.new_old_val,   # ARC_CHANGE
+            "new_val": patch.new_new_val,   # ARC_CHANGE
+        }
+        if any(v for v in _edge_prop_updates.values()):
             props = dict(edge.properties or {})
-            if patch.new_mechanism:  props["mechanism"] = patch.new_mechanism
-            if patch.new_rel_type:   props["rel_type"]  = patch.new_rel_type
+            for k, v in _edge_prop_updates.items():
+                if v:
+                    props[k] = v
             edge.properties = props
 
     # Create missing edges from add_edges list

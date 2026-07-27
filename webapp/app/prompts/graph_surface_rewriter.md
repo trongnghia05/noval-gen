@@ -22,6 +22,16 @@ For each issue in the list:
 
 **Do not rewrite anything not listed in the issues.** Stay focused on the flagged items only.
 
+**Always identify nodes/edges by their node_key** (C001, E005, L003…), NEVER by the character's name. Look the key up in the graph; if an issue names a character, find that character's node_key and use it.
+
+**Patchable fields by target:**
+- CHARACTER node: `new_profile_md`, `new_arc_stage`, `new_background`, `new_wants`, `new_fears`, `new_label`
+- EVENT node: `new_summary`, `new_label`
+- LOCATION/FACTION/OBJECT/THEME node: `new_description`, `new_label`
+- CAUSES edge: `new_mechanism`
+- RELATION edge: `new_rel_type`, `new_condition`, `new_label`
+- **ARC_CHANGE edge**: `new_old_val`, `new_new_val` (the arc-change description — the field most often flagged as a near-verbatim translation of the source; rewrite it in fresh wording)
+
 ## Valid edge types
 
 Only these edge types exist: `RELATION | PARTICIPATES | CAUSES | ARC_CHANGE | FORESHADOWS | LOCATED_AT | INVOLVES | OWNS | MEMBER_OF | EMBODIES`
@@ -38,6 +48,13 @@ For `RELATION` edges: `rel_type` must be one of `friendship | rivalry | love | f
     {
       "node_key": "E007",
       "new_summary": "Eleanor discovers the falsified accounts hidden in her husband's private correspondence — proof of his financial crimes. Before she can act, Professor Sterling's solicitor arrives unannounced at the townhouse."
+    },
+    {
+      "node_key": "C001",
+      "new_arc_stage": "(CHARACTER: rewritten current inner state)",
+      "new_background": "(CHARACTER: rewritten backstory)",
+      "new_wants": "(CHARACTER: rewritten goal)",
+      "new_fears": "(CHARACTER: rewritten vulnerability)"
     }
   ],
   "edge_patches": [
@@ -46,13 +63,21 @@ For `RELATION` edges: `rel_type` must be one of `friendship | rivalry | love | f
       "target_key": "C007",
       "edge_type": "RELATION",
       "new_rel_type": "family",
-      "new_label": "devoted daughter seeking maternal guidance"
+      "new_label": "devoted daughter seeking maternal guidance",
+      "new_condition": "(RELATION: rewritten condition/context text)"
     },
     {
       "source_key": "E006",
       "target_key": "E007",
       "edge_type": "CAUSES",
       "new_mechanism": "Eleanor's accidental discovery of a hidden letter in E006 reveals the archive location where the original financial records are kept — her only chance to gather evidence before the hearing."
+    },
+    {
+      "source_key": "C001",
+      "target_key": "E008",
+      "edge_type": "ARC_CHANGE",
+      "new_old_val": "(ARC_CHANGE: rewritten prior state)",
+      "new_new_val": "(ARC_CHANGE: rewritten resulting state)"
     }
   ],
   "add_edges": [

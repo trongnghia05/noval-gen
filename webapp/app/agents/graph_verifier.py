@@ -34,7 +34,7 @@ MAX_ITERATIONS = 10
 # Cap on how many near-verbatim nodes/edges get an LLM content-rewrite per
 # iteration (prioritising the flagged ones) so a 60-issue iteration doesn't fan
 # out into 60 rewrite calls. No early-stop: the loop still runs all iterations.
-_MAX_RESKIN_REWRITE = 12
+_MAX_RESKIN_REWRITE = 25
 logger = logging.getLogger(__name__)
 
 

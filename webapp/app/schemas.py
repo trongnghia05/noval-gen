@@ -492,6 +492,12 @@ class SurfaceNodePatchOut(BaseModel):
     new_summary: str | None = None       # EVENT
     new_profile_md: str | None = None    # CHARACTER
     new_description: str | None = None   # LOCATION / FACTION / THEME / OBJECT
+    # CHARACTER prose fields — commonly flagged as near-verbatim translations of
+    # the source and previously un-patchable, so reskin never converged on them.
+    new_arc_stage: str | None = None     # CHARACTER
+    new_background: str | None = None    # CHARACTER
+    new_wants: str | None = None         # CHARACTER
+    new_fears: str | None = None         # CHARACTER
 
 
 class SurfaceEdgePatchOut(BaseModel):
@@ -501,6 +507,11 @@ class SurfaceEdgePatchOut(BaseModel):
     new_mechanism: str | None = None     # CAUSES
     new_label: str | None = None
     new_rel_type: str | None = None      # RELATION only — friendship|rivalry|love|family|mentor|debt|alliance|betrayal|distrust
+    new_condition: str | None = None     # RELATION condition text
+    # ARC_CHANGE edges carry the arc description in old_val/new_val — the single
+    # most-flagged reskin field; previously no patch path existed for it.
+    new_old_val: str | None = None       # ARC_CHANGE
+    new_new_val: str | None = None       # ARC_CHANGE
 
 
 class NewEdgeForRepairOut(BaseModel):
