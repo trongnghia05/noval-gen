@@ -9,7 +9,7 @@ is never blocked. Images land next to novel.md in the host-mounted output folder
 import io
 import logging
 
-from PIL import Image, ImageDraw, ImageFont, ImageOps
+from PIL import Image, ImageOps
 from sqlalchemy.orm import Session
 
 from .config import AGENT_MODELS, IMAGE_MODEL, PROVIDER
@@ -20,13 +20,13 @@ from .schemas import ImagePromptSetOut, NovelMetadataOut
 
 logger = logging.getLogger(__name__)
 
-_FONT_BOLD = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-
-# (filename, width, height, Imagen aspect ratio, ImagePromptSetOut attribute)
+# (filename, width, height, aspect-ratio hint, attr, crop-centering)
+# The cover's title sits low, so its crop is biased downward (y=0.62) to keep the
+# title band rather than trimming it off the bottom; portraits crop symmetrically.
 _SPECS = [
-    ("cover.png",      343, 212, "16:9", "cover"),
-    ("thumbnail1.png", 109, 154, "3:4",  "thumb1"),
-    ("thumbnail2.png", 166, 214, "3:4",  "thumb2"),
+    ("cover.png",      343, 212, "16:9", "cover",  (0.5, 0.62)),
+    ("thumbnail1.png", 109, 154, "3:4",  "thumb1", (0.5, 0.5)),
+    ("thumbnail2.png", 166, 214, "3:4",  "thumb2", (0.5, 0.5)),
 ]
 
 _TIER_ORDER = {"core": 0, "important": 1, "secondary": 2, "minor": 3}
@@ -50,7 +50,7 @@ def _build_prompts(session: Session, story: Story, meta: NovelMetadataOut | None
     tags = ", ".join(meta.tags) if (meta and meta.tags) else (story.genre or "")
     system = load_prompt("image_prompt")
     user_content = (
-        f"title: {story.title}\n"
+        f"title (render EXACTLY this text on each image): {story.title}\n"
         f"tags: {tags}\n\n"
         f"## world (setting / genre / tone)\n{(story.story_bible or story.world_bible or '')[:3000]}\n\n"
         f"## MAIN CHARACTERS\n{_character_lines(session, story.id)}\n"
@@ -62,70 +62,6 @@ def _build_prompts(session: Session, story: Story, meta: NovelMetadataOut | None
     )
 
 
-def _load_font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
-    try:
-        return ImageFont.truetype(_FONT_BOLD, size)
-    except Exception:
-        return ImageFont.load_default()
-
-
-def _wrap(text: str, font, draw: ImageDraw.ImageDraw, max_w: float) -> list[str]:
-    words = text.split()
-    lines: list[str] = []
-    cur = ""
-    for w in words:
-        trial = (cur + " " + w).strip()
-        if not cur or draw.textlength(trial, font=font) <= max_w:
-            cur = trial
-        else:
-            lines.append(cur)
-            cur = w
-    if cur:
-        lines.append(cur)
-    return lines
-
-
-def _overlay_title(img: Image.Image, title: str) -> None:
-    """Bottom scrim + centered bold wrapped title, sized to the image."""
-    W, H = img.size
-    draw = ImageDraw.Draw(img, "RGBA")
-
-    # Darken the bottom band for legibility (transparent → opaque toward the edge).
-    scrim_h = max(1, int(H * 0.45))
-    grad = Image.new("L", (1, scrim_h))
-    for y in range(scrim_h):
-        grad.putpixel((0, y), int(210 * (y / scrim_h)))
-    grad = grad.resize((W, scrim_h))
-    scrim = Image.new("RGBA", (W, scrim_h), (0, 0, 0, 255))
-    scrim.putalpha(grad)
-    img.paste(scrim, (0, H - scrim_h), scrim)
-
-    text = (title or "").upper()
-    max_w = W * 0.90
-    size = max(11, int(W / 8))
-    lines: list[str] = [text]
-    while size >= 10:
-        font = _load_font(size)
-        lines = _wrap(text, font, draw, max_w)
-        line_h = size + max(2, size // 6)
-        fits_w = all(draw.textlength(l, font=font) <= max_w for l in lines)
-        if fits_w and len(lines) * line_h <= H * 0.40:
-            break
-        size -= 1
-    font = _load_font(size)
-    line_h = size + max(2, size // 6)
-    total_h = len(lines) * line_h
-    y = H - total_h - max(4, int(H * 0.05))
-    stroke = max(1, size // 14)
-    for line in lines:
-        w = draw.textlength(line, font=font)
-        draw.text(
-            ((W - w) / 2, y), line, font=font,
-            fill=(255, 255, 255, 255), stroke_width=stroke, stroke_fill=(0, 0, 0, 235),
-        )
-        y += line_h
-
-
 def generate(session: Session, story: Story, out_dir, meta: NovelMetadataOut | None = None) -> list[str]:
     """Generate cover + 2 thumbnails into out_dir. Best-effort; returns filenames written."""
     try:
@@ -134,22 +70,42 @@ def generate(session: Session, story: Story, out_dir, meta: NovelMetadataOut | N
         logger.warning("[%s] image prompt design failed, skipping images: %s", story.slug, exc)
         return []
 
+    # _SPECS is ordered cover-first on purpose: the cover fixes each character's
+    # face, then its raw bytes are fed as a reference into the thumbnails so the
+    # SAME people appear consistently (Nano Banana keeps identity from a reference
+    # image even when pose/wardrobe/framing changes).
+    _CONSISTENCY = (
+        "\n\nIMPORTANT: a reference image of these characters is provided. Keep the "
+        "SAME people — identical faces, hair, skin tone and identity as in the "
+        "reference. You may change their pose, framing, expression and wardrobe to "
+        "fit this new composition, but each returning character must be instantly "
+        "recognizable as the same person from the reference."
+    )
     written: list[str] = []
-    for filename, w, h, aspect, attr in _SPECS:
+    cover_ref: bytes | None = None
+    for filename, w, h, aspect, attr, centering in _SPECS:
         prompt = getattr(prompts, attr, "") or ""
         if not prompt:
             continue
+        is_cover = attr == "cover"
+        refs = None if (is_cover or not cover_ref) else [cover_ref]
+        full_prompt = prompt if is_cover else prompt + _CONSISTENCY
         # Gemini image gen occasionally returns a text-only response (or trips a
         # transient safety block) — retry a couple times before giving up.
         for attempt in range(3):
             try:
-                raw = PROVIDER.generate_image(prompt=prompt, model=IMAGE_MODEL, aspect_ratio=aspect)
+                raw = PROVIDER.generate_image(
+                    prompt=full_prompt, model=IMAGE_MODEL,
+                    aspect_ratio=aspect, reference_images=refs,
+                )
                 img = Image.open(io.BytesIO(raw)).convert("RGB")
-                # Cover the target box then center-crop (faces sit slightly above center).
-                img = ImageOps.fit(img, (w, h), method=Image.LANCZOS, centering=(0.5, 0.4))
-                _overlay_title(img, story.title)
-                path = out_dir / filename
-                img.save(path, format="PNG")
+                # Cover the target box then symmetric center-crop — the model draws
+                # the title in the lower third within safe margins, so we must NOT
+                # bias the crop toward the bottom or it could clip the title.
+                img = ImageOps.fit(img, (w, h), method=Image.LANCZOS, centering=centering)
+                img.save(out_dir / filename, format="PNG")
+                if is_cover:
+                    cover_ref = raw  # full-res reference for the thumbnails
                 written.append(filename)
                 logger.info("[%s] image written: %s (%dx%d)", story.slug, filename, w, h)
                 break

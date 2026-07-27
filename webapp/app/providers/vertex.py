@@ -111,20 +111,27 @@ class VertexProvider(LLMProvider):
         prompt: str,
         model: str,
         aspect_ratio: str = "1:1",
+        reference_images: list[bytes] | None = None,
     ) -> bytes:
         """Generate one image via a Gemini image model (generate_content with an
         IMAGE response modality); returns raw image bytes.
 
         Vertex Imagen (`generate_images`) is not enabled on this project, so we use
         the Gemini image model instead. Aspect ratio is not a config knob here —
-        it's hinted in the prompt; exact pixels are handled downstream (Pillow crop)."""
+        it's hinted in the prompt; exact pixels are handled downstream (Pillow crop).
+        `reference_images` (raw bytes) are passed as visual context so the model
+        keeps the SAME characters' faces/identity across a set of posters."""
         orient = self._ORIENT.get(aspect_ratio, "")
         full_prompt = f"{prompt}\n\nComposition: {orient}." if orient else prompt
+        contents: list = []
+        for ref in (reference_images or []):
+            contents.append(types.Part.from_bytes(data=ref, mime_type="image/png"))
+        contents.append(full_prompt)
         for attempt in range(_MAX_RETRIES + 1):
             try:
                 resp = self.client.models.generate_content(
                     model=model,
-                    contents=full_prompt,
+                    contents=contents,
                     config=types.GenerateContentConfig(
                         response_modalities=["TEXT", "IMAGE"],
                     ),

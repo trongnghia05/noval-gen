@@ -37,9 +37,12 @@ class LLMProvider(ABC):
         prompt: str,
         model: str,
         aspect_ratio: str = "1:1",
+        reference_images: list[bytes] | None = None,
     ) -> bytes:
         """Return raw image bytes (PNG/JPEG) for a text-to-image prompt.
 
+        `reference_images` (optional) are prior images passed as visual context so
+        the model can keep the same subjects/characters consistent across a set.
         Optional capability — only providers that support image generation
         override this. Callers must handle NotImplementedError."""
         raise NotImplementedError(f"{type(self).__name__} does not support image generation")
