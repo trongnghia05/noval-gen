@@ -95,6 +95,16 @@ class VertexProvider(LLMProvider):
                     continue
                 raise
 
+    # Gemini image models take no aspect_ratio config — nudge orientation via the
+    # prompt, then Pillow crops to the exact target size downstream.
+    _ORIENT = {
+        "16:9": "wide 16:9 landscape orientation",
+        "4:3": "landscape orientation",
+        "3:4": "tall vertical portrait orientation",
+        "9:16": "tall 9:16 vertical portrait orientation",
+        "1:1": "square 1:1 composition",
+    }
+
     def generate_image(
         self,
         *,
@@ -102,27 +112,33 @@ class VertexProvider(LLMProvider):
         model: str,
         aspect_ratio: str = "1:1",
     ) -> bytes:
-        """Generate one image via Vertex Imagen; returns raw image bytes.
+        """Generate one image via a Gemini image model (generate_content with an
+        IMAGE response modality); returns raw image bytes.
 
-        `aspect_ratio` is one of Imagen's supported ratios: 1:1, 3:4, 4:3,
-        9:16, 16:9. Exact target pixel size is handled downstream (Pillow crop)."""
+        Vertex Imagen (`generate_images`) is not enabled on this project, so we use
+        the Gemini image model instead. Aspect ratio is not a config knob here —
+        it's hinted in the prompt; exact pixels are handled downstream (Pillow crop)."""
+        orient = self._ORIENT.get(aspect_ratio, "")
+        full_prompt = f"{prompt}\n\nComposition: {orient}." if orient else prompt
         for attempt in range(_MAX_RETRIES + 1):
             try:
-                resp = self.client.models.generate_images(
+                resp = self.client.models.generate_content(
                     model=model,
-                    prompt=prompt,
-                    config=types.GenerateImagesConfig(
-                        number_of_images=1,
-                        aspect_ratio=aspect_ratio,
+                    contents=full_prompt,
+                    config=types.GenerateContentConfig(
+                        response_modalities=["TEXT", "IMAGE"],
                     ),
                 )
-                if not resp.generated_images:
-                    raise RuntimeError("Imagen returned no images (possibly safety-filtered)")
-                return resp.generated_images[0].image.image_bytes
+                for cand in (resp.candidates or []):
+                    for part in (cand.content.parts or []):
+                        inline = getattr(part, "inline_data", None)
+                        if inline and inline.data:
+                            return inline.data
+                raise RuntimeError("image model returned no image part (possibly safety-filtered)")
             except genai_errors.ClientError as exc:
                 if getattr(exc, "code", None) == 429 and attempt < _MAX_RETRIES:
                     logger.warning(
-                        "Vertex Imagen 429 (attempt %d/%d), sleeping %ds",
+                        "Vertex image 429 (attempt %d/%d), sleeping %ds",
                         attempt + 1, _MAX_RETRIES, _RATE_LIMIT_SLEEP,
                     )
                     time.sleep(_RATE_LIMIT_SLEEP)

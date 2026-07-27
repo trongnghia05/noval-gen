@@ -57,8 +57,10 @@ AGENT_MODELS = {
     "image_prompt":           os.getenv("MODEL_IMAGE_PROMPT",            _DEFAULT_MODEL),
 }
 
-# Text-to-image model (Vertex Imagen) for cover / thumbnail generation.
-IMAGE_MODEL = os.getenv("IMAGE_MODEL", "imagen-3.0-generate-002")
+# Text-to-image model for cover / thumbnail generation. Uses a Gemini image model
+# via generate_content (Vertex Imagen / generate_images is not enabled on this
+# project). Override with IMAGE_MODEL.
+IMAGE_MODEL = os.getenv("IMAGE_MODEL", "gemini-2.5-flash-image")
 
 DB_URL = os.getenv("DATABASE_URL", "sqlite:///./novelgen.db")
 OUTPUT_BASE = Path(os.getenv("OUTPUT_DIR", "/data/output"))

@@ -139,20 +139,24 @@ def generate(session: Session, story: Story, out_dir, meta: NovelMetadataOut | N
         prompt = getattr(prompts, attr, "") or ""
         if not prompt:
             continue
-        try:
-            raw = PROVIDER.generate_image(prompt=prompt, model=IMAGE_MODEL, aspect_ratio=aspect)
-            img = Image.open(io.BytesIO(raw)).convert("RGB")
-            # Cover to target box then center-crop (faces sit slightly above center).
-            img = ImageOps.fit(img, (w, h), method=Image.LANCZOS, centering=(0.5, 0.4))
-            _overlay_title(img, story.title)
-            path = out_dir / filename
-            img.save(path, format="PNG")
-            written.append(filename)
-            logger.info("[%s] image written: %s (%dx%d)", story.slug, filename, w, h)
-        except NotImplementedError:
-            logger.warning("[%s] provider has no image support — skipping all images", story.slug)
-            break
-        except Exception as exc:
-            logger.warning("[%s] image %s failed: %s", story.slug, filename, exc)
-            continue
+        # Gemini image gen occasionally returns a text-only response (or trips a
+        # transient safety block) — retry a couple times before giving up.
+        for attempt in range(3):
+            try:
+                raw = PROVIDER.generate_image(prompt=prompt, model=IMAGE_MODEL, aspect_ratio=aspect)
+                img = Image.open(io.BytesIO(raw)).convert("RGB")
+                # Cover the target box then center-crop (faces sit slightly above center).
+                img = ImageOps.fit(img, (w, h), method=Image.LANCZOS, centering=(0.5, 0.4))
+                _overlay_title(img, story.title)
+                path = out_dir / filename
+                img.save(path, format="PNG")
+                written.append(filename)
+                logger.info("[%s] image written: %s (%dx%d)", story.slug, filename, w, h)
+                break
+            except NotImplementedError:
+                logger.warning("[%s] provider has no image support — skipping all images", story.slug)
+                return written
+            except Exception as exc:
+                logger.warning("[%s] image %s attempt %d failed: %s",
+                               story.slug, filename, attempt + 1, exc)
     return written
