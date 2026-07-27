@@ -26,6 +26,16 @@ def _strip_leading_heading(text: str) -> str:
     return text
 
 
+def normalize_paragraphs(text: str) -> str:
+    """Force a blank line between paragraphs so Markdown renders them separately.
+
+    The model sometimes separates paragraphs with a single '\\n', which Markdown
+    collapses into one run-on block. Each non-empty line is treated as its own
+    paragraph and re-joined with a blank line ('\\n\\n')."""
+    paras = [ln.strip() for ln in (text or "").splitlines() if ln.strip()]
+    return "\n\n".join(paras)
+
+
 MIN_WORD_RATIO = 0.85
 MIN_SCENE_WORD_RATIO = 0.60
 MAX_EXPAND_ATTEMPTS = 2
@@ -457,7 +467,7 @@ def run(session: Session, story: Story, chapter: Chapter, feedback: str | None =
     logger.info("[%s] chapter_writer DONE ch%d: %d words | title=%r",
                 story.slug, chapter.number, _word_count(output.content), output.title)
     chapter.title = output.title
-    chapter.content = output.content
-    chapter.word_count = _word_count(output.content)
+    chapter.content = normalize_paragraphs(output.content)
+    chapter.word_count = _word_count(chapter.content)
     chapter.status = "done"
     return output

@@ -445,7 +445,8 @@ def _compile_manuscript_to_file(session: Session, story: Story) -> Path:
     toc = "\n".join(toc_lines)
 
     chapter_parts = [
-        f"# Chương {c.number}: {c.title or f'Chương {c.number}'}\n\n{c.content}"
+        f"# Chương {c.number}: {c.title or f'Chương {c.number}'}\n\n"
+        f"{chapter_writer.normalize_paragraphs(c.content or '')}"
         for c in chapters
     ]
     chapters_text = "\n\n---\n\n".join(chapter_parts)
