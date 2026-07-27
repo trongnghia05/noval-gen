@@ -287,6 +287,15 @@ class SceneOut(BaseModel):
 class ChapterBlueprintOutput(BaseModel):
     purpose: str               # one sentence: why does this chapter exist?
     act_position: str          # Act 1 | Act 2a | Act 2b | Act 3
+    # The chapter's structural function — setup | escalation | revelation |
+    # setback | turning_point | confrontation | aftermath | resolution. Used to
+    # avoid stringing together several chapters of the same kind.
+    beat_type: str = ""
+    # The concrete STATE CHANGE this chapter must produce: what is materially
+    # different in the world by the last line vs. the first (a relationship shifts,
+    # a secret is exposed, a plan advances, someone decides/acts). A chapter that
+    # only re-explores an already-established feeling without a new delta is "empty".
+    state_delta: str = ""
     emotional_arc_start: str   # reader's emotion at chapter open
     emotional_arc_end: str     # reader's emotion at chapter close
     scenes: list[SceneOut]

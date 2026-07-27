@@ -61,7 +61,8 @@ def _format_blueprint(chapter: Chapter) -> str:
         intensity = bp.get("dialogue_intensity", "balanced")
         return (
             f"PURPOSE: {bp.get('purpose')}\n"
-            f"ACT: {bp.get('act_position')} | "
+            f"ACT: {bp.get('act_position')} | BEAT: {bp.get('beat_type', '')}\n"
+            f"STATE DELTA (this chapter must make this change happen): {bp.get('state_delta', '')}\n"
             f"Emotion start: {bp.get('emotional_arc_start')} → end: {bp.get('emotional_arc_end')}\n"
             f"DIALOGUE INTENSITY: {intensity}\n"
             f"SCENES:\n{scenes}\n"

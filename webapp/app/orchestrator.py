@@ -28,6 +28,7 @@ from .agents import (
     continuity_editor,
     dialogue_check,
     graph_verifier,
+    prose_check,
     new_graph_builder,
     planning_verifier,
     plot_architect,
@@ -301,10 +302,11 @@ def _verify_chapter_loop(session: Session, story: Story, chapter: Chapter) -> in
 
     for iteration in range(_MAX_VERIFY_ITERATIONS):
         d_issues = dialogue_check.check(session, story, chapter)  # deterministic pre-check (no LLM)
+        p_issues = prose_check.check(session, story, chapter)     # deterministic meta-leak check (no LLM)
         v_issues = chapter_verifier.check(session, story, chapter, graph_context)
         q_issues = quality_reviewer.check(session, story, chapter)
 
-        all_issues = d_issues + v_issues + q_issues
+        all_issues = d_issues + p_issues + v_issues + q_issues
         critical = [i for i in all_issues if i.severity == "critical"]
 
         # Log every issue (all severities) to the audit trail.

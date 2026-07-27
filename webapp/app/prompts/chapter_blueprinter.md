@@ -22,7 +22,14 @@ Ví dụ tốt: "Reveal rằng bí mật của nhân vật A là nguyên nhân t
 
 Ví dụ tệ: "A và B gặp nhau và nói chuyện về quá khứ."
 
-**CHỐNG LẶP CHƯƠNG (bắt buộc):** Đọc kỹ `chapter-summaries` các chương trước. Nếu mục đích/beat của chương này **trùng hoặc gần trùng** một chương đã viết (VD nhiều chương liền đều là "nhân vật chính nhận ra mình bị thao túng" / "trị liệu và chữa lành"), bạn **PHẢI** làm cho chương này TIẾN THÊM một bước KHÁC — một khía cạnh mới, một quyết định/hành động/tiết lộ mới, một nhân vật/quan hệ khác được đẩy tới — chứ KHÔNG lặp lại cùng một nhận thức/cảm xúc đã đạt ở chương trước. Mỗi chương phải để lại một thay đổi trạng thái mà chương trước CHƯA có. Nếu bản outline khiến nhiều chương cùng một beat, hãy phân hóa chúng theo tiến trình (VD: ch A = *nhận ra*, ch B = *đối mặt người liên quan*, ch C = *hành động dứt khoát*), tuyệt đối không ba chương cùng "nhận ra".
+**CHỐNG LẶP CHƯƠNG (bắt buộc):** Đọc kỹ tóm tắt + nội dung **các chương gần nhất** được cung cấp. Nếu mục đích/beat của chương này **trùng hoặc gần trùng** một chương vừa viết (VD nhiều chương liền đều là "nhân vật chính bị quyến rũ rồi giằng xé" / "nhận ra mình bị thao túng" / "trị liệu và chữa lành"), bạn **PHẢI** làm cho chương này TIẾN THÊM một bước KHÁC — một khía cạnh mới, một quyết định/hành động/tiết lộ mới, một nhân vật/quan hệ khác được đẩy tới — chứ KHÔNG lặp lại cùng một nhận thức/cảm xúc đã đạt. Nếu outline khiến nhiều chương cùng một beat, phân hóa chúng theo tiến trình (VD: ch A = *nhận ra*, ch B = *đối mặt người liên quan*, ch C = *hành động dứt khoát*), tuyệt đối không ba chương cùng "nhận ra".
+
+### 1b. `beat_type` và `state_delta` — BẮT BUỘC điền, đây là xương sống chống-lặp
+- **`beat_type`**: chức năng cấu trúc của chương — một trong: `setup | escalation | revelation | setback | turning_point | confrontation | aftermath | resolution`. Nhìn `beat_type` của các chương gần nhất (nếu được cung cấp): **KHÔNG lặp cùng một `beat_type` quá 2 chương liên tiếp**.
+- **`state_delta`**: nêu CỤ THỂ trạng thái truyện sẽ KHÁC gì khi hết chương so với đầu chương — quan hệ nào đổi, bí mật nào lộ, kế hoạch/đòn plot nào tiến, ai quyết định/hành động gì mới. Đây là "sản phẩm" bắt buộc của chương. Nếu bạn không nêu được một delta mới (chỉ "cảm xúc lại dâng lên" mà không có thay đổi thực) thì chương đang RỖNG — hãy thiết kế lại cho tới khi có delta thật.
+
+### 1c. Bám sự thật trong graph
+Mọi sự kiện/quan hệ/danh tính trong blueprint phải khớp **chapter graph constraints** (event node của chương, PARTICIPATES, ARC_CHANGE) và world-state. Không bịa sự kiện ngoài graph. Nếu không chắc một dữ kiện, bám theo graph đã cho.
 
 ### 2. Phân tích vị trí trong cung truyện
 Dựa vào `act_position` được cung cấp, điều chỉnh:
@@ -78,6 +85,8 @@ Trả về **DUY NHẤT một object JSON** hợp lệ, đúng schema:
 {
   "purpose": "Một câu mô tả chính xác mục đích chương",
   "act_position": "Act 1 | Act 2a | Act 2b | Act 3",
+  "beat_type": "setup | escalation | revelation | setback | turning_point | confrontation | aftermath | resolution",
+  "state_delta": "Trạng thái truyện KHÁC gì khi hết chương so với đầu chương (thay đổi cụ thể, không phải cảm xúc lặp lại)",
   "emotional_arc_start": "Độc giả đang cảm thấy...",
   "emotional_arc_end": "Khi đóng chương, độc giả sẽ cảm thấy...",
   "scenes": [

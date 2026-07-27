@@ -21,6 +21,30 @@ def _act_position(chapter_number: int, total_chapters: int) -> str:
     return "Act 3"
 
 
+def _recent_beats(session: Session, story_id: int, before_chapter: int, n: int = 3) -> str:
+    """beat_type + state_delta of the last n blueprinted chapters — the anti-repeat
+    window the blueprinter must not echo (kept to a short recent window for now)."""
+    rows = (
+        session.query(Chapter)
+        .filter(Chapter.story_id == story_id, Chapter.number < before_chapter,
+                Chapter.blueprint.isnot(None))
+        .order_by(Chapter.number.desc())
+        .limit(n)
+        .all()
+    )
+    lines = []
+    for c in reversed(rows):
+        try:
+            bp = json.loads(c.blueprint)
+        except Exception:
+            continue
+        lines.append(
+            f"- Ch{c.number}: beat_type={bp.get('beat_type', '?')} | "
+            f"state_delta={bp.get('state_delta', '?')}"
+        )
+    return "\n".join(lines) or "(chưa có chương trước)"
+
+
 def run(session: Session, story: Story, chapter: Chapter) -> None:
     system = load_prompt("chapter_blueprinter")
     act = _act_position(chapter.number, story.total_chapters)
@@ -57,6 +81,9 @@ total_chapters: {story.total_chapters}
 act_position: {act}
 language: {story.language}
 {graph_section}{db_graph_section}
+## recent chapters' beat_type + state_delta (DO NOT repeat these — advance beyond them)
+{_recent_beats(session, story.id, chapter.number)}
+
 ## chapter-summaries (story so far)
 {context_builder.format_chapter_summaries(session, story.id)}
 
