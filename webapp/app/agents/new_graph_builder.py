@@ -30,6 +30,7 @@ from ..config import AGENT_MODELS, PROVIDER
 from ..db.models import Character, Story, StoryGraphEdge, StoryGraphNode
 from ..llm_json import generate_structured
 from ..prompts.loader import load_prompt
+from ..slug import generate_title
 from ..schemas import (
     ArcChangeGroupEnrichOutput,
     ArcChangeSurfaceOut,
@@ -1267,6 +1268,25 @@ def run(session: Session, story: Story, feedback: str | None = None) -> None:
     # Phase 3.5 — rewrite story_bible using new-graph names, then verify
     _rewrite_story_bible(session, story, world_design)
     _verify_story_bible(session, story, world_design)
+
+    # Phase 3.6 — retitle for the NEW world. The title was invented at creation
+    # from the SOURCE (e.g. "Mafia Nanny"), which no longer fits the reskinned
+    # world (a gothic Keep has no mafia). Re-derive it from the new story_bible.
+    # The folder slug stays as-is (a filesystem id); only the displayed title changes.
+    if not feedback:
+        try:
+            new_title = generate_title(
+                PROVIDER, AGENT_MODELS["title_generator"],
+                language=story.language, input_type="PREMISE",
+                genre=story.genre, source_content=story.story_bible or "",
+            )
+            if new_title and new_title.strip():
+                logger.info("[%s] retitled for new world: %r -> %r",
+                            story.slug, story.title, new_title.strip())
+                story.title = new_title.strip()
+                session.flush()
+        except Exception as exc:
+            logger.warning("[%s] retitle failed, keeping original: %s", story.slug, exc)
 
     story.plot_outline = None
     story.world_bible = None
