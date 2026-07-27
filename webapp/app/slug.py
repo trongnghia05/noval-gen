@@ -24,8 +24,9 @@ def generate_title(
     source_content: str,
 ) -> str:
     system = (
-        "Ban dat ten truyen ngan gon (2-6 tu), cung ngon ngu voi truyen (hoac tieng Anh "
-        "neu ngon ngu viet la tieng Anh), dua tren noi dung duoc cung cap. "
+        "Ban dat ten truyen NGAN GON, chi tu 2 den 4 tu (tuyet doi khong dai hon 4 tu), "
+        "cung ngon ngu voi truyen (hoac tieng Anh neu ngon ngu viet la tieng Anh), "
+        "dua tren noi dung duoc cung cap. "
         "CHI tra ve ten truyen, khong giai thich, khong dau ngoac kep."
     )
     user_content = (
