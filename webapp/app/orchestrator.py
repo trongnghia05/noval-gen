@@ -490,6 +490,12 @@ def _compile_manuscript_to_file(session: Session, story: Story) -> Path:
 
 def run_complete_step(session: Session, story: Story) -> dict:
     out_path = _compile_manuscript_to_file(session, story)
+    # Poster art (cover + 2 thumbnails) — best-effort, never blocks completion.
+    try:
+        from . import image_generator
+        image_generator.generate(session, story, out_path.parent)
+    except Exception as exc:
+        logger.warning("[%s] image generation step failed: %s", story.slug, exc)
     if story.phase != "COMPLETE":
         story.phase = "COMPLETE"
         session.commit()

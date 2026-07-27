@@ -30,3 +30,16 @@ class LLMProvider(ABC):
         response_schema: type | None = None,
     ) -> LLMResponse:
         ...
+
+    def generate_image(
+        self,
+        *,
+        prompt: str,
+        model: str,
+        aspect_ratio: str = "1:1",
+    ) -> bytes:
+        """Return raw image bytes (PNG/JPEG) for a text-to-image prompt.
+
+        Optional capability — only providers that support image generation
+        override this. Callers must handle NotImplementedError."""
+        raise NotImplementedError(f"{type(self).__name__} does not support image generation")

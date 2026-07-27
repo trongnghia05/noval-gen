@@ -175,6 +175,15 @@ class NovelMetadataOut(BaseModel):
     summary: str           # back-cover blurb, 120-180 words, no ending spoilers
 
 
+class ImagePromptSetOut(BaseModel):
+    """Three text-to-image prompts (English) for the poster art. Each describes a
+    cinematic, photorealistic drama-poster composition in the STORY'S world, with
+    NO text/letters/watermarks (the title is overlaid separately by Pillow)."""
+    cover: str    # wide: montage of the story's main characters in-world
+    thumb1: str   # portrait: the protagonist (optionally + one secondary character)
+    thumb2: str   # portrait: the central pair / key relationship
+
+
 # ── chapter_writer ─────────────────────────────────────────────────────────────
 
 class ChapterWriterOutput(BaseModel):

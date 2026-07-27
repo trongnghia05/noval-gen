@@ -94,3 +94,37 @@ class VertexProvider(LLMProvider):
                     time.sleep(_RATE_LIMIT_SLEEP)
                     continue
                 raise
+
+    def generate_image(
+        self,
+        *,
+        prompt: str,
+        model: str,
+        aspect_ratio: str = "1:1",
+    ) -> bytes:
+        """Generate one image via Vertex Imagen; returns raw image bytes.
+
+        `aspect_ratio` is one of Imagen's supported ratios: 1:1, 3:4, 4:3,
+        9:16, 16:9. Exact target pixel size is handled downstream (Pillow crop)."""
+        for attempt in range(_MAX_RETRIES + 1):
+            try:
+                resp = self.client.models.generate_images(
+                    model=model,
+                    prompt=prompt,
+                    config=types.GenerateImagesConfig(
+                        number_of_images=1,
+                        aspect_ratio=aspect_ratio,
+                    ),
+                )
+                if not resp.generated_images:
+                    raise RuntimeError("Imagen returned no images (possibly safety-filtered)")
+                return resp.generated_images[0].image.image_bytes
+            except genai_errors.ClientError as exc:
+                if getattr(exc, "code", None) == 429 and attempt < _MAX_RETRIES:
+                    logger.warning(
+                        "Vertex Imagen 429 (attempt %d/%d), sleeping %ds",
+                        attempt + 1, _MAX_RETRIES, _RATE_LIMIT_SLEEP,
+                    )
+                    time.sleep(_RATE_LIMIT_SLEEP)
+                    continue
+                raise
