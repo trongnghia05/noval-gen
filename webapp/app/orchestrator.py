@@ -21,6 +21,7 @@ from sqlalchemy.orm import Session
 from .agents import (
     chapter_blueprinter,
     chapter_graph_extractor,
+    chapter_reviser,
     chapter_summarizer,
     chapter_verifier,
     chapter_writer,
@@ -271,15 +272,20 @@ def run_blueprint_step(session: Session, story: Story) -> dict:
     }
 
 
-_MAX_VERIFY_ITERATIONS = 5
+# Two-stage repair budget: first try cheap LOCAL fixes (chapter_reviser, keeps the
+# good prose), and only if those still can't clear critical issues, fall back to
+# full REWRITES (chapter_writer regenerates the whole chapter).
+_MAX_LOCAL_REVISE = 5
+_MAX_FULL_REWRITE = 5
 
 
 def _verify_chapter_loop(session: Session, story: Story, chapter: Chapter) -> int:
-    """Run continuity + quality checks in a loop, rewriting on critical issues.
+    """Run continuity + quality checks in a loop, repairing on critical issues.
 
-    Each iteration runs both verifiers and collects all critical issues as
-    accumulated feedback for the next rewrite — so the writer always sees the
-    full history of what went wrong, not just the latest round.
+    Repair escalates: up to _MAX_LOCAL_REVISE targeted local fixes (preserve the
+    chapter, patch only flagged spots), then up to _MAX_FULL_REWRITE full rewrites
+    if local fixes can't clear the issues. Critical issues accumulate as feedback
+    so each repair sees the full history of what went wrong.
 
     Graph context (new graph up to current chapter) is passed to
     chapter_verifier so it can cross-check character arcs, relationships, and
@@ -299,8 +305,9 @@ def _verify_chapter_loop(session: Session, story: Story, chapter: Chapter) -> in
     accumulated_feedback: list[str] = []
     rewrites = 0
     last_rewrite_output: ChapterWriterOutput | None = None
+    total_iters = _MAX_LOCAL_REVISE + _MAX_FULL_REWRITE
 
-    for iteration in range(_MAX_VERIFY_ITERATIONS):
+    for iteration in range(total_iters):
         d_issues = dialogue_check.check(session, story, chapter)  # deterministic pre-check (no LLM)
         p_issues = prose_check.check(session, story, chapter)     # deterministic meta-leak check (no LLM)
         v_issues = chapter_verifier.check(session, story, chapter, graph_context)
@@ -309,8 +316,9 @@ def _verify_chapter_loop(session: Session, story: Story, chapter: Chapter) -> in
         all_issues = d_issues + p_issues + v_issues + q_issues
         critical = [i for i in all_issues if i.severity == "critical"]
 
-        # Log every issue (all severities) to the audit trail.
-        action = f"rewrite_iter_{iteration + 1}" if critical else "logged_only"
+        # First _MAX_LOCAL_REVISE repairs are local fixes; after that, full rewrites.
+        stage = "local_revise" if rewrites < _MAX_LOCAL_REVISE else "full_rewrite"
+        action = f"{stage}_iter_{iteration + 1}" if critical else "logged_only"
         for issue in all_issues:
             # QualityReviewIssueOut has a dimension field; ChapterVerifyIssueOut does not.
             dim = getattr(issue, "dimension", "continuity")
@@ -329,16 +337,21 @@ def _verify_chapter_loop(session: Session, story: Story, chapter: Chapter) -> in
         if not critical:
             break
 
-        # Accumulate all critical issues across iterations so each rewrite
+        # Accumulate all critical issues across iterations so each repair
         # knows the full history of what was wrong.
         for issue in critical:
             dim = getattr(issue, "dimension", "continuity")
             accumulated_feedback.append(
                 f"[iter {iteration + 1}][{dim}] {issue.description} → SỬA: {issue.suggestion}"
             )
-
         feedback_text = "\n".join(accumulated_feedback)
-        last_rewrite_output = chapter_writer.run(session, story, chapter, feedback=feedback_text)
+
+        if rewrites < _MAX_LOCAL_REVISE:
+            # Stage 1: cheap local fix, preserve the rest of the chapter.
+            last_rewrite_output = chapter_reviser.run(session, story, chapter, feedback_text)
+        else:
+            # Stage 2: local fixes exhausted — regenerate the whole chapter.
+            last_rewrite_output = chapter_writer.run(session, story, chapter, feedback=feedback_text)
         session.flush()
         rewrites += 1
 
@@ -359,8 +372,8 @@ def run_write_chapter_step(session: Session, story: Story) -> dict:
 
     # Verify + quality gate before summarizing — a wrong/truncated chapter must
     # be fixed before it enters memory (world-state, chapter-summaries).
-    # Loop up to _MAX_VERIFY_ITERATIONS times; each rewrite gets accumulated
-    # feedback from all previous iterations.
+    # Escalating repair: up to _MAX_LOCAL_REVISE local fixes, then up to
+    # _MAX_FULL_REWRITE full rewrites; each repair gets accumulated feedback.
     rewrites, rewrite_output = _verify_chapter_loop(session, story, next_chapter)
     logger.info("[%s] verify_loop ch%d: %d rewrite(s)", story.slug, next_chapter.number, rewrites)
     session.commit()
