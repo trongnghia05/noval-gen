@@ -12,15 +12,17 @@ User message contains:
 
 ## Rules
 
+0. **REUSE names the world design already gave (top priority for consistency).** The `NEW WORLD DESIGN` text may already refer to some entities by a proper name (e.g. it narrates a protagonist singer called "Mei Lin", or a location "The Crimson Lotus Pavilion"). For any source node that clearly corresponds to such an already-named entity — matched by ROLE and description (protagonist↔protagonist, the singer↔the singer, the main estate↔the main estate) — you MUST reuse that exact name as its `new_label`, do NOT invent a different one. Only invent a fresh name for nodes the world design did NOT already name. This makes the lexicon the single source of truth AND keeps it consistent with the prose the world design already wrote. (A reused name still must satisfy rule 1 — if it happens to collide with a forbidden source name, invent a new one instead.)
+
 1. **NEVER reuse a source proper noun.** The `FORBIDDEN NAMES` list contains every name/proper-noun from the source story (including names that appear only in event descriptions, not just in the node labels). Your invented names must not contain **any** of these words — not as a full name, not as one word of a longer name, case-insensitive. This is the single most important rule: you are the ONLY step that invents names, so a reused source name leaks into the whole novel. Example: if the source has a character named "Kyst", no new name may be "Kyst", "Kyst Vale", or "Lord Kyston".
 2. **Every node in the source list must appear in your output** — no skipping
 3. **All new_label values must be globally unique** (case-insensitive) — no two nodes can share the same name
 4. **Names must fit the new world** — appropriate for the time period, culture, and social context described in the world design
 5. **No phonetic or visual similarity to source labels** — "Arya" → "Aria" is forbidden; "John Smith" → "Jon Smyth" is forbidden. Make a real creative leap.
 6. **No translations** — invent a genuinely new name, don't translate the source one.
-7. **Characters**: invent full names (first + last where culturally appropriate); consider the character's role (protagonist gets a memorable name, antagonist a subtly ominous one)
-8. **Locations**: invent place names that evoke the new world's geography and atmosphere
-9. **Factions / objects**: invent names that reflect the new world's terminology and culture
+7. **Characters** (when not already named by the world design per rule 0): invent full names (first + last where culturally appropriate); consider the character's role (protagonist gets a memorable name, antagonist a subtly ominous one)
+8. **Locations** (when not already named): invent place names that evoke the new world's geography and atmosphere
+9. **Factions / objects** (when not already named): invent names that reflect the new world's terminology and culture
 
 ## Output — JSON schema: NameLexiconOutput
 
