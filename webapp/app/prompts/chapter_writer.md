@@ -85,31 +85,33 @@ Tính 3 phần theo tỷ lệ trên `words_per_chapter` (W) — KHÔNG dùng s�
   
   Đừng máy móc kiểu "1 câu hành động → 1 thoại → 1 phản ứng" lặp đi lặp lại — đó là dấu hiệu viết như công thức. Hãy để nội dung quyết định chỗ ngắt: **hết một nhịp cảm xúc/hành động thì xuống dòng**, dài ngắn tùy nhịp đó.
 - Ví dụ MINH HỌA (chỉ để thấy độ mịn của việc ngắt — KHÔNG phải thứ tự bắt buộc, KHÔNG copy văn): một chuỗi có thể là ‹hành động ngắn› / "‹thoại›" / ‹phản ứng một câu› / "‹thoại đáp›" / ‹câu nhấn đứng riêng›; chuỗi khác lại có thể là ba câu hành động dồn dập rồi một câu lặng.
-- **Ví dụ cụ thể — CHỈ để minh họa CÁCH VIẾT / cách ngắt dòng và nhịp.** ⚠️ TUYỆT ĐỐI KHÔNG sao chép nội dung, nhân vật, câu chữ hay bối cảnh hiện đại (cologne, restroom, mascara...) của nó — truyện của bạn có thể là fantasy/cổ trang/thể loại hoàn toàn khác. Chỉ học ở đây **độ ngắn của đoạn và chỗ xuống dòng**:
+- **Ví dụ cụ thể — CHỈ để minh họa CÁCH VIẾT / cách ngắt dòng và nhịp.** ⚠️ TUYỆT ĐỐI KHÔNG sao chép nội dung, nhân vật, câu chữ hay bối cảnh hiện đại (cologne, restroom, mascara...) của nó — truyện của bạn có thể là fantasy/cổ trang/thể loại hoàn toàn khác. Chỉ học ở đây **độ ngắn của đoạn và chỗ xuống dòng**. (Phần trong khung ``` dưới đây chỉ là văn xuôi thường; KHÔNG có ký hiệu markdown nào — đừng thêm ```, `>` hay bất kỳ dấu định dạng nào vào output của bạn.)
 
-  > His jaw flexed. He stepped closer. Too close.
-  >
-  > "Look up," he ordered.
-  >
-  > My chin rose before I even thought about whether it should.
-  >
-  > His mouth curved, almost invisibly. Disapproval disguised as amusement.
-  >
-  > "You look… undone," he murmured.
-  >
-  > Humiliation prickled through me.
-  >
-  > "I can fix myself in the restroom."
-  >
-  > "No." His gaze slid lower. "This is how you showed up. This is how I'll evaluate you."
-  >
-  > My stomach dropped like a stone.
-  >
-  > But then something impossible happened.
-  >
-  > "Follow me," he said.
-  >
-  > I blinked. "What?"
+```
+His jaw flexed. He stepped closer. Too close.
+
+"Look up," he ordered.
+
+My chin rose before I even thought about whether it should.
+
+His mouth curved, almost invisibly. Disapproval disguised as amusement.
+
+"You look… undone," he murmured.
+
+Humiliation prickled through me.
+
+"I can fix myself in the restroom."
+
+"No." His gaze slid lower. "This is how you showed up. This is how I'll evaluate you."
+
+My stomach dropped like a stone.
+
+But then something impossible happened.
+
+"Follow me," he said.
+
+I blinked. "What?"
+```
 
 - Giữa các đoạn cách nhau bằng một dòng trống.
 - Mục tiêu: trang văn thoáng, nhịp dồn — mỗi hành động, mỗi phản ứng, mỗi lượt thoại đứng riêng; KHÔNG dồn nhiều nhịp vào một khối.
