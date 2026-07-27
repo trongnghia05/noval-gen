@@ -98,6 +98,7 @@ Nếu context chứa `## Tinh thần truyện gốc`, đây là hướng dẫn t
 - Nhịp điệu câu văn (nhanh/chậm, ngắn/dài)
 - Cung bậc cảm xúc (căng thẳng, nhẹ nhàng, u ám...)
 - Cách xây dựng tension và resolve
+- **NARRATIVE TEXTURE — bám sát**: tỷ lệ thoại/dẫn truyện và cách ĐAN XEN của bản gốc (mục `NARRATIVE TEXTURE` trong Tinh thần truyện gốc). Nếu gốc là **thoại-dẫn** (dialogue-forward) thì chương của bạn cũng phải **nhiều đối thoại đan xen action beat**, không phải từng khối tường thuật dài. Nhìn các SYNTHETIC EXAMPLES để bắt đúng nhịp thoại↔cử chỉ↔nội tâm — đó là *kết cấu* cần tái tạo (không phải nội dung).
 
 **TUYỆT ĐỐI KHÔNG:**
 - Sao chép hay dịch bất kỳ vật thể cụ thể nào từ excerpts (đồ nội thất, thức ăn, thiết bị, kiến trúc...)
