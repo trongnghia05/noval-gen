@@ -349,7 +349,41 @@ def _expand_with_name_tokens(
             continue  # a full label already owns this key
         if len(targets) == 1:
             expanded[tok] = next(iter(targets))
+        else:
+            # Ambiguous source token (e.g. a family surname "Branson" shared by
+            # several characters). Don't drop it outright: if EVERY new target
+            # label shares one distinctive token (the family got one new surname,
+            # e.g. all "…Thorne"), map the source token to that shared token so
+            # stray surname mentions in event/edge text are still reskinned.
+            shared = _shared_token(targets)
+            if shared:
+                expanded[tok] = shared
     return expanded
+
+
+def _shared_token(labels: set[str]) -> str | None:
+    """The single distinctive token common to ALL labels, else None.
+
+    Used so an ambiguous shared surname maps to the shared NEW surname rather than
+    being dropped. Only returns when exactly one such common token exists (avoids
+    guessing when the labels have nothing meaningful in common)."""
+    token_sets: list[set[str]] = []
+    original_case: dict[str, str] = {}
+    for lab in labels:
+        toks = set()
+        for raw in lab.split():
+            t = raw.strip(".,;:'\"()").strip()
+            if len(t) < 4 or t.lower() in _NAME_TITLES:
+                continue
+            toks.add(t.lower())
+            original_case.setdefault(t.lower(), t)
+        token_sets.append(toks)
+    if not token_sets:
+        return None
+    common = set.intersection(*token_sets)
+    if len(common) == 1:
+        return original_case[next(iter(common))]
+    return None
 
 
 def _sub_props(props: dict, sub) -> bool:
