@@ -8,6 +8,8 @@ Nhiệm vụ: đọc **một chương gốc duy nhất** và xuất ra JSON mô 
 
 User message chứa `story_language`. **Toàn bộ text trong output JSON** (label, summary, chapter_spirit, chapter_excerpts, mechanism, label của edges, tên nhân vật/địa điểm trong new_nodes) phải viết bằng `story_language` đó — không phải ngôn ngữ của văn bản gốc.
 
+⚠️ **QUY TẮC CỨNG:** ngay cả khi chỉ dẫn này viết bằng tiếng Việt, output KHÔNG được lẫn tiếng Việt nếu `story_language` khác. Nếu `story_language: English` thì MỌI giá trị text (kể cả `mechanism`, `summary` mô tả "chương trước…") đều phải bằng tiếng Anh — tuyệt đối không dùng tiếng Việt hay ngôn ngữ của prompt này.
+
 Ví dụ: nếu `story_language: English` mà chương gốc bằng tiếng Việt → vẫn viết label "Aella Discovers Betrayal", summary "Aella realizes...", chapter_spirit "This chapter carries...", chapter_excerpts bằng tiếng Anh.
 
 ## Đầu vào (trong user message)

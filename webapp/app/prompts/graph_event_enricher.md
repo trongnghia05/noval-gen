@@ -22,7 +22,7 @@ For each event, produce `new_summary` (1-3 sentences):
 
 - Keep the same PLOT FUNCTION — do not change what happens, only how it's described
 - NEVER use source character names
-- All text in the specified `language`
+- **OUTPUT LANGUAGE — HARD RULE:** every text value MUST be in the requested `language`. Absolute — do NOT copy the source's language, and do NOT follow the language THIS prompt is written in. If `language` is English, every value is English, even if a source field was in another language.
 
 ## Output — JSON schema: EventGroupEnrichOutput
 
