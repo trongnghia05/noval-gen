@@ -18,12 +18,12 @@ Write ONE dense paragraph per image, assembling these components:
 3. **Composition**: hero framing / montage layout; where subjects sit; and the
    reserved space for the title (see title rule). Must read clearly at small size.
 4. **Setting/backdrop**: an in-world environment behind them (fitting the story's
-   world), kept slightly darker / less busy so subjects pop.
-5. **Lighting + color grade**: cinematic lighting driven by the mood/tags — e.g.
-   dramatic rim light + soft key, moody teal-and-orange or candle-lit gold, subtle
-   volumetric haze. Name a palette.
+   world), less busy so subjects pop.
+5. **Color palette + lighting**: YOU decide from the story's genre/tone — name a
+   concrete palette that fits it (bright/warm for light or romantic stories, moody
+   for dark/thriller ones). Keep faces well-lit and the image rich, never muddy.
 6. **Camera**: "shot on a full-frame camera, 85mm f/1.4, shallow depth of field,
-   sharp focus on faces, subtle film grain, gentle vignette, 8k".
+   sharp focus on faces, subtle film grain, 8k".
 7. **Title rendering** (see rule).
 8. **Realism + negatives tail** (see rule).
 
@@ -42,18 +42,16 @@ Write ONE dense paragraph per image, assembling these components:
   wardrobe and framing may differ; the person must be the same. (The cover is also
   fed to the thumbnails as a visual reference.)
 - **RENDER THE TITLE on the image**, spelled EXACTLY and IN FULL as given (quote it
-  in the prompt). **Be creative with the typography** — it may be horizontal,
-  vertical, arched, curved/wavy, staggered, or integrated into the scene; pick a
+  in the prompt). It must be **HORIZONTAL and left-to-right readable** (one line, or
+  a tasteful two-line stack / gentle arch — but NEVER vertical or sideways). Pick a
   premium drama-poster treatment that fits the mood (bold sans/serif, two-tone,
-  gold/white accent, glow, engraved, etc.). Ensure legibility (add a subtle glow,
-  shadow, or darker backing behind the letters if the art is busy).
-  - **NON-NEGOTIABLE:** the **ENTIRE title must appear, every letter present, and
-    fully INSIDE the frame with a clear safe margin from all edges** — never cut
-    off, never running off an edge, never partially hidden behind a subject.
-    Render ONLY the title (an optional short tagline) — no other words, gibberish,
-    credits, logos or watermarks.
-  - Keep the characters' FACES clear of the lettering (place the title where it
-    does not cover a face).
+  gold/white accent, subtle glow/shadow, or a darker backing behind the letters if
+  the art is busy) so it stays legible.
+  - **NON-NEGOTIABLE:** the **ENTIRE title appears, every letter present, fully
+    INSIDE the frame with a safe margin from all edges** — never cut off, never
+    running off an edge, never hidden behind a subject or covering a face. Render
+    ONLY the title (an optional short tagline) — no other words, gibberish, credits,
+    logos or watermarks.
 - Write the prompt text in **English** (best rendering); the rendered TITLE keeps
   the original title text exactly.
 - Poster-safe: no gore, no explicit content.
@@ -69,9 +67,9 @@ Write ONE dense paragraph per image, assembling these components:
 ## Output — JSON schema: ImagePromptSetOut
 ```json
 {
-  "cover": "photorealistic cinematic <genre> movie poster key art. <characters, each described, big in foreground, expressions, heads fully in frame>. Montage hero layout, <backdrop> kept darker behind them. <mood lighting + color palette>. Shot on a full-frame camera, 85mm f/1.4, shallow depth of field, subtle film grain, gentle vignette, 8k. The COMPLETE title \"<TITLE>\" rendered creatively (any orientation that composes well), large and fully legible, every letter present and entirely inside the frame with a safe margin from all edges, not covering any face; only the title text. photorealistic live-action, real actors, not 3D render, not CGI, not cartoon, not anime, not illustration, not painting, no extra text, no watermark, no logo",
-  "thumb1": "photorealistic cinematic <genre> poster portrait of <protagonist, described, large clear face> ... <backdrop, lighting, palette>. Shot on 85mm f/1.4, shallow DoF, film grain, vignette, 8k. Title \"<TITLE>\" in the lower third, centered, clear margin beneath it. photorealistic live-action, real actor, not 3D render, not CGI, not cartoon, not anime, not illustration, not painting, no extra text, no watermark, no logo",
-  "thumb2": "photorealistic cinematic <genre> poster of <the central pair, described, faces prominent, charged emotion> ... <backdrop, lighting, palette>. Shot on 85mm f/1.4, shallow DoF, film grain, vignette, 8k. Title \"<TITLE>\" in the lower third, centered, clear margin beneath it. photorealistic live-action, real actors, not 3D render, not CGI, not cartoon, not anime, not illustration, not painting, no extra text, no watermark, no logo"
+  "cover": "photorealistic cinematic <genre> movie poster key art. <characters, each described, big in foreground, expressions, heads fully in frame, faces brightly lit>. Montage hero layout. <palette + lighting that MATCH the mood — e.g. bright warm golden for romance, or rich high-contrast for dark drama; never muddy>. Shot on a full-frame camera, 85mm f/1.4, shallow depth of field, subtle film grain, 8k. The COMPLETE title \"<TITLE>\" rendered HORIZONTALLY (left-to-right readable), large and fully legible, every letter present and entirely inside the frame with a safe margin from all edges, not covering any face; only the title text. photorealistic live-action, real actors, not 3D render, not CGI, not cartoon, not anime, not illustration, not painting, no extra text, no watermark, no logo",
+  "thumb1": "photorealistic cinematic <genre> poster portrait of <protagonist, described, large clear brightly-lit face> ... <mood-matched palette + lighting, never muddy>. Shot on 85mm f/1.4, shallow DoF, film grain, 8k. Title \"<TITLE>\" placed creatively, complete and fully inside the frame with a safe margin. photorealistic live-action, real actor, not 3D render, not CGI, not cartoon, not anime, not illustration, not painting, no extra text, no watermark, no logo",
+  "thumb2": "photorealistic cinematic <genre> poster of <the central pair, described, faces prominent and brightly lit, charged emotion> ... <mood-matched palette + lighting, never muddy>. Shot on 85mm f/1.4, shallow DoF, film grain, 8k. Title \"<TITLE>\" placed creatively, complete and fully inside the frame with a safe margin. photorealistic live-action, real actors, not 3D render, not CGI, not cartoon, not anime, not illustration, not painting, no extra text, no watermark, no logo"
 }
 ```
 Return ONLY the JSON object — no markdown fences, no preamble.
