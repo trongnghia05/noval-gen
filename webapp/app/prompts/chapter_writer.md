@@ -77,27 +77,20 @@ Tính 3 phần theo tỷ lệ trên `words_per_chapter` (W) — KHÔNG dùng s�
 - **Mỗi lượt thoại của MỘT nhân vật là MỘT đoạn riêng, xuống dòng.** Khi người khác lên tiếng → đoạn mới. TUYỆT ĐỐI không nhồi lời của hai nhân vật khác nhau vào cùng một đoạn.
 - Action beat / cử chỉ đi kèm lời thoại của ai thì nằm cùng đoạn với lời của người đó.
 - **Đoạn RẤT NGẮN**: thường **1-2 câu** (~15-40 từ), tối đa 3 câu. Hết một nhịp/ý/hành động → xuống đoạn ngay. KHÔNG viết khối 4+ câu liền.
-- **Câu nhấn / phản ứng / khoảnh khắc quan trọng → tách riêng MỘT câu một dòng** để tạo nhịp và sức nặng. Ví dụ đúng nhịp cần đạt:
+- **Câu nhấn / phản ứng / khoảnh khắc quan trọng → tách riêng MỘT câu một dòng** để tạo nhịp và sức nặng.
+- **Sơ đồ nhịp cần đạt** (đây là KHUÔN ngắt dòng bằng placeholder — KHÔNG phải văn mẫu để mô phỏng câu chữ; hãy điền nội dung của CHÍNH truyện bạn đang viết):
 
-  > His jaw flexed. He stepped closer. Too close.
+  > ‹1-2 câu hành động ngắn›
   >
-  > "Look up," he ordered.
+  > "‹lời thoại A›," ‹dẫn thoại + cử chỉ›.
   >
-  > My chin rose before I even thought about whether it should.
+  > ‹1 câu phản ứng/nội tâm — đứng riêng›
   >
-  > "You look… undone," he murmured.
+  > "‹lời thoại B đáp›."
   >
-  > Humiliation prickled through me.
-  >
-  > "I can fix myself in the restroom."
-  >
-  > "No." His gaze slid lower. "This is how you showed up. This is how I'll evaluate you."
-  >
-  > My stomach dropped like a stone.
-  >
-  > But then something impossible happened.
+  > ‹1 câu nhấn, đứng riêng để dồn nhịp›
 
-  (Đây chỉ là ví dụ về **cách ngắt dòng/nhịp** — KHÔNG sao chép nội dung/bối cảnh hiện đại của nó.)
+  Quy tắc rút ra từ khuôn: hành động, phản ứng, mỗi lượt thoại — mỗi thứ một dòng ngắn; câu quan trọng đứng một mình.
 - Giữa các đoạn cách nhau bằng một dòng trống.
 - Mục tiêu: trang văn thoáng, nhịp dồn — mỗi hành động, mỗi phản ứng, mỗi lượt thoại đứng riêng; KHÔNG dồn nhiều nhịp vào một khối.
 
