@@ -531,7 +531,6 @@ Nina pulled out several bills and placed them in his hand along with the gel.
 “This is your payment for the week and my thank-you gift. Wait for me every lunch and during afternoon break.” 
 Before Jensen could reply, the bell rang. Nina grabbed his hand and started pulling him toward the classroom “Hurry! We’re going to be late!” 
 Jensen didn’t respond. He just stared down at her hand holding his, lost in thought. 
-Chapter 8 Nina! Are You Crazy? 
 Jensen was not in Nina’s class. 
 The school had classes labeled A through F. Class A was for the top students, while Class F was for the lowest. 
 Jensen was in Class F-not because he was bad at studying, but because he’d been transferred there after a fight. 
@@ -675,7 +674,6 @@ She knew the school pool closed on schedule-Linholt High ended at 6:30 PM, right
 If Jensen stayed to help her work out every day, he wouldn’t get back to the Mercers’ until nearly nine. She highly doubted Cecilia would save him any food. 
 Marvin and Esther exchanged a look. 
 Despite their dislike for the Mercers, they politely invited Jensen to change shoes and join them for dinner. 
-Chapter 10 Nina Brings Jensen Home 
 
 
 In the living room, the table was set with a hearty dinner-three meat dishes and three vegetable sides, plus a bowl of soup. 
@@ -912,7 +910,6 @@ After a moment, she said, “Jensen, I know you’re brilliant. Can you do me a 
 “I… I need help studying. Could you tutor me every night? I’ll pay you 100 dollars a session. How does that sound?” 
 A hundred dollars per session was top dollar for a high school tutor. 
 Jensen looked at her. “You’re always top ten in the grade. You don’t need tutoring.” 
-Chapter 15 She Locked Him Outside All Night! 
 
 
 “I’ve been slacking off! I’m bombing my practice tests. I won’t even make the top hundred at this rate…” Nina looked sincere. “Don’t worry. If I pass finals, I’ll give you 1,000 dollars total. Please help me!” 
@@ -1048,7 +1045,6 @@ Marvin frowned worriedly. “Should I send a nurse to stay with you?”
 “No need, Dad. It’s just one night. Just have Sam pick us up tomorrow morning.” 
 Marvin couldn’t convince her otherwise, so he gave in. 
 Once her parents were gone, Nina soothed Jensen, “Get some rest. You won’t have to work yourself to the bone anymore, or miss dinner, or get locked out. From today on, we’re your family.” 
-Chapter 18 From Today On, We’re Your Family 
 
 
 At Nina’s soft voice, Jensen’s throat tightened. After a long moment, he choked out, “Okay.” 
@@ -1136,7 +1132,6 @@ The sweet, creamy taste made her sigh with satisfaction.
 After weeks of dieting, her appetite had decreased greatly, so even a sip of milk felt like a treat 
 Watching Nina smile happily, Jensen lifted a faint smile. 
 ‘Jensen, your grades are so good. Why are you in Class F? If you were in Class A, we could study together every break” 
-Chapter 20 I’ll Try 
 Reborn again, Nina understood just how important education was. 
 Her biggest regret in her past life was marrying Chase right after high school and never finishing college. If she had, she never would have lost herself in that marriage. 
 Someone as brilliant as Jensen deserved to be in Class A with the best resources. 
