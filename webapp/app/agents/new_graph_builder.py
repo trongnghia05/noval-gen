@@ -496,7 +496,7 @@ def _enrich_characters(
     output: CharacterGroupEnrichOutput = generate_structured(
         PROVIDER, system=system, user_content=user_content,
         model=AGENT_MODELS["graph_character_enricher"],
-        schema=CharacterGroupEnrichOutput, max_tokens=8192, thinking=False,
+        schema=CharacterGroupEnrichOutput, max_tokens=48000, thinking=False,
     )
     node_map = {n.node_key: n for n in nodes}
     for surf in output.characters:
@@ -554,7 +554,7 @@ def _enrich_events(
     output: EventGroupEnrichOutput = generate_structured(
         PROVIDER, system=system, user_content=user_content,
         model=AGENT_MODELS["graph_event_enricher"],
-        schema=EventGroupEnrichOutput, max_tokens=8192, thinking=False,
+        schema=EventGroupEnrichOutput, max_tokens=48000, thinking=False,
     )
     node_map = {n.node_key: n for n in nodes}
     for surf in output.events:
@@ -607,7 +607,7 @@ def _enrich_arc_changes(
     output: ArcChangeGroupEnrichOutput = generate_structured(
         PROVIDER, system=system, user_content=user_content,
         model=AGENT_MODELS["graph_arc_enricher"],
-        schema=ArcChangeGroupEnrichOutput, max_tokens=8192, thinking=False,
+        schema=ArcChangeGroupEnrichOutput, max_tokens=48000, thinking=False,
     )
     # Match by (source_key, chapter_from)
     edge_map: dict[tuple, StoryGraphEdge] = {}
@@ -674,7 +674,7 @@ def _enrich_relations(
         output: RelationGroupEnrichOutput = generate_structured(
             PROVIDER, system=system, user_content=user_content,
             model=AGENT_MODELS["graph_relation_enricher"],
-            schema=RelationGroupEnrichOutput, max_tokens=8192, thinking=False,
+            schema=RelationGroupEnrichOutput, max_tokens=48000, thinking=False,
         )
         # Match by (source_key, target_key, chapter_from)
         edge_map: dict[tuple, StoryGraphEdge] = {}
@@ -734,7 +734,7 @@ def _enrich_causes(
     output: CausesGroupEnrichOutput = generate_structured(
         PROVIDER, system=system, user_content=user_content,
         model=AGENT_MODELS["graph_causes_enricher"],
-        schema=CausesGroupEnrichOutput, max_tokens=8192, thinking=False,
+        schema=CausesGroupEnrichOutput, max_tokens=48000, thinking=False,
     )
     edge_map = {(e.source_key, e.target_key): e for e in edges}
     for surf in output.causes:
@@ -989,7 +989,7 @@ def _enrich_graph(session: Session, story: Story) -> None:
     output: GraphEnrichmentOutput = generate_structured(
         PROVIDER, system=system, user_content=user_content,
         model=AGENT_MODELS["graph_enricher"], schema=GraphEnrichmentOutput,
-        max_tokens=8192, thinking=False,
+        max_tokens=16384, thinking=False,
     )
     for node in output.new_nodes:
         session.add(StoryGraphNode(

@@ -49,7 +49,7 @@ def run(
         user_content=user_content,
         model=AGENT_MODELS["graph_surface_rewriter"],
         schema=GraphSurfaceRepairOutput,
-        max_tokens=8192,
+        max_tokens=16384,
         thinking=False,
     )
 
