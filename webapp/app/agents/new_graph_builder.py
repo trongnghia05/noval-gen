@@ -823,10 +823,11 @@ def _regex_two_word_names(text: str) -> set[str]:
 
 def _world_design_name_leaks(story: Story, wd: WorldDesignOutput) -> list[str]:
     """Invented proper names still in the world design (should be name-free).
-    Primary check is an LLM proofreader (understands context / non-ASCII names);
-    a light regex backstop catches obvious two-word names it might miss."""
+    Decided by an LLM proofreader — it understands context (a genre label like
+    'Revenge Thriller' is NOT a name; 'Grand Guildhall' IS) and non-ASCII names,
+    which a regex cannot. No regex union: it false-flagged genre pairs and caused
+    pointless regenerations."""
     text = _world_design_text(wd)
-    names: set[str] = set()
     try:
         system = load_prompt("world_name_check")
         out: WorldNameCheckOutput = generate_structured(
@@ -835,11 +836,10 @@ def _world_design_name_leaks(story: Story, wd: WorldDesignOutput) -> list[str]:
             model=AGENT_MODELS.get("world_name_check", AGENT_MODELS["name_lexicon"]),
             schema=WorldNameCheckOutput, max_tokens=2048, thinking=False,
         )
-        names |= {n.strip() for n in (out.proper_names or []) if n and n.strip()}
+        return sorted({n.strip() for n in (out.proper_names or []) if n and n.strip()})
     except Exception as exc:
-        logger.warning("[%s] Phase 0 name-check LLM failed (%s) — regex only", story.slug, exc)
-    names |= _regex_two_word_names(text)
-    return sorted(names)
+        logger.warning("[%s] Phase 0 name-check LLM failed (%s) — skipping", story.slug, exc)
+        return []
 
 
 def _design_world(session: Session, story: Story, feedback: str | None = None,
