@@ -166,6 +166,15 @@ class CharacterDeveloperOutput(BaseModel):
     character_voices_md: str  # full markdown voice guide, one section per character
 
 
+# ── novel metadata (front matter for the exported file) ─────────────────────────
+
+class NovelMetadataOut(BaseModel):
+    author: str            # a fitting pen name (invented), in the story's language/culture
+    tags: list[str] = []   # 3-6 genre/theme tags, e.g. ["Dark Fantasy", "Gothic Romance"]
+    logline: str           # cốt truyện — 1-2 sentence premise/hook
+    summary: str           # back-cover blurb, 120-180 words, no ending spoilers
+
+
 # ── chapter_writer ─────────────────────────────────────────────────────────────
 
 class ChapterWriterOutput(BaseModel):

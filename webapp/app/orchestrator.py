@@ -37,9 +37,11 @@ from .agents import (
     story_analyzer,
     worldbuilder,
 )
-from .config import OUTPUT_BASE
+from .config import AGENT_MODELS, OUTPUT_BASE, PROVIDER
 from .db.models import Character, Chapter, ChapterSummary, ChapterVerifyLog, Story
-from .schemas import ChapterWriterOutput
+from .llm_json import generate_structured
+from .prompts.loader import load_prompt
+from .schemas import ChapterWriterOutput, NovelMetadataOut
 
 logger = logging.getLogger(__name__)
 
@@ -390,10 +392,45 @@ def run_write_chapter_step(session: Session, story: Story) -> dict:
     }
 
 
+def _length_type(word_count: int) -> str:
+    """Standard length category from word count."""
+    if word_count < 7500:
+        return "Short story"
+    if word_count < 17500:
+        return "Novelette"
+    if word_count < 40000:
+        return "Novella"
+    return "Novel"
+
+
+def _generate_novel_metadata(story: Story) -> NovelMetadataOut | None:
+    """LLM front-matter (author / tags / logline / blurb) for the export header.
+
+    Best-effort: on any failure the export still proceeds without the block."""
+    try:
+        system = load_prompt("novel_metadata")
+        user_content = (
+            f"language: {story.language}\n"
+            f"title: {story.title}\n"
+            f"genre: {story.genre or '(derive from the story)'}\n"
+            f"word_count: {story.current_words or 0}\n\n"
+            f"## story-bible\n{story.story_bible or ''}\n\n"
+            f"## plot-outline\n{story.plot_outline or ''}\n"
+        )
+        return generate_structured(
+            PROVIDER, system=system, user_content=user_content,
+            model=AGENT_MODELS.get("novel_metadata", AGENT_MODELS["quality_reviewer"]),
+            schema=NovelMetadataOut, max_tokens=4096, thinking=False,
+        )
+    except Exception as exc:
+        logger.warning("[%s] novel metadata generation failed: %s", story.slug, exc)
+        return None
+
+
 def _compile_manuscript_to_file(session: Session, story: Story) -> Path:
     """Compile all done chapters into a single markdown file.
 
-    Saves to /data/output/{story.id}/novel.md and returns the path.
+    Saves to {OUTPUT_DIR}/{slug}/novel.md and returns the path.
     """
     chapters = (
         session.query(Chapter)
@@ -411,10 +448,30 @@ def _compile_manuscript_to_file(session: Session, story: Story) -> Path:
     ]
     chapters_text = "\n\n---\n\n".join(chapter_parts)
 
-    meta_parts = [p for p in [story.genre, story.language] if p]
-    meta_parts += [f"{len(chapters)} chương", f"{story.current_words or 0:,} từ"]
-    meta = " · ".join(meta_parts)
-    manuscript = f"# {story.title}\n\n*{meta}*\n\n---\n\n## Mục lục\n\n{toc}\n\n---\n\n{chapters_text}\n"
+    # ── Front matter: title, author, tags/type, logline, blurb ──────────────
+    words = story.current_words or 0
+    meta_info = _generate_novel_metadata(story)
+    header_lines = [f"# {story.title}", ""]
+    if meta_info:
+        type_label = _length_type(words)
+        tag_str = " · ".join([type_label] + list(meta_info.tags)) if meta_info.tags else type_label
+        header_lines += [
+            f"**Tác giả:** {meta_info.author}  ",
+            f"**Thể loại:** {tag_str}  ",
+            f"**Độ dài:** {len(chapters)} chương · {words:,} từ · {story.language}  ",
+            "",
+            f"**Cốt truyện:** {meta_info.logline}",
+            "",
+            "**Tóm tắt**",
+            "",
+            meta_info.summary,
+        ]
+    else:
+        meta_parts = [p for p in [story.genre, story.language] if p]
+        meta_parts += [f"{len(chapters)} chương", f"{words:,} từ"]
+        header_lines.append(f"*{' · '.join(meta_parts)}*")
+    header = "\n".join(header_lines)
+    manuscript = f"{header}\n\n---\n\n## Mục lục\n\n{toc}\n\n---\n\n{chapters_text}\n"
 
     # Folder named after the story (slug is the filesystem-safe title). Suffix
     # with the id only if a different story already claimed that slug, so runs
