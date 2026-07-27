@@ -41,7 +41,7 @@ Ví dụ: nếu `story_language: English` mà chương gốc bằng tiếng Vi�
     {
       "id": "C010",
       "node_type": "character|location|object|faction",
-      "label": "Tên mới (đã tái tạo, không phải tên gốc)",
+      "label": "TÊN RIÊNG NGUYÊN GỐC từ chương nguồn (VD 'Kyst', 'Denise') — KHÔNG dùng cụm mô tả ('chồng của X'), KHÔNG đặt tên mới",
       "properties": { ... },
       "chapter_introduced": {chapter_number}
     }
@@ -113,8 +113,8 @@ Tạo khi nhân vật thay đổi trạng thái nội tâm rõ ràng (arc_stage,
     "arc_field": "arc_stage", "trigger_event_id": "E003", "chapter_from": 3, "properties": {} }
   ```
 
-**Về tên nhân vật:**
-Dùng **tên MỚI** đã tái tạo (có trong ENTITY LIST) — KHÔNG dùng tên gốc từ chương nguồn.
+**Về tên nhân vật (QUAN TRỌNG — đây là graph NGUỒN):**
+Đây là bước trích xuất graph NGUỒN, nên dùng **TÊN NGUYÊN GỐC** từ chương nguồn — KHÔNG đặt tên mới (việc reskin sang tên mới do bước sau xử lý). Nhân vật đã có trong ENTITY LIST thì dùng đúng ID + tên đó; nhân vật mới thì đặt `label` bằng **tên riêng nguyên gốc**, không dùng cụm mô tả vai trò. Mọi tên riêng (nhân vật, địa điểm) trong `summary`, `label`, `mechanism`... đều là tên gốc — chỉ **ngôn ngữ diễn đạt** mới theo `story_language`.
 
 ## Nguyên tắc
 

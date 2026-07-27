@@ -776,6 +776,55 @@ def _design_world(session: Session, story: Story) -> WorldDesignOutput:
 
 # ── Phase 1b: Name lexicon ─────────────────────────────────────────────────────
 
+# Capitalized words that routinely start sentences / titles in source event
+# summaries but are NOT proper nouns — excluded from the forbidden-name set.
+_COMMON_CAPS = {
+    "the", "and", "but", "for", "with", "from", "into", "her", "his", "their",
+    "she", "him", "them", "this", "that", "when", "after", "before", "while",
+    "chapter", "then", "they", "who", "what", "how", "why", "where",
+}
+
+
+def _source_forbidden_names(session: Session, story_id: int) -> set[str]:
+    """Every source proper-noun token the lexicon must NOT reuse as a new name.
+
+    Two sources: (1) tokens of every source node label — high precision, these
+    are definitely entity names; (2) capitalized words in source EVENT summaries
+    — catches names that live only in prose (e.g. a husband whose node is labelled
+    descriptively but who is named "Kyst" in the summaries). Over-inclusion is
+    harmless: it only nudges the lexicon toward a different invented word.
+    """
+    forbidden: set[str] = set()
+    nodes = (
+        session.query(StoryGraphNode)
+        .filter_by(story_id=story_id, graph_type="source")
+        .all()
+    )
+    for n in nodes:
+        for raw in (n.label or "").split():
+            tok = raw.strip(".,;:'\"()[]").strip().lower()
+            if len(tok) >= 3 and tok not in _NAME_TITLES:
+                forbidden.add(tok)
+        if n.node_type == "event":
+            summary = (n.properties or {}).get("summary", "") or ""
+            for m in re.findall(r"\b[A-Z][a-zA-Z]{3,}\b", summary):
+                if m.lower() not in _COMMON_CAPS and m.lower() not in _NAME_TITLES:
+                    forbidden.add(m.lower())
+    return forbidden
+
+
+def _lexicon_collisions(entries, forbidden: set[str]) -> list:
+    """Entries whose new_label reuses a forbidden source proper-noun token."""
+    bad = []
+    for e in entries:
+        for raw in (e.new_label or "").split():
+            tok = raw.strip(".,;:'\"()[]").strip().lower()
+            if len(tok) >= 4 and tok in forbidden:
+                bad.append((e, tok))
+                break
+    return bad
+
+
 def _build_name_lexicon(
     session: Session, story: Story,
     world_design_text: str,
@@ -793,21 +842,54 @@ def _build_name_lexicon(
         role = p.get("role", "")
         lines.append(f"[{n.node_key}] {n.node_type.upper()}: '{n.label}'" + (f" | {role}" if role else ""))
 
+    forbidden = _source_forbidden_names(session, story.id)
+    forbidden_block = ", ".join(sorted(forbidden))
+
     system = load_prompt("name_lexicon")
-    user_content = (
+    base_user = (
         f"language: {story.language}\n\n"
         f"## NEW WORLD DESIGN\n{world_design_text}\n\n"
+        "## FORBIDDEN NAMES — every new name you invent MUST NOT contain any of these\n"
+        "## source proper nouns (case-insensitive), not even as one word of a longer name:\n"
+        f"{forbidden_block}\n\n"
         f"## SOURCE NODES TO RENAME\n" + "\n".join(lines)
     )
     if feedback:
-        user_content += f"\n\n## FEEDBACK — these names were too similar to source, change them:\n{feedback}\n"
+        base_user += f"\n\n## FEEDBACK — these names were too similar to source, change them:\n{feedback}\n"
 
     output: NameLexiconOutput = generate_structured(
-        PROVIDER, system=system, user_content=user_content,
+        PROVIDER, system=system, user_content=base_user,
         model=AGENT_MODELS["name_lexicon"], schema=NameLexiconOutput,
         max_tokens=4096, thinking=False,
     )
+
+    # Validate + bounded regen: any new name reusing a forbidden source token is
+    # re-requested with explicit instruction. This is the deterministic backstop
+    # behind the prompt rule — the lexicon is the ONLY place new names are minted,
+    # so a leak here poisons the whole story.
+    for _attempt in range(2):
+        bad = _lexicon_collisions(output.entries, forbidden)
+        if not bad:
+            break
+        bad_desc = "; ".join(f"'{e.new_label}' (reuses source word '{tok}')" for e, tok in bad)
+        logger.warning("[%s] Phase 1b: lexicon reused source names — regenerating: %s",
+                       story.slug, bad_desc)
+        retry_user = base_user + (
+            "\n\n## HARD CONSTRAINT VIOLATION — the following invented names REUSE a "
+            "source proper noun and are REJECTED. Re-issue the FULL lexicon with these "
+            f"replaced by genuinely new names sharing NO word with the source:\n{bad_desc}\n"
+        )
+        output = generate_structured(
+            PROVIDER, system=system, user_content=retry_user,
+            model=AGENT_MODELS["name_lexicon"], schema=NameLexiconOutput,
+            max_tokens=4096, thinking=False,
+        )
+
     lexicon = {e.node_key: e.new_label for e in output.entries}
+    leftover = _lexicon_collisions(output.entries, forbidden)
+    if leftover:
+        logger.warning("[%s] Phase 1b: %d source-name reuse(s) survived after retries",
+                       story.slug, len(leftover))
     logger.info("[%s] Phase 1b: lexicon — %d names | %s", story.slug, len(lexicon), output.world_note)
     return lexicon
 
