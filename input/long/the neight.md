@@ -25,9 +25,7 @@ Muốn tuỳ chỉnh, điền MỘT trong hai dòng dưới (xoá dòng còn l�
 
 ## Nội dung input
 
-Chương 1
-
-Word Count: 2169
+# Chương 1
 
 ~Dove
 
@@ -79,7 +77,6 @@ right as always."
 
 
 
-                                                                                                   6 / 429
  "Nadine will kill me if she thinks I'm slacking on work." Not only that but I would be stuck on bathroom
 duty for the foreseeable future.
 
@@ -134,7 +131,6 @@ mountain of your laundry to get done."
 
 
 
-                                                                                                           7 / 429
  I don't mean to be short with him. I find myself more disappointed than not these days, especially since
 he never seeks me out just to talk anymore.
 
@@ -190,7 +186,6 @@ He holds his hand up, cutting me off. "This is all beyond you, sweetheart. Do no
 
 
 
-                                                                                                      8 / 429
  "My father is your war advisor. I know a great deal about politics." I grit my teeth, pain lancing through
 my jaw. My father often confides in me when a difficult issue arises, and there have been times when I've
 found a viable solution.
@@ -246,7 +241,6 @@ A thick lump has gathered in my throat as I attempt to supress a rising tide of 
 
 
 
-                                                                                                      9 / 429
  man I've ever been with, Matthias. At some point-"
 
 "That's just how I like it." He presses a firm kiss to my cheek before backing off. "Stay late tonight? I
@@ -295,23 +289,7 @@ Wiping the back of my hand against my cheek, I stand, resuming my work.
 
 Hey everyone, thanks for choosing to read my new story! I've been enjoying writing it a lot (:
 
-
-
-
-
-
-                                                                                                      10 / 429
- 
-
-
-
-
-
-
-                                  11 / 429
- 2
-
-Word Count: 2356
+# Chương 2
 
 ~Dove
 
@@ -363,7 +341,6 @@ but it feels so deliciously right.
 
 
 
-                                                                                                     12 / 429
  "Don't tell father that. He'll gut whatever poor soul you've lured into bed," I bring up, stalking over to the
 one window this cottage has, propping it open for some ventilation.
 
@@ -418,7 +395,6 @@ true that is, it's hard to tell.
 
 
 
-                                                                                                         13 / 429
  What I do know is that if Matthias knew, it would be over between us. I would be sabotaging the scraps
 of a relationship we've maintained over the past year and a half.
 
@@ -474,7 +450,6 @@ across from mine and fessed up to her lost virginity excitedly.
 
 
 
-                                                                                                     14 / 429
  black and red, huh?"
 
 "I guess..." She eyes me sceptically. "Why do you sound interested?"
@@ -530,7 +505,6 @@ I think it's Matthias' excuse not to pay fair wages.
 
 
 
-                                                                                                   15 / 429
  Eden and I are silent as he grabs his cutlery and digs in. Our father isn't a harsh man, but he's strict.
 Speaking about Varian's party at the table would cause him to launch into an hour long lecture about
 how Varian's way of living has such far reaching affects that even we are suffering for it.
@@ -586,7 +560,6 @@ can speak to the Alpha."
 
 
 
-                                                                                                     16 / 429
  "No...I mean, I'll never be promoted there. Not to a position I want to be in," I mumble, almost laughing at
 the absurdity of my situation.
 
@@ -604,22 +577,7 @@ I give him one last look before I dart from the room.
 
 ?••?
 
-
-
-
-
-
-
-
-
-
-
-
-
-                                                                                                   17 / 429
- 3
-
-Word Count: 2012
+# Chương 3
 
 ~Dove
 
@@ -671,7 +629,6 @@ braid. "I would give you the same warning, but unfortunately I can't."
 
 
 
-                                                                                                      18 / 429
  "I just feel like there's a whole world you seem to have no interest in exploring. People you have no
 interest in meeting..." Her brows knot with concern.
 
@@ -727,7 +684,6 @@ listening to Eden's gentle breaths. However, like most nights, they lull me into
 
 
 
-                                                                                                         19 / 429
  I wake with a start.
 
 The room is still dark. Tossing my comforter off my legs, I lean over to click the lamp back on. My eyes
@@ -783,7 +739,6 @@ Distantly the lights of the city have come into view. My palms are damp, eagerne
 
 
 
-                                                                                                     20 / 429
  delirium pervading through me.
 
 This is it. I'm really making the leap.
@@ -839,7 +794,6 @@ into the predators den.
 
 
 
-                                                                                                       21 / 429
  "It's the most coveted slip, and can only be given out by the Alpha or one of his close confidants," red
 dress claims.
 
@@ -874,22 +828,7 @@ But their taunts dig into my head, sitting with me the entire train ride into th
 
 ?••?
 
-
-
-
-
-
-
-
-
-
-
-
-
-                                                                                                    22 / 429
- 4
-
-Word Count: 1813
+# Chương 4
 
 ~Dove
 
@@ -941,7 +880,6 @@ naked woman and man in an embrace, their private areas heavily detailed.
 
 
 
-                                                                                                       23 / 429
  What am I doing here?
 
 I can't pay regret much mind as I notice the gaping front door. People stand in line before it, guards
@@ -996,7 +934,6 @@ lavish as his demeanour.
 
 
 
-                                                                                                         24 / 429
  I have never seen this man in my life, but he looks as important as he is expensive.
 
 "Let me guess, you caught your lover in the midst of a torrid love affair?" His drawls, his accent thick and
@@ -1052,7 +989,6 @@ dancing with this noble stranger seems like a dangerous idea.
 
 
 
-                                                                                                      25 / 429
  "Fresh air, and to escape desperate characters." His smile speaks of far greater sins than words could
 convey. "Come dance with me. Once you're in, you cannot be removed by the guards.
 
@@ -1107,7 +1043,6 @@ The slip suddenly feels weighted with lead in my hand. "O...okay."
 
 
 
-                                                                                                           26 / 429
  His answering look is subtly triumphant, like he feels as though he's earnt me. Seducing the girl in a
 foamy pink dress who is lost in the tidal wave of this unfamiliar world is likely an accomplishment only the
 most bored nobles would dare chase.
@@ -1118,18 +1053,7 @@ He departs swiftly, leaving me standing amongst shadows wondering what I just ag
 
 ?••?
 
-
-
-
-
-
-
-
-
-                                                                                                   27 / 429
- 5
-
-Word Count: 1760
+# Chương 5
 
 ~Dove
 
@@ -1181,7 +1105,6 @@ The vivid shades of red and splotches of black are enough to have me reeling. It
 
 
 
-                                                                                                     28 / 429
  wall decorations, on the guests clothing, the tablecloths, the colour of the wine...everything my eyes
 touch seems to incorporate the colours somehow.
 
@@ -1237,7 +1160,6 @@ silly.
 
 
 
-                                                                                                     29 / 429
  Here I am, attending the most extravagant party of all time wearing a dusty pink dress with sweet little
 flowers sewn into the fabric. My face is bare of makeup and I could do with some very thin, higher heels
 right now.
@@ -1293,7 +1215,6 @@ hand over it. "Almost everyone who gets one ends up having sex with the Alpha or
 
 
 
-                                                                                                   30 / 429
  They look at each other, waiting for the other to answer before glossy lips nods.
 
 "We both have," she says, nudging her friend. "And we've both had sex with him."
@@ -1348,7 +1269,6 @@ I need to get in there to dance. More importantly, I need to find a willing part
 
 
 
-                                                                                                      31 / 429
  me home for the night.
 
 Another pair of people appear at the table, taking bottles of their own. I tune into their conversation.
@@ -1372,22 +1292,7 @@ Against my better judgement, I'm going to find this man for myself.
 
 ?••?
 
-
-
-
-
-
-
-
-
-
-
-
-
-                                                                                                     32 / 429
- 6
-
-Word Count: 2959
+# Chương 6
 
 ~Dove
 
@@ -1439,7 +1344,6 @@ One of the guards nods affirmatively.
 
 
 
-                                                                                                       33 / 429
  "Then perhaps it is the bathroom you are seeking?" The man exclaims, weaving in front of me before I
 can shoulder into the room.
 
@@ -1494,7 +1398,6 @@ parting to make way for him.
 
 
 
-                                                                                                       34 / 429
  divulge in an ample helping of wine and spirits at these parties, but we dread the hangover."
 
 I bite down on my lower lip, trying not to scan the room with too keen of an eye. I'm wary of being
@@ -1550,7 +1453,6 @@ have my lips parting, my breath catching in my throat.
 
 
 
-                                                                                                       35 / 429
  One man has another on his knees before him, watching as his cock is worshipped by the man's mouth.
 His expression is contorted in pleasure, his hips jutting forward a he forces himself deeper into the man's
 throat.
@@ -1606,7 +1508,6 @@ are."
 
 
 
-                                                                                                   36 / 429
  His grip on my hip tightens imperceptibly, while his hand on my thigh appears to feel heavier.
 
 When he turns his head to drink from his glass, I dare my eyes to venture back to Alpha Varian. I figured
@@ -1661,7 +1562,6 @@ make love either, and it would feel so good to experience something new.
 
 
 
-                                                                                                     37 / 429
  As much as I want to focus on Claude, I can't shake the weight of Varian's stare. When I risk another
 look in his direction, I confirm he's continuing to watch me with rapt interest as he sips slowly from his
 glass.
@@ -1716,7 +1616,6 @@ Varian yanks my gaze back to him.
 
 
 
-                                                                                                        38 / 429
  "This party? Claude." He waves his hand to encompass the room. "What do you think?"
 
 Is this a trap? Claude is looking between us, his eyes grave. The Alpha is speaking to me and I fear I've
@@ -1771,7 +1670,6 @@ movements stiff as he approaches the bar.
 
 
 
-                                                                                                    39 / 429
  I release a slow breath, my cheeks shamefully warm.
 
 Glancing to my left, I see the Alpha's full attention has settled on me, and never in my life have I felt so
@@ -1779,22 +1677,7 @@ terrified.
 
 ?••?
 
-
-
-
-
-
-
-
-
-
-
-
-
-                                                                                                     40 / 429
- 7
-
-Word Count: 2234
+# Chương 7
 
 ~Dove
 
@@ -1846,7 +1729,6 @@ anything else of the sort. Not at my parties, not ever."
 
 
 
-                                                                                                    41 / 429
  Claude lingers near the bar, drumming his fingers impatiently against the counter as he waits for the
 water.
 
@@ -1902,7 +1784,6 @@ admit, lifting one shoulder obliquely.
 
 
 
-                                                                                                       42 / 429
  I have a vague idea of what pleases me after some minimal exploration with Matthias. More is necessary
 and I'm more than willing to get into it.
 
@@ -1957,7 +1838,6 @@ can only imagine what other members of his pack indulge in.
 
 
 
-                                                                                                      43 / 429
  case."
 
 I take another sip. "Why bother being so noble?"
@@ -2013,7 +1893,6 @@ humbling.
 
 
 
-                                                                                                    44 / 429
  "Fair enough." I run my thumb down the cloudy glass, the dampness wetting my skin.
 
 "How did you get in here?" His eyes travel over my dress.
@@ -2069,7 +1948,6 @@ ideals seriously. I would never leave without them."
 
 
 
-                                                                                                     45 / 429
  want to have to pick a side when neither feels completely right."
 
 "Move here, and you'll have more freedom then you'll know what to do with," he offers.
@@ -2110,22 +1988,7 @@ hand out to me, his stare heavy.
 
 ??••??
 
-
-
-
-
-
-
-
-
-
-
-
-
-                                                                                                  46 / 429
- 8
-
-Word Count: 2660
+# Chương 8
 
 ~Dove
 
@@ -2177,7 +2040,6 @@ his chest. He pays her no mind.
 
 
 
-                                                                                                    47 / 429
  Something tickles at my senses. I like that he's watching.
 
 "I'm doing this because you're a beautiful woman in a beautiful dress," Varian admits smoothly,
@@ -2233,7 +2095,6 @@ hoping to catch the Alpha's eye.
 
 
 
-                                                                                                    48 / 429
  I give my head a little shake, causing my hair to fall back over my shoulder. Perhaps I'm exerting
 prejudice now. I've assumed so much about Alpha Varian over the years, and such theories no longer
 prove to be true.
@@ -2289,7 +2150,6 @@ see.
 
 
 
-                                                                                                   49 / 429
  His fingers trace down my throat, over the sharp slopes of my collarbones and to the slight dip in my
 bodice. My stomach tightens as he brushes his palm against my breast, squeezing gently.
 
@@ -2345,7 +2205,6 @@ displaying a seething violence waring with lust.
 
 
 
-                                                                                                     50 / 429
  "What would you like me to do next?"
 
 His voice makes my stomach flutter. It's so deep and dark and it runs along my skin like smooth hands,
@@ -2401,7 +2260,6 @@ the best way possible, turning me into an addict for something I may never get a
 
 
 
-                                                                                                    51 / 429
  "Fuck Dove." He curses against my skin, sounding almost as breathless as I am. "You're soaked for me."
 
 My head falls back onto his shoulder as he pumps his fingers in and out of me, keeping that slow, hard
@@ -2457,7 +2315,6 @@ continue on as if nothing has happened.
 
 
 
-                                                                                                   52 / 429
  Varian brushes my hair off my damp neck. "Let me take you to my room to decompress-"
 
 "No." I press away from him as the cold sharpness of reality chases off the last moments of bliss. "No, I
@@ -2476,22 +2333,7 @@ I face the Alpha, nodding. "Yes please."
 
 ?••?
 
-
-
-
-
-
-
-
-
-
-
-
-
-                                                                                                  53 / 429
- 9
-
-Word Count: 1972
+# Chương 9
 
 ~Dove
 
@@ -2543,7 +2385,6 @@ room feels real, lived in. It makes being in it even more exhilarating.
 
 
 
-                                                                                                         54 / 429
  "Not a single person down there can keep your name out of their mouth," I exclaim daringly. "Apparently
 you have several different favourite positions."
 
@@ -2598,7 +2439,6 @@ tongue, then I send them on their way. In an effort to sound accomplished amongs
 
 
 
-                                                                                                         55 / 429
  occasionally lie and act like I had sex with them," he muses.
 
 Sitting on the edge of his bed, I release a breath, grateful to be off my feet, even if it's just for a second.
@@ -2654,7 +2494,6 @@ funniest person in the room just to see it.
 
 
 
-                                                                                                       56 / 429
  I wipe my hand over my mouth, smothering my giggle.
 
 "I suppose I'll be saying goodbye then."
@@ -2709,7 +2548,6 @@ red gown that she definitely does not own.
 
 
 
-                                                                                                    57 / 429
  For a second we just stare at each other before she brushes her partner aside, looking over me with as
 much confusion on her face as I have on mine.
 
@@ -2756,25 +2594,7 @@ later.
 
 ?••?
 
-
-
-
-
-
-
-
-
-
-                                                                                                     58 / 429
- 
-
-
-
-
-               59 / 429
- 10
-
-Word Count: 2599
+# Chương 10
 
 ~Varian
 
@@ -2826,7 +2646,6 @@ stretching his legs in front of him.
 
 
 
-                                                                                                     60 / 429
  "Partially." I rub my forehead. "That and other issues ."
 
 "What?" There is a mischievous edge to his tone, but I don't miss the subtle asperity in his eyes. "Guilt
@@ -2882,7 +2701,6 @@ don't get me wrong."
 
 
 
-                                                                                                     61 / 429
  "I don't know," I admit, resting my coffee cup down as I can sink deeper into my pillow. "I wanted to
 challenge her, to see what intrigued her. I wasn't certain she would go for it..."
 
@@ -2938,7 +2756,6 @@ Claude approaches, pushing at my chest. I almost stumble back a step, but I hold
 
 
 
-                                                                                                        62 / 429
  "Don't let some pussy change a plan we've been working on for years." His voice darkens, a profound
 urgency readily apparent.
 
@@ -2994,7 +2811,6 @@ might reach out and find my hand falls through her.
 
 
 
-                                                                                                      63 / 429
  I thought I knew her. I thought she cared more about this packs values than me, and represented our
 father ardently.
 
@@ -3049,7 +2865,6 @@ lowering her voice. "And trust me, I didn't enjoy keeping it from you."
 
 
 
-                                                                                                     64 / 429
  "So you're not new to those parties?" I ask softly, my curiosity chasing away any drift of anger that
 thought about blowing over me.
 
@@ -3105,7 +2920,6 @@ Opening the front door, she slips inside, leaving me outside in the cool morning
 
 
 
-                                                                                                     65 / 429
  Our relationship has swiftly changed into something entirely, but I feel no regrets. I'm finally learning who
 my sister truly is, and she's learning about me. I'll tell her about Matthias, about our relationship that's
 come to an end.
@@ -3115,22 +2929,7 @@ Varian did to me...
 
 ?••?
 
-
-
-
-
-
-
-
-
-
-
-
-
-                                                                                                    66 / 429
- 11
-
-Word Count: 1853
+# Chương 11
 
 ~Varian
 
@@ -3182,7 +2981,6 @@ She shudders against the chill in the air, her angular face screwed up with mild
 
 
 
-                                                                                                     67 / 429
  force back wisps of tawny hair. "I wanted to convey some information to you."
 
 "Is it about the girl?"
@@ -3238,7 +3036,6 @@ I continue up the stairs. "I just need to find her, alright?"
 
 
 
-                                                                                                     68 / 429
  "You need to prepare for tonight's dinner party at Ciella's." Serena's voice quickens as she hastens her
 pace to keep up with my long strides.
 
@@ -3294,7 +3091,6 @@ endless after our moments together, like I'm being scolded by my own body.
 
 
 
-                                                                                                   69 / 429
  I don't know what it's waiting for. Whatever it is, I'm not sure it's ever going to get it.
 
 She flinches back a step. Hurt spills across her features, only to be quickly swept away as her usual
@@ -3350,7 +3146,6 @@ She fidgets with her dress, then her hair and finally her bracelet, as if she do
 
 
 
-                                                                                                      70 / 429
  "How high end?" I ask warily. "I thought this was just going to be us."
 
 "Oh no, didn't I tell you?" She asks in a way that makes it clear she knows she didn't tell me. "The Alpha
@@ -3376,22 +3171,7 @@ This wasn't supposed to happen...I'm not supposed to see him.
 
 ?••?
 
-
-
-
-
-
-
-
-
-
-
-
-
-                                                                                                  71 / 429
- 12
-
-Word Count: 2125
+# Chương 12
 
 ~Dove
 
@@ -3443,7 +3223,6 @@ elegant and complex and not driven by a hunger for sin and debauchery.
 
 
 
-                                                                                                   72 / 429
  There's a plethora of naked women painted on her ceiling amongst clouds and flowers and lush
 greenery. They lounge upon each other, hair and limbs entangled.
 
@@ -3499,7 +3278,6 @@ the house, following the scent of jasmine and sandalwood.
 
 
 
-                                                                                                   73 / 429
  I scratch below my ear, my face warming.
 
 "Not at all. I barely spoke to them."
@@ -3555,7 +3333,6 @@ whatever was ailing her.
 
 
 
-                                                                                                  74 / 429
  "What a pretty name," Alissia gushes.
 
 "And such a pretty dress." Ida grabs the fabric of the skirt, fluffing it.
@@ -3611,7 +3388,6 @@ hoping to put it behind me, but it seems fate has other intentions.
 
 
 
-                                                                                                      75 / 429
  Ciella forever that she needs to stop hiding you away for her to enjoy."
 
 Eden's hand quivers slightly in his grip. "I'm humbled to meet you."
@@ -3667,7 +3443,6 @@ Our father complicates issues, as neither of us want to leave him behind to expe
 
 
 
-                                                                                                     76 / 429
  I risk a glance at Varian to see him watching me as he sips his drink, sending a shiver rolling over my
 skin.
 
@@ -3675,19 +3450,7 @@ This is going to be a long night.
 
 ??••??
 
-
-
-
-
-
-
-
-
-
-                                                                                                  77 / 429
- 13
-
-Word Count: 2081
+# Chương 13
 
 ~Dove
 
@@ -3739,7 +3502,6 @@ tune into Ida and Eden's conversation, but their words sound languorous and inco
 
 
 
-                                                                                                    78 / 429
  was forced to pick another that night, although I thought of you the entire-"
 
 I clear my throat abruptly, letting my fork clang against my plate.
@@ -3795,7 +3557,6 @@ has roaming hands that need deflecting and the former needs appeasing.
 
 
 
-                                                                                                   79 / 429
  of them at least."
 
 "My father is though. Very much so." I start back on my dinner again to give my hands something to do.
@@ -3851,7 +3612,6 @@ time.
 
 
 
-                                                                                                     80 / 429
  He leans imperceptibly closer, holding my gaze in a way that feels far too intimate with everyone else at
 the dinner table. Thankfully they are all engaged in their own animated discourse, unbothered by the way
 Varian looks at me like he wants to eat me alive.
@@ -3907,7 +3667,6 @@ what came over me, but my frustration become so suffocated I needed to clear the
 
 
 
-                                                                                                       81 / 429
  "I'm so sorry. I don't know what came over me," I insist.
 
 I expect an explosion of anger out of Claude, but instead he starts laughing. The sound is loud and
@@ -3962,29 +3721,13 @@ room, away from what I just did.
 
 
 
-                                                                                                   82 / 429
  I look up at Varian's face, his expression schooled into neutrality. "I just stabbed that man."
 
 He looks down at me with a smile. "You're probably not the first, don't worry."
 
 ?••?
 
-
-
-
-
-
-
-
-
-
-
-
-
-                                                                                                  83 / 429
- 14
-
-Word Count: 1614
+# Chương 14
 
 ~Dove
 
@@ -4036,7 +3779,6 @@ city but from many years ago. The structures look primitive and underdeveloped, 
 
 
 
-                                                                                                  84 / 429
  around them.
 
 "Why are you here, talking to me right now?" I ask softly, watching him adjust the lapels of his jacket.
@@ -4092,7 +3834,6 @@ I start back off down the hallway, passing casual glances at the expansive lands
 
 
 
-                                                                                                          85 / 429
  portraits propped on the wall.
 
 "No need to be respectful." He's at my side again in a second. "I can handle disrespect."
@@ -4148,7 +3889,6 @@ doesn't mean I have to see Varian again. If so, I hope our encounters will be fl
 
 
 
-                                                                                                    86 / 429
  He's too dangerous to become acquainted with...
 
 "No, we will not. We will never see each other again, and you will keep your seduction to yourself," I
@@ -4196,23 +3936,7 @@ gone.
 
 ?••?
 
-
-
-
-
-
-                                                                                                        87 / 429
- 
-
-
-
-
-
-
-                                  88 / 429
- 15
-
-Word Count: 2303
+# Chương 15
 
 ~Dove
 
@@ -4264,7 +3988,6 @@ Eden appears thoughtful. "Ciella has been awfully insistent...She told me to bri
 
 
 
-                                                                                                    89 / 429
  her off. I'll demand she tell me what's happening and if it's bad, she'll send a car for you."
 
 "Alright..."
@@ -4320,7 +4043,6 @@ Father surveys the room with tense calm, his eyes landing on Eden's perfectly ma
 
 
 
-                                                                                                       90 / 429
  "I'm assuming your sister has snuck out again," he says grimly.
 
 I pause. "Uh..."
@@ -4375,7 +4097,6 @@ We emerge into the bitter night, making our way up the sloping hill to Matthias'
 
 
 
-                                                                                                  91 / 429
  darkness in a last effort to conceal it from invaders.
 
 Father's hand is damp in mine as he pulls me with him. I look out toward the train station, seeing a thick
@@ -4431,7 +4152,6 @@ floors of.
 
 
 
-                                                                                                     92 / 429
  Father dips his head. "I would hope not. If so, he would have warned us. We are practically on the border
 as we speak."
 
@@ -4487,7 +4207,6 @@ But he's not there.
 
 
 
-                                                                                                     93 / 429
  "Father!" I yell, following back the way I came. "Can you hear me?"
 
 The hallway is empty. I hunt around for a second, opening doors and yelling for him until the smoke has
@@ -4520,22 +4239,7 @@ unconsciousness.
 
 ?••?
 
-
-
-
-
-
-
-
-
-
-
-
-
-                                                                                                       94 / 429
- 16
-
-Word Count: 1775
+# Chương 16
 
 ~Dove
 
@@ -4587,7 +4291,6 @@ pulls back, bringing my eyes to his own.
 
 
 
-                                                                                                     95 / 429
  "Answer plainly." A cold warning laces into his words.
 
 "Yes," I grit out.
@@ -4643,7 +4346,6 @@ The guard clears out of the room, the door locking behind them. I lay back again
 
 
 
-                                                                                                     96 / 429
  ignore the dark spots making my vision splotchy.
 
 My father is alive...how long for, I don't know, but that's hope.
@@ -4699,7 +4401,6 @@ say flippantly.
 
 
 
-                                                                                                  97 / 429
  That is exactly the case, and it doesn't surprise me. That's Matthias's character.
 
 "And what do I mean to you, Varian?" Something dark and vengeful simmers in his eyes.
@@ -4754,7 +4455,6 @@ I'll need to focus on my brother. Thoughts of him will keep my priorities straig
 
 
 
-                                                                                                      98 / 429
  "Then you better get to talking."
 
 As I expected, he presses his lips together and looks away. There's only a brief flicker of shame visible in
@@ -4788,22 +4488,7 @@ But he doesn't, letting me walk away to do with his daughter as I please.
 
 ?••?
 
-
-
-
-
-
-
-
-
-
-
-
-
-                                                                                                        99 / 429
- 17
-
-Word Count: 2287
+# Chương 17
 
 ~Dove
 
@@ -4855,7 +4540,6 @@ I let myself look at Varian, who is vastly more underdressed than when I last sa
 
 
 
-                                                                                                     100 / 429
  His loose, black silk shirt has a few buttons undone over his heart, and his sleeves have been rolled up
 to his elbows. Bruises bloom over his knuckles, and his hair thick and messy.
 
@@ -4911,7 +4595,6 @@ was, how vulnerable I was in that moment? Spying wouldn't have won me any favour
 
 
 
-                                                                                                  101 / 429
  "So you're telling me that the daughter of my enemies war advisor isn't a hired spy to infiltrate my pack,
 my home?" He growls.
 
@@ -4967,7 +4650,6 @@ brother. Someone who Matthias may be holding captive."
 
 
 
-                                                                                                      102 / 429
  The haunting edge of his voice casts a smattering of chills over my skin.
 
 "What? That can't be true..." I frown, digging deep into my memory for any reference to Varian's brother
@@ -5023,7 +4705,6 @@ Yet, I can't blame Varian...
 
 
 
-                                                                                                     103 / 429
  Because if I were him, I wouldn't trust me either.
 
 •••
@@ -5078,7 +4759,6 @@ Matthias and her father being a war advisor?"
 
 
 
-                                                                                                      104 / 429
  I let them into my circle, nearly communicated my plans to them.
 
 "I trust her. Who her father is doesn't matter when she is loyal to me, to us." Ciella loops her arm through
@@ -5121,22 +4801,7 @@ A lot can happen, and everything is going to change.
 
 ?••?
 
-
-
-
-
-
-
-
-
-
-
-
-
-                                                                                                   105 / 429
- 18
-
-Word Count: 1869
+# Chương 18
 
 ~Dove
 
@@ -5188,7 +4853,6 @@ this negotiation.
 
 
 
-                                                                                                   106 / 429
  "If you hurt her-"
 
 "No harm will come to Dove," Varian mutters, draining his glass before setting it down. "Your choices
@@ -5243,7 +4907,6 @@ I stiffen, a cold dousing of horror gliding down my body. "What?"
 
 
 
-                                                                                                       107 / 429
  expression the same way I am...
 
 This isn't a joke. He's deadly serious.
@@ -5299,7 +4962,6 @@ any favours," Varian says.
 
 
 
-                                                                                                     108 / 429
  "Neither would betraying my loyalty," father grits out.
 
 "I suppose it then comes down to who matters more." Varian smiles at me, but it's strained, uncertain.
@@ -5354,7 +5016,6 @@ Varian is unwittingly going to do more damage than he could ever realise.
 
 
 
-                                                                                                     109 / 429
  "Father, tell him, please," I beg. "Nothing can be more important than my dignity. Matthias will...you don't
 understand."
 
@@ -5378,22 +5039,7 @@ Varian to his room.
 
 ?••?
 
-
-
-
-
-
-
-
-
-
-
-
-
-                                                                                                  110 / 429
- 19
-
-Word Count: 1601
+# Chương 19
 
 ~Dove
 
@@ -5445,7 +5091,6 @@ I'm not sure I believe that, but I'll say anything to get Varian to reconsider.
 
 
 
-                                                                                                        111 / 429
  "Are you implying there is another reason why he may care?" He frowns, drawing even closer.
 
 "He...it doesn't matter." I shake my head, trying not to tumble face first into his trap. "Are you going to
@@ -5500,7 +5145,6 @@ So why not make true of his threats now?
 
 
 
-                                                                                                      112 / 429
  "Your father proved to me he is a useless source of information. You can't break that kind of loyalty, as
 misguided as it is," he admits.
 
@@ -5556,7 +5200,6 @@ even if it's a lie."
 
 
 
-                                                                                                     113 / 429
  Considering how he chose to get information out of my father, if I admit to being a spy, he won't let me
 leave here until I have information about Matthias to share with him.
 
@@ -5596,22 +5239,7 @@ I sigh. "I'm in love with Matthias, okay?"
 
 ?••?
 
-
-
-
-
-
-
-
-
-
-
-
-
-                                                                                                    114 / 429
- 20
-
-Word Count: 2013
+# Chương 20
 
 ~Dove
 
@@ -5663,7 +5291,6 @@ trying to make it clear that I'm no spy. I smell like him...well, for obvious re
 
 
 
-                                                                                                   115 / 429
  I never thought I would miss that dark amusement he carries around, but it's preferable over the
 murderous chill in his eyes.
 
@@ -5719,7 +5346,6 @@ Just one taste should be enough. There will be plenty of time for regrets tomorr
 
 
 
-                                                                                                     116 / 429
  He doesn't move, letting me be the one to lean up and kiss him.
 
 His lips are effortlessly soft and inviting, his mouth moving to press as fervently back into mine. He tastes
@@ -5774,7 +5400,6 @@ drawing them downward. My underwear quickly follows, until I'm entirely bare bef
 
 
 
-                                                                                                   117 / 429
  It's not as though I haven't exposed my naked flesh to a man before, but being before Varian's hungry
 gaze is another thing entirely.
 
@@ -5829,7 +5454,6 @@ His tongue continues to lap through my folds as my climax rolls of endlessly, un
 
 
 
-                                                                                                   118 / 429
  his mouth and shifts to my thigh.
 
 I can hardly give consideration to what he is doing until it is too late.
@@ -5852,22 +5476,7 @@ to."
 
 ?••?
 
-
-
-
-
-
-
-
-
-
-
-
-
-                                                                                                  119 / 429
- 21
-
-Word Count: 2326
+# Chương 21
 
 ~Dove
 
@@ -5919,7 +5528,6 @@ If Matthias see's this...I can't even imagine his reaction.
 
 
 
-                                                                                                   120 / 429
  Varian lets me go, watching me tug my pants back up over my hips. "Two things can be true at once."
 
 "I only need protecting from you!"
@@ -5975,7 +5583,6 @@ tell me what he doesn't think will make it back to Matthias.
 
 
 
-                                                                                                     121 / 429
  "I wouldn't be in this position if it weren't for you," I hiss, still feeling the throbbing ache from his bite.
 
 "I never expected your father to agree to my terms." He shakes his head, something building in the
@@ -6031,7 +5638,6 @@ sister is rushing toward me, her face stricken.
 
 
 
-                                                                                                          122 / 429
  "Dove!" She launches in my arms, nearly knocking me down.
 
 "Oh Eden," I breathe into her hair, relieved to be in the presence of someone I can trust. "You won't
@@ -6086,7 +5692,6 @@ sort this out. What happened with Matthias must be some kind of misunderstanding
 
 
 
-                                                                                                    123 / 429
  We'll return and he'll clarify the mistake. He will assure me that he intended to save myself and my family
 from Varian's soldiers, and all will be well.
 
@@ -6141,7 +5746,6 @@ takes me in.
 
 
 
-                                                                                                    124 / 429
  "I'm afraid you've been compromised," he murmurs.
 
 My jaw settles into a hard line. I'm sure he has noticed my shift in scent, sensing that Varian did
@@ -6158,22 +5762,7 @@ window entirely as I disregard any further conversation with my father.
 
 ?••?
 
-
-
-
-
-
-
-
-
-
-
-
-
-                                                                                                 125 / 429
- 22
-
-Word Count: 3526
+# Chương 22
 
 Some triggering sexual implications at the bottom of this chapter, read at your own risk!
 
@@ -6225,7 +5814,6 @@ Sparing my father can't be because of his display of loyalty alone...there has t
 
 
 
-                                                                                                     126 / 429
  "That's very kind of you," I murmur delicately.
 
 Father looks between Matthias and I, probably feeling a fool for not noticing the tension between us until
@@ -6280,7 +5868,6 @@ him.
 
 
 
-                                                                                                  127 / 429
  His smile drops, a shadow passing over his face.
 
 "Everything happened so fast. I asked some guards to seek you out, but they were intercepted." He
@@ -6335,7 +5922,6 @@ entryways.
 
 
 
-                                                                                                  128 / 429
  "Nothing much." I clear my throat. "He used me as a tool in interrogating my father."
 
 Varian spent most of the time I'm assuming I'm a spy. Other than that, the content of our conversation
@@ -6391,7 +5977,6 @@ as remove my pants, wanting to wait for the right moment to tell him.
 
 
 
-                                                                                                    129 / 429
  When I turn back, Matthias is staring at me, an unmistakable blaze of heat in his eyes. "In fact, when
 you're done with your bath, I'm going to ravage you."
 
@@ -6446,7 +6031,6 @@ love my father, despite everything, and I'm pretty sure what I'm feeling toward 
 
 
 
-                                                                                                    130 / 429
  "We could be mates, we just don't know it yet," I bring up.
 
 "As much as I wish I could marry you, I have a duty to produce an heir with a noble woman," he reminds,
@@ -6501,7 +6085,6 @@ deluded me into thinking he felt the same way.
 
 
 
-                                                                                                    131 / 429
  I'm a body to him. A toy. I realised this long ago and yet I came back over and over again, subjecting
 myself to being used by him in hopes it would substitute real love.
 
@@ -6557,7 +6140,6 @@ This thumb brushes over the tender mark, my entire body flinching. His touch fee
 
 
 
-                                                                                                   132 / 429
  heart thumping wildly.
 
 "He marked you," he breathes, slowly turning around to face me.
@@ -6598,20 +6180,7 @@ back.
 
 ?••?
 
-
-
-
-
-
-
-
-
-
-
-                                                                                                    133 / 429
- 23
-
-Word Count: 2000
+# Chương 23
 
 One Year Later.
 
@@ -6663,7 +6232,6 @@ Since I've been cut off from my father for over a year, I haven't had much luck 
 
 
 
-                                                                                                     134 / 429
  precision.
 
 "It's all vintage and musty, but there's real gold in that jewellery," I muse, setting my bag down on our tiny
@@ -6719,7 +6287,6 @@ His expression crumples. "What? That's just unfair."
 
 
 
-                                                                                                       135 / 429
  While Dev acting as my personal stylist at times is fun, his inclination to dress me up extravagantly for a
 night at an old bar is too much for me to deal with tonight.
 
@@ -6774,7 +6341,6 @@ I still haven't told him about my experience with Matthias and Varian. I trust h
 
 
 
-                                                                                                   136 / 429
  up elements of my past still feels too difficult.
 
 And if he knew I slept with our Alpha in the past and fooled around with Varian, he would never let me
@@ -6830,7 +6396,6 @@ He is trying to coerce me into going because he knows this is right for me. He c
 
 
 
-                                                                                                      137 / 429
  but I can see through to his reasoning.
 
 I sigh roughly. "I need to stop telling you things."
@@ -6873,22 +6438,7 @@ I guess I'm going out tonight.
 
 ?••?
 
-
-
-
-
-
-
-
-
-
-
-
-
-                                                                                                  138 / 429
- 24
-
-Word Count: 2815
+# Chương 24
 
 ~Dove
 
@@ -6940,7 +6490,6 @@ my pants seem to come off in bed, only for my potential lovers to scramble out o
 
 
 
-                                                                                                    139 / 429
  He's not even their Alpha and they are scared of him...
 
 I still deeply resent him for he did. He was right about Matthias being an unpredictable, hot headed mess
@@ -6995,7 +6544,6 @@ He pays no mind to the hungry eyes that stalk him through the room. I wouldn't b
 
 
 
-                                                                                                   140 / 429
  started tearing the expensive jewellery he adorns so confidently right off his body.
 
 All I can think of when I see him is what he enjoys behind closed doors. I think of the fork I sunk into his
@@ -7051,7 +6599,6 @@ Claude frowns a touch before shaking his head to expel his confusion. "I was won
 
 
 
-                                                                                                   141 / 429
  you again."
 
 I was personally hoping not. I thought here, in this pack, memories of Varian and Claude could stay
@@ -7107,7 +6654,6 @@ do it for me."
 
 
 
-                                                                                                     142 / 429
  Images of stabbing the fork into his thigh flash unbidden into his mind. I truly hope he's forgotten about
 that. I have to stretch my fingers out to expel the phantom feeling.
 
@@ -7162,7 +6708,6 @@ I know he can't see, but I pull my skirt a little further down my thigh anyway. 
 
 
 
-                                                                                                    143 / 429
  even if I try to avoid looking at it as much as possible.
 
 "Removal process is painful and expensive. I can't afford it." I adjust my hair, feeling sweat gathering in
@@ -7218,7 +6763,6 @@ tumultuous thoughts unspooling on the tip of his tongue.
 
 
 
-                                                                                                    144 / 429
  His serious tone makes me shift uncomfortably in my seat. "Come to the wedding."
 
 "I'll be there. But not because of you." I down the rest of my drink, hoping a slight buzz will put me to
@@ -7246,22 +6790,7 @@ He shrugs as if to say 'fair enough'
 
 ?••?
 
-
-
-
-
-
-
-
-
-
-
-
-
-                                                                                                        145 / 429
- 25
-
-Word Count: 3339
+# Chương 25
 
 ~Dove
 
@@ -7313,7 +6842,6 @@ by.
 
 
 
-                                                                                                       146 / 429
  Dev's eyes have never been wider. He doesn't come from wealth either, and while I find this confronting,
 he is truly enthralled.
 
@@ -7369,7 +6897,6 @@ This is my sister. This is Eden. I don't need to be afraid.
 
 
 
-                                                                                                      147 / 429
  She is sitting at a vanity. She leans forward, patting the pad of her finger against her lip tenderly. Her hair
 is long and wavy down her back, the front of her blonde strands pulled back and fastened by a jewelled
 clip. Her eyelids are dusted with a glittery silver shadow, and her lips are painted a soft pink.
@@ -7425,7 +6952,6 @@ were protecting father like I failed to do. I should have made more of an effort
 
 
 
-                                                                                                      148 / 429
  Protecting a father that has no interest in protecting us seems ridiculous now. He never needed us, and
 we never needed him.
 
@@ -7480,7 +7006,6 @@ I ignore the sharp ache that settles in my stomach. Of course he's reached out t
 
 
 
-                                                                                                    149 / 429
  to contact me. He knows he's destroyed our relationship — he probably believes I'm a traitor.
 
 "That's smart of you not to trust what Matthias would do to a close confidant of Varian's." I fold my arms
@@ -7536,7 +7061,6 @@ turn around, though, focusing on a flushed face Deven who stares up at a massive
 
 
 
-                                                                                                     150 / 429
  "They have art that's centuries old." He grabs my shoulders, giving them a little shake. "Centuries!"
 
 "Relax before you go into heart failure," I mutter, brushing him off.
@@ -7592,7 +7116,6 @@ I'm surprised Dev has contained himself for so long. He is too busy watching wha
 
 
 
-                                                                                                    151 / 429
  him to intervene.
 
 Varian takes matters into his own hands. He holds his out for Deven to shake, my friend stiffening next to
@@ -7648,7 +7171,6 @@ He lifts one shoulder, unbothered. "I think I can manage both."
 
 
 
-                                                                                                 152 / 429
  "They deserve to have us keep things civil, so please try to avoid me today," I half plead.
 
 I can feel my body calling him, wanting to rid of this awkward and uncomfortable tension between us.
@@ -7696,23 +7218,7 @@ This isn't going to be an easy night.
 
 ?••?
 
-
-
-
-
-
-                                                                                                  153 / 429
- 
-
-
-
-
-
-
-                                  154 / 429
- 26
-
-Word Count: 3065
+# Chương 26
 
 ~Dove
 
@@ -7764,7 +7270,6 @@ I nudge his ribs with my elbow. "At least you won't be able to run your mouth a 
 
 
 
-                                                                                                   155 / 429
  doing me a favour."
 
 We emerge into a pretty grass clearing surrounded by towering trees and a riot of wildflowers. The
@@ -7820,7 +7325,6 @@ makes the most sense.
 
 
 
-                                                                                                     156 / 429
  Dev leans so close his breath tickles my neck. "Or maybe he wants a repeat of your moment at the party
 last year-"
 
@@ -7876,7 +7380,6 @@ grateful that you came to the wedding. We've both really missed you."
 
 
 
-                                                                                                  157 / 429
  She bites down on her lower lip, looking down the table anxiously.
 
 "About Varian—"
@@ -7932,7 +7435,6 @@ of me. If the latter isn't careful, he's going to be the one ending up with a fo
 
 
 
-                                                                                                      158 / 429
  His smirk is unrelenting as he considers me. He's taunting me, trying to get under my skin. I'm just a toy
 for him to fashion at his will, no consequences coming from his torment as I'm not even one of his pack
 members.
@@ -7988,7 +7490,6 @@ conversation now that his name has been brought up.
 
 
 
-                                                                                                    159 / 429
  "Hey—" he starts, but I push his head back.
 
 The more words Varian and Dev exchange, the higher the chance of him realising the relationship I
@@ -8044,7 +7545,6 @@ brighter around him, like they are drawn to him.
 
 
 
-                                                                                                   160 / 429
  The servers appear again, taking our bowls of soup away. Everyone at the table is progressively getting
 louder as they drink more, although it's bleeds into a mindless buzz around me. All I can focus on is
 Varian and soft touch of his voice.
@@ -8099,7 +7599,6 @@ I bring the rim of the bottle to my lips, drinking a few mouthfuls. "Like that."
 
 
 
-                                                                                                    161 / 429
  Dev claps slowly. I'm sure he managed to commandeer this bottle from one of the servers with his
 unrelenting charm.
 
@@ -8113,22 +7612,7 @@ He smiles. "Oh I will, don't worry."
 
 ?••?
 
-
-
-
-
-
-
-
-
-
-
-
-
-                                                                                                 162 / 429
- 27
-
-Word Count: 2135
+# Chương 27
 
 ~Dove
 
@@ -8180,7 +7664,6 @@ of citrusy bitterness.
 
 
 
-                                                                                                     163 / 429
  He watches me, bemused. A servant trailing around the room lets me set it on the tray while I take
 another.
 
@@ -8236,7 +7719,6 @@ really is attracted to Claude, and I'm moments away from giving into his relentl
 
 
 
-                                                                                                       164 / 429
  Either way, I feel like playing.
 
 I set my bowl down before turning to face him. "Who says it's not you I want?"
@@ -8292,7 +7774,6 @@ perfectly normal.
 
 
 
-                                                                                                      165 / 429
  He glances back the way he came. I follow his gaze, watching Varian emerge back into the party, his
 expression stoic as he takes everything in.
 
@@ -8348,7 +7829,6 @@ entire body stiffens, his eyes darkening as they weave over to look at Dev.
 
 
 
-                                                                                                    166 / 429
  I pluck a glass of wine from a tray as a server passes by, putting it in his hand. He drinks it down quickly.
 I probably should have gotten him water instead...
 
@@ -8404,7 +7884,6 @@ over.
 
 
 
-                                                                                                   167 / 429
  After what could have been seconds, or possibly hours of dancing, Eden clashes into me, bringing her
 mouth close to my ear. "Alright, I think it's time for the final part of our celebration."
 
@@ -8414,22 +7893,7 @@ I know exactly what that means. It's time for all of us to strip down and jump i
 
 ?••?
 
-
-
-
-
-
-
-
-
-
-
-
-
-                                                                                                   168 / 429
- 28
-
-Word Count: 2527
+# Chương 28
 
 ~Dove
 
@@ -8481,7 +7945,6 @@ Thankfully the lights are dim and the closer to the lake, the less I can see.
 
 
 
-                                                                                                  169 / 429
  It makes it easier to concentrate on winning, especially as I can see Varian shrugging off his jacket, and
 then his shirt in my peripheral vision.
 
@@ -8537,7 +8000,6 @@ Despite knowing I'm being petty, I'm not going to give in. I'm sick of seeing th
 
 
 
-                                                                                                    170 / 429
  His legs are frantically swirling beneath the surface, creating a violent current that almost pulls me
 toward him. His eyes are darting toward the shore, and toward pre warmed towels waiting for us.
 
@@ -8593,7 +8055,6 @@ the cold they almost don't listen to my unconscious commands.
 
 
 
-                                                                                                    171 / 429
  At this point, we are the only three left. Ciella is so drunk I'm surprised she can stay afloat, although
 that's probably why she's managed to stay in so long. Varian looks entirely unbothered, barely treading
 water.
@@ -8649,7 +8110,6 @@ the fullness of the moon and the distant stars than looking into his eyes.
 
 
 
-                                                                                                 172 / 429
  "It's a losing battle."
 
 "Be quiet, let me concentrate," I hiss, closing my eyes.
@@ -8705,7 +8165,6 @@ He doesn't even blink. "It's done."
 
 
 
-                                                                                                    173 / 429
  "Good." I blow out a breath, knowing that means having to see him again. "Good."
 
 Finally, the one thing connecting Varian and I beyond Ciella and Eden will be gone. He will have no
@@ -8754,23 +8213,7 @@ over my shoulders, and I almost groan in relief as I wrap it around myself.
 
 ?••?
 
-
-
-
-
-
-                                                                                                    174 / 429
- 
-
-
-
-
-
-
-                                  175 / 429
- 29
-
-Word Count: 2189
+# Chương 29
 
 ~Dove
 
@@ -8822,7 +8265,6 @@ He angles his head. "Free will?"
 
 
 
-                                                                                                     176 / 429
  I sigh through my nose. I know I'm only in this room because I can feel my self control slipping, and
 distracting myself with Claude is far better than giving into my desire for Varian.
 
@@ -8877,7 +8319,6 @@ matter still stands.
 
 
 
-                                                                                                    177 / 429
  He shrugs, the spark in his eyes suggesting Varian's reaction only adds to his fun. "It would be worth it."
 
 "Seriously. He would scent you all over me tomorrow," I remind him.
@@ -8933,7 +8374,6 @@ just have to tell Eden and Ciella that when we meet up again, it will have to be
 
 
 
-                                                                                                     178 / 429
  I look over his body. He's tall and lean and I know he would be decent in bed. This doesn't have to be
 complicated...it can just be one night, one moment with him that we can forget about by morning.
 
@@ -8989,7 +8429,6 @@ into my mess.
 
 
 
-                                                                                                   179 / 429
  in the way of this. I won't get in between."
 
 I shake my head. He's wrong, there isn't anything more between Varian and I. There must be more to
@@ -9045,7 +8484,6 @@ He straightens, wearing a bright grin. "You're going to fuck the Alpha?"
 
 
 
-                                                                                                      180 / 429
  "Let me know how that goes." He adjusts his pillow before leaning back against the headboard. "I bet he
 fucks hard you know."
 
@@ -9073,22 +8511,7 @@ Chewing on my lower lip, I rise from the bed, turning toward the door. This nigh
 
 ?••?
 
-
-
-
-
-
-
-
-
-
-
-
-
-                                                                                                    181 / 429
- 30
-
-Word Count: 2467
+# Chương 30
 
 ~Dove
 
@@ -9140,7 +8563,6 @@ He looks briefly startled. "He...why?"
 
 
 
-                                                                                                   182 / 429
  I could weave around the issue and pretend it didn't happen, but I'm not in the mood for that. Seeing the
 subtle flash of internal torment appear in his expression gives me an unreasonable amount of
 satisfaction.
@@ -9195,7 +8617,6 @@ This was a mistake. I've thoroughly embarrassed myself enough for one night.
 
 
 
-                                                                                                     183 / 429
  As I turn toward the door, Varian advances on me in a moment. He grabs my arm, turning me gently
 back to face him.
 
@@ -9250,7 +8671,6 @@ this situation can become if I'm not careful.
 
 
 
-                                                                                                     184 / 429
  "Are you sure? Because you interrogated my boyfriend..."
 
 "I was merely curious about him, that's all," he muses with a shrug, his eyes darkening as I take a step
@@ -9306,7 +8726,6 @@ muscles taut as he holds himself back from reaching for me again.
 
 
 
-                                                                                                   185 / 429
  "It doesn't have to, Dove." His voice is molten, smoothing over my skin deliciously. "Come here."
 
 My legs weaken. He's only a few steps away, and it would be so easily to give in. I know exactly how
@@ -9362,7 +8781,6 @@ I reach out for him. "Come back."
 
 
 
-                                                                                                   186 / 429
  Mercifully he obliges me, raising up to claim my mouth again. I moan contently, looping my arms around
 his neck, not caring that my dress is starting to slip down my body.
 
@@ -9418,7 +8836,6 @@ half my chest.
 
 
 
-                                                                                                   187 / 429
  "Stay and find out." His hands brush against my sides, warm and inviting.
 
 I groan. "I shouldn't."
@@ -9437,7 +8854,3 @@ He smiles. "Good girl."
 He kisses me chastely once more before shoving my ruined dress all the way down my body. I don't
 even have to step out of. His hands rest beneath my thighs and he lifts me up until my legs wrap around
 his waist and he guides me to his bed.
-
-
-
-
