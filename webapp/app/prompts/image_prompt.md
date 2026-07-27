@@ -25,11 +25,15 @@ and a list of MAIN CHARACTERS with their role and any appearance/background note
 - Describe each named character's look concretely (age range, hair, build, wardrobe,
   expression) so they render consistently. Invent plausible appearances from their
   role/background + the world if none are given.
-- **Photorealistic, cinematic** — real-looking humans, filmic lighting, depth,
-  poster-grade composition. Name the mood (from `tags`).
-- **NO text, letters, titles, logos, or watermarks in the image.** End every prompt
-  with: "no text, no letters, no watermark". Leave a slightly darker / less-busy
-  band along the BOTTOM for a title to be overlaid later.
+- **PHOTOREALISTIC LIVE-ACTION — this is mandatory.** Real human beings as in a
+  photograph / live-action film still: real skin texture, real hair, natural
+  cinematic lighting, shot on a camera, shallow depth of field. The people must
+  look like real actors, NOT rendered characters.
+- **Explicitly forbid non-photoreal styles.** End every prompt with this exact tail:
+  "photorealistic, live-action film still, real people, shot on camera, 8k, no text,
+  no letters, no watermark, not 3D render, not CGI, not cartoon, not anime, not
+  illustration, not painting."
+- Leave a slightly darker / less-busy band along the BOTTOM for a title overlay.
 - Keep each prompt one dense paragraph, ~60-110 words. Write prompts in **English**
   (image models render English best) regardless of the story's language.
 - No gore, no explicit content — keep it poster-safe.
@@ -37,9 +41,9 @@ and a list of MAIN CHARACTERS with their role and any appearance/background note
 ## Output — JSON schema: ImagePromptSetOut
 ```json
 {
-  "cover": "wide cinematic montage of ... , dramatic lighting, ... , clear darker band along the bottom, no text, no letters, no watermark",
-  "thumb1": "vertical portrait of ... , no text, no letters, no watermark",
-  "thumb2": "vertical portrait of ... , no text, no letters, no watermark"
+  "cover": "wide cinematic montage of ... , dramatic lighting, clear darker band along the bottom, photorealistic, live-action film still, real people, shot on camera, 8k, no text, no letters, no watermark, not 3D render, not CGI, not cartoon, not anime, not illustration, not painting",
+  "thumb1": "vertical portrait of ... , photorealistic, live-action film still, real people, shot on camera, 8k, no text, no letters, no watermark, not 3D render, not CGI, not cartoon, not anime, not illustration, not painting",
+  "thumb2": "vertical portrait of ... , photorealistic, live-action film still, real people, shot on camera, 8k, no text, no letters, no watermark, not 3D render, not CGI, not cartoon, not anime, not illustration, not painting"
 }
 ```
 Return ONLY the JSON object — no markdown fences, no preamble.
