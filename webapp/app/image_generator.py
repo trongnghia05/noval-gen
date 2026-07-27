@@ -187,11 +187,13 @@ def generate(session: Session, story: Story, out_dir, meta: NovelMetadataOut | N
     # SAME people appear consistently (Nano Banana keeps identity from a reference
     # image even when pose/wardrobe/framing changes).
     _CONSISTENCY = (
-        "\n\nIMPORTANT: a reference image of these characters is provided. Keep the "
-        "SAME people — identical faces, hair, skin tone and identity as in the "
-        "reference. You may change their pose, framing, expression and wardrobe to "
-        "fit this new composition, but each returning character must be instantly "
-        "recognizable as the same person from the reference."
+        "\n\nIMPORTANT: the attached reference image is ONLY a face guide for keeping "
+        "characters consistent. Use it solely to match the FACES / hair / identity of "
+        "whichever characters appear in THIS image. Do NOT copy the reference's "
+        "composition, layout, or the NUMBER of people — this image has its own subject "
+        "list and framing described above. If this prompt calls for a single-person "
+        "portrait, show ONLY that one person even though the reference has several. "
+        "Any character who does appear must match their reference face."
     )
     ocr_model = AGENT_MODELS.get("quality_reviewer") or IMAGE_MODEL
     _MAX_ATTEMPTS = 4

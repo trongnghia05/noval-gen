@@ -102,7 +102,9 @@ world, palette family, the same faces, and the same story dynamic.
   never just the central couple. Arrange them by the ART DIRECTION composition
   (layered, montage, grouped — not necessarily a row of faces), but the several main
   characters must all be present and recognisable.
-- **thumb1** — the protagonist alone (or + one secondary behind them).
+- **thumb1** — a SINGLE-PERSON portrait of the protagonist ALONE (at most one faint
+  secondary figure softly behind). **NOT an ensemble** — this must look clearly
+  different from the cover (which has many characters). One face fills the frame.
 - **thumb2** — the central pair / key relationship, staged to embody the STORY
   DIRECTION dynamic (see that section) — who pursues/controls/is captive to whom.
   **Do NOT default to two people simply facing each other**, and never reverse the
