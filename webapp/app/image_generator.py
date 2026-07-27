@@ -9,6 +9,7 @@ is never blocked. Images land next to novel.md in the host-mounted output folder
 
 import io
 import logging
+import random
 import re
 
 from PIL import Image, ImageOps
@@ -59,12 +60,72 @@ def _character_lines(session: Session, story_id: int) -> str:
     return "\n".join(lines)
 
 
+# Art-direction menus. The prompt designer sees the same story every run, so with a
+# single fixed recipe it returns near-identical art (every cover a row of big faces
+# shot at 85mm). One option is drawn from each menu per run and passed in as ART
+# DIRECTION, which is what actually moves the output between runs.
+_COMPOSITIONS = [
+    "ensemble montage — the cast's faces packed large and overlapping, classic key-art wall",
+    "single hero off-centre, large, with the world opening up in the empty half of the frame",
+    "two figures in symmetrical opposition, the frame split between their worlds",
+    "one figure small against an overwhelming environment, epic scale, tiny silhouette",
+    "extreme close-up of the protagonist's face filling the frame, the rest of the cast small and soft behind",
+    "layered depth — one figure sharp in the foreground, others receding at decreasing scale",
+    "low-angle hero shot looking up at the cast, the sky and architecture towering behind",
+    "over-the-shoulder framing: the protagonist's back to us, facing the world she must enter",
+    "wide negative-space composition, the cast pushed to one edge, most of the frame atmosphere",
+    "tight two-shot, faces close and nearly touching, everything else fallen away",
+]
+_LENSES = [
+    "24mm wide angle, sweeping and immersive",
+    "35mm, environmental and grounded",
+    "50mm, natural and unforced",
+    "85mm portrait, shallow depth of field",
+    "135mm telephoto, compressed and intimate",
+    "anamorphic wide with horizontal flares and oval bokeh",
+]
+_LIGHTING = [
+    "hard backlight rim-lighting the figures, faces lifted by bounced fill",
+    "chiaroscuro from one hard source, deep shadow holding most of the frame",
+    "diffuse fog light, layered atmospheric haze separating each plane",
+    "cold edge light on one side, warm practical glow on the other",
+    "golden-hour sun raking low across the scene",
+    "overcast soft light, flat and cool, colour doing the work",
+    "light from below or behind a translucent surface, unnatural and unsettling",
+    "high-key bright light, airy and open",
+]
+_PALETTES = [
+    "restrained near-monochrome with one saturated accent colour",
+    "warm-cool split complementary, the two worlds colour-coded against each other",
+    "deep jewel tones, rich and saturated",
+    "desaturated earth and metal with a single luminous highlight",
+    "high-contrast dark ground with brilliant highlights",
+    "pale, washed and bleached, quiet and sparse",
+    "duotone treatment built from the story's two dominant forces",
+]
+
+
+def _art_direction(seed: int | None = None) -> str:
+    """One randomly-drawn composition / lens / lighting / palette recipe."""
+    rnd = random.Random(seed)
+    return (
+        f"- Composition (anchor for the cover): {rnd.choice(_COMPOSITIONS)}\n"
+        f"- Lens: {rnd.choice(_LENSES)}\n"
+        f"- Lighting: {rnd.choice(_LIGHTING)}\n"
+        f"- Palette direction: {rnd.choice(_PALETTES)}\n"
+    )
+
+
 def _build_prompts(session: Session, story: Story, meta: NovelMetadataOut | None) -> ImagePromptSetOut:
     tags = ", ".join(meta.tags) if (meta and meta.tags) else (story.genre or "")
     system = load_prompt("image_prompt")
+    art_direction = _art_direction()
+    logger.info("[%s] art direction for this run:\n%s", story.slug, art_direction)
     user_content = (
         f"title (render EXACTLY this text on each image): {story.title}\n"
         f"tags: {tags}\n\n"
+        f"## ART DIRECTION (use these for this run; vary the three images "
+        f"from each other around them)\n{art_direction}\n"
         f"## world (setting / genre / tone)\n{(story.story_bible or story.world_bible or '')[:3000]}\n\n"
         f"## MAIN CHARACTERS\n{_character_lines(session, story.id)}\n"
     )

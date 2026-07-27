@@ -7,33 +7,47 @@ a photorealistic image model, in the style of premium streaming key art
 
 ## Input
 User message contains: `title`, `tags`, the story `world` (setting/genre/tone),
-and a list of MAIN CHARACTERS with role + any appearance/background notes.
+a list of MAIN CHARACTERS with role + any appearance/background notes, and an
+**ART DIRECTION** block naming the composition, lens, lighting and palette
+direction to use for this run.
 
 ## Build each prompt from this FORMULA (in this order)
 Write ONE dense paragraph per image, assembling these components:
 1. **Format + genre**: "photorealistic cinematic {genre} movie poster key art".
 2. **Subjects**: the character(s) for that image — each described concretely and
-   CONSISTENTLY (see rules), big and prominent in the foreground, faces sharp and
-   well-lit, with a clear emotion/expression and pose that signals their role.
-3. **Composition**: hero framing / montage layout; where subjects sit; and the
+   CONSISTENTLY (see rules), prominent, faces sharp and legible, with a clear
+   emotion/expression and pose that signals their role.
+3. **Composition**: take the composition named in ART DIRECTION and realise it
+   concretely — where each subject sits in the frame, what dominates, and the
    reserved space for the title (see title rule). Must read clearly at small size.
 4. **Setting/backdrop**: an in-world environment behind them (fitting the story's
    world), less busy so subjects pop.
-5. **Color palette + lighting**: YOU decide from the story's genre/tone — name a
-   concrete palette that fits it (bright/warm for light or romantic stories, moody
-   for dark/thriller ones). Keep faces well-lit and the image rich, never muddy.
-6. **Camera**: "shot on a full-frame camera, 85mm f/1.4, shallow depth of field,
-   sharp focus on faces, subtle film grain, 8k".
+5. **Color palette + lighting**: follow the palette + lighting named in ART
+   DIRECTION, translated into concrete colours drawn from this story's world.
+   Keep faces readable and the image rich, never muddy.
+6. **Camera**: use the lens named in ART DIRECTION (state the focal length and an
+   aperture that fits it), plus "sharp focus on faces, subtle film grain, 8k".
 7. **Title rendering** (see rule).
 8. **Realism + negatives tail** (see rule).
+
+## Vary the three images from EACH OTHER
+The cover and the two thumbnails must not look like three crops of one idea.
+Give each a **different composition and a different focal length**, and shift the
+lighting angle between them. ART DIRECTION sets the run's overall direction — treat
+it as the anchor for the cover, then deliberately depart from it for the thumbnails
+(a wider or tighter lens, a different subject scale, light from another side) while
+keeping the same world, palette family and the same faces.
 
 ## Rules — IMPORTANT
 - **PHOTOREALISTIC LIVE-ACTION, real actors.** True skin texture and pores, real
   hair, catchlights in the eyes, natural cinematic light. Looks photographed, not
   rendered.
-- **Characters BIG and clearly visible** — poster where the stars dominate the
-  frame; never tiny or lost in scenery. **Keep every character's HEAD and FACE
-  fully inside the frame** with a little margin — no face cropped by the edges.
+- **Characters clearly visible and legible at thumbnail size** — the cast still
+  carries the poster; never tiny specks lost in scenery. **Keep every character's
+  HEAD and FACE fully inside the frame** with a little margin — no face cropped by
+  the edges. How much of the frame they fill is set by the composition in ART
+  DIRECTION: a montage packs faces large, while an epic-scale or negative-space
+  composition may place them smaller against the world — both are valid.
 - **Match the story's ACTUAL world** — costumes, props, era, architecture fit the
   world (fantasy → period/fantasy; modern → contemporary). Never default to modern.
 - **CHARACTER CONSISTENCY across the three prompts:** fix each main character's face
@@ -61,16 +75,21 @@ Write ONE dense paragraph per image, assembling these components:
   painting, no extra text, no watermark, no logo".
 
 ## Per-image subjects
-- **cover** — montage of the 3-5 most important characters together, poster layout.
-- **thumb1** — the protagonist alone (or + one secondary behind them), close.
-- **thumb2** — the central pair / key relationship, close and emotionally charged.
+- **cover** — the 3-5 most important characters, arranged by the ART DIRECTION
+  composition (not necessarily a row of faces).
+- **thumb1** — the protagonist alone (or + one secondary behind them).
+- **thumb2** — the central pair / key relationship, emotionally charged.
 
 ## Output — JSON schema: ImagePromptSetOut
+Each value is one dense paragraph following the FORMULA. The skeleton below marks
+what goes where — **every `<…>` slot is yours to fill from this story and its ART
+DIRECTION.** Do not copy any composition, focal length or palette wording from this
+skeleton; those slots exist precisely so each run differs.
 ```json
 {
-  "cover": "photorealistic cinematic <genre> movie poster key art. <characters, each described, big in foreground, expressions, heads fully in frame, faces brightly lit>. Montage hero layout. <palette + lighting that MATCH the mood — e.g. bright warm golden for romance, or rich high-contrast for dark drama; never muddy>. Shot on a full-frame camera, 85mm f/1.4, shallow depth of field, subtle film grain, 8k. The COMPLETE title \"<TITLE>\" rendered left-to-right and easy to read (horizontal or gently arched/wavy, never vertical), large and fully legible, every letter present and entirely inside the frame with a safe margin from all edges, not covering any face; only the title text. photorealistic live-action, real actors, not 3D render, not CGI, not cartoon, not anime, not illustration, not painting, no extra text, no watermark, no logo",
-  "thumb1": "photorealistic cinematic <genre> poster portrait of <protagonist, described, large clear brightly-lit face> ... <mood-matched palette + lighting, never muddy>. Shot on 85mm f/1.4, shallow DoF, film grain, 8k. Title \"<TITLE>\" placed creatively, complete and fully inside the frame with a safe margin. photorealistic live-action, real actor, not 3D render, not CGI, not cartoon, not anime, not illustration, not painting, no extra text, no watermark, no logo",
-  "thumb2": "photorealistic cinematic <genre> poster of <the central pair, described, faces prominent and brightly lit, charged emotion> ... <mood-matched palette + lighting, never muddy>. Shot on 85mm f/1.4, shallow DoF, film grain, 8k. Title \"<TITLE>\" placed creatively, complete and fully inside the frame with a safe margin. photorealistic live-action, real actors, not 3D render, not CGI, not cartoon, not anime, not illustration, not painting, no extra text, no watermark, no logo"
+  "cover": "photorealistic cinematic <genre> movie poster key art. <characters, each described concretely, expressions, heads fully in frame, faces legible>. <THE COMPOSITION FROM ART DIRECTION, realised concretely — who sits where, what dominates>. <in-world backdrop>. <palette + lighting from ART DIRECTION, in this story's concrete colours; never muddy>. Shot on a full-frame camera, <FOCAL LENGTH FROM ART DIRECTION> at <fitting aperture>, sharp focus on faces, subtle film grain, 8k. The COMPLETE title \"<TITLE>\" rendered left-to-right and easy to read (horizontal or gently arched/wavy, never vertical), large and fully legible, every letter present and entirely inside the frame with a safe margin from all edges, not covering any face; only the title text. photorealistic live-action, real actors, not 3D render, not CGI, not cartoon, not anime, not illustration, not painting, no extra text, no watermark, no logo",
+  "thumb1": "photorealistic cinematic <genre> poster of <protagonist, described identically to the cover, face legible>. <a composition and subject scale DIFFERENT from the cover's>. <in-world backdrop>. <same palette family, lighting from a different angle>. Shot on <a focal length DIFFERENT from the cover's> at <fitting aperture>, sharp focus on the face, film grain, 8k. Title \"<TITLE>\" placed creatively, complete and fully inside the frame with a safe margin. photorealistic live-action, real actor, not 3D render, not CGI, not cartoon, not anime, not illustration, not painting, no extra text, no watermark, no logo",
+  "thumb2": "photorealistic cinematic <genre> poster of <the central pair, described identically to the cover, charged emotion between them>. <a composition DIFFERENT from both the cover and thumb1>. <in-world backdrop>. <same palette family, its own lighting angle>. Shot on <a third focal length> at <fitting aperture>, sharp focus on faces, film grain, 8k. Title \"<TITLE>\" placed creatively, complete and fully inside the frame with a safe margin. photorealistic live-action, real actors, not 3D render, not CGI, not cartoon, not anime, not illustration, not painting, no extra text, no watermark, no logo"
 }
 ```
 Return ONLY the JSON object — no markdown fences, no preamble.
