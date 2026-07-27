@@ -20,11 +20,11 @@ from .schemas import ImagePromptSetOut, NovelMetadataOut
 
 logger = logging.getLogger(__name__)
 
-# (filename, width, height, aspect-ratio hint, attr, crop-centering)
-# The cover's title sits low, so its crop is biased downward (y=0.62) to keep the
-# title band rather than trimming it off the bottom; portraits crop symmetrically.
+# (filename, width, height, aspect-ratio, attr, crop-centering)
+# The model now outputs each aspect ratio natively (image_config), so cropping to
+# the exact pixel size is minimal and symmetric — faces and title both survive.
 _SPECS = [
-    ("cover.png",      343, 212, "16:9", "cover",  (0.5, 0.62)),
+    ("cover.png",      343, 212, "16:9", "cover",  (0.5, 0.5)),
     ("thumbnail1.png", 109, 154, "3:4",  "thumb1", (0.5, 0.5)),
     ("thumbnail2.png", 166, 214, "3:4",  "thumb2", (0.5, 0.5)),
 ]

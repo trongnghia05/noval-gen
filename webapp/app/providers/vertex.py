@@ -121,20 +121,23 @@ class VertexProvider(LLMProvider):
         it's hinted in the prompt; exact pixels are handled downstream (Pillow crop).
         `reference_images` (raw bytes) are passed as visual context so the model
         keeps the SAME characters' faces/identity across a set of posters."""
-        orient = self._ORIENT.get(aspect_ratio, "")
-        full_prompt = f"{prompt}\n\nComposition: {orient}." if orient else prompt
         contents: list = []
         for ref in (reference_images or []):
             contents.append(types.Part.from_bytes(data=ref, mime_type="image/png"))
-        contents.append(full_prompt)
+        contents.append(prompt)
+        # image_config.aspect_ratio makes the model output that ratio natively, so
+        # downstream cropping is minimal — no cut-off faces or titles.
+        config = types.GenerateContentConfig(response_modalities=["TEXT", "IMAGE"])
+        try:
+            config.image_config = types.ImageConfig(aspect_ratio=aspect_ratio)
+        except Exception:
+            pass
         for attempt in range(_MAX_RETRIES + 1):
             try:
                 resp = self.client.models.generate_content(
                     model=model,
                     contents=contents,
-                    config=types.GenerateContentConfig(
-                        response_modalities=["TEXT", "IMAGE"],
-                    ),
+                    config=config,
                 )
                 for cand in (resp.candidates or []):
                     for part in (cand.content.parts or []):
