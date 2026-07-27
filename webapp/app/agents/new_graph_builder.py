@@ -42,6 +42,7 @@ from ..schemas import (
     NewGraphSurfaceOutput,
     RelationGroupEnrichOutput,
     WorldDesignOutput,
+    WorldNameCheckOutput,
 )
 
 logger = logging.getLogger(__name__)
@@ -801,39 +802,55 @@ _WD_ALLOWED_CAPS = {
 }
 
 
-def _world_design_name_leaks(wd: WorldDesignOutput) -> list[str]:
-    """Suspected INVENTED proper names in a world design (should be name-free).
-    Scans all text fields for capitalized words that aren't sentence-start/common;
-    a name that recurs or is a two-word Capitalized phrase is the clearest signal."""
+def _world_design_text(wd: WorldDesignOutput) -> str:
     fields = [wd.setting, wd.time_period, wd.genre, wd.tone,
               wd.protagonist_archetype, wd.antagonist_archetype,
               wd.thematic_core, wd.narrative_summary] + list(wd.location_concepts or [])
-    text = "\n".join(f for f in fields if f)
-    from collections import Counter
-    counts: Counter = Counter()
-    # two-word Capitalized phrases are almost always names (people/places/clans)
+    return "\n".join(f for f in fields if f)
+
+
+def _regex_two_word_names(text: str) -> set[str]:
+    """Cheap backstop: two-word Capitalized phrases are almost always names, minus
+    obvious genre/era pairs. Union'd with the LLM checker so nothing slips."""
+    out = set()
     for m in re.findall(r"\b[A-Z][a-z]+\s+[A-Z][a-z]+\b", text):
-        counts[m] += 1
-    # single capitalized words that are NOT allowed and appear mid-sentence
-    for sent in re.split(r"(?<=[.!?])\s+", text):
-        toks = sent.split()
-        for i, raw in enumerate(toks):
-            w = raw.strip(".,;:'\"()[]—–")
-            if i == 0:
-                continue  # skip sentence starter
-            if re.fullmatch(r"[A-Z][a-z]{2,}", w) and w.lower() not in _WD_ALLOWED_CAPS:
-                counts[w] += 1
-    # keep phrases, and single words that recur (a one-off mid-sentence cap is
-    # likely a legit descriptor; a repeated one is a name being used)
-    leaks = {p for p in counts if " " in p}
-    leaks |= {w for w, c in counts.items() if " " not in w and c >= 2}
-    return sorted(leaks)
+        a, b = m.split()
+        if a.lower() in _WD_ALLOWED_CAPS and b.lower() in _WD_ALLOWED_CAPS:
+            continue
+        out.add(m)
+    return out
 
 
-def _design_world(session: Session, story: Story, max_attempts: int = 5) -> WorldDesignOutput:
+def _world_design_name_leaks(story: Story, wd: WorldDesignOutput) -> list[str]:
+    """Invented proper names still in the world design (should be name-free).
+    Primary check is an LLM proofreader (understands context / non-ASCII names);
+    a light regex backstop catches obvious two-word names it might miss."""
+    text = _world_design_text(wd)
+    names: set[str] = set()
+    try:
+        system = load_prompt("world_name_check")
+        out: WorldNameCheckOutput = generate_structured(
+            PROVIDER, system=system,
+            user_content=f"language: {story.language}\n\n## WORLD DESIGN\n{text}\n",
+            model=AGENT_MODELS.get("world_name_check", AGENT_MODELS["name_lexicon"]),
+            schema=WorldNameCheckOutput, max_tokens=2048, thinking=False,
+        )
+        names |= {n.strip() for n in (out.proper_names or []) if n and n.strip()}
+    except Exception as exc:
+        logger.warning("[%s] Phase 0 name-check LLM failed (%s) — regex only", story.slug, exc)
+    names |= _regex_two_word_names(text)
+    return sorted(names)
+
+
+def _design_world(session: Session, story: Story, feedback: str | None = None,
+                  max_attempts: int = 5) -> WorldDesignOutput:
     """Design the new world, then LOOP a strict name-check: regenerate until the
     world design contains NO invented proper names (people/places/clans), so the
-    draft narrative can't seed a name that later collides with the lexicon."""
+    draft narrative can't seed a name that later collides with the lexicon.
+
+    `feedback` (from a downstream verifier) is fed back in so the world is REWRITTEN
+    to address it — a feedback loop that improves the world across rebuilds, rather
+    than freezing the first attempt."""
     source_summary = _format_source_compact(session, story.id)
     system = load_prompt("world_designer")
     base = (
@@ -845,6 +862,11 @@ def _design_world(session: Session, story: Story, max_attempts: int = 5) -> Worl
         base += ("## SOURCE SPIRIT (tone, plot arc — role-based, no source names)\n"
                  f"{story.source_spirit}\n\n")
     base += f"## SOURCE GRAPH\n{source_summary}\n"
+    if feedback:
+        base += ("\n\n## FEEDBACK FROM VERIFICATION — the previous world/graph had "
+                 "these problems; redesign the world to FIX them (you may shift "
+                 "setting, tone, or coherence as needed), while keeping it name-free:\n"
+                 f"{feedback}\n")
 
     user_content = base
     output = None
@@ -854,7 +876,7 @@ def _design_world(session: Session, story: Story, max_attempts: int = 5) -> Worl
             model=AGENT_MODELS["world_designer"], schema=WorldDesignOutput,
             max_tokens=4096, thinking=True,
         )
-        leaks = _world_design_name_leaks(output)
+        leaks = _world_design_name_leaks(story, output)
         if not leaks:
             break
         logger.warning("[%s] Phase 0: world design still has proper names %s — regenerating",
@@ -1519,14 +1541,12 @@ def run(session: Session, story: Story, feedback: str | None = None) -> None:
     # Phase 1 — copy source structure
     _copy_source_structure(session, story.id)
 
-    if not feedback:
-        # Phase 0 — design the new world (first run only)
-        world_design = _design_world(session, story)
-        story.story_bible = world_design.narrative_summary
-        world_design_text = world_design.narrative_summary
-    else:
-        world_design = None
-        world_design_text = story.story_bible or ""
+    # Phase 0 — design the new world. Always run: on a feedback rebuild the world is
+    # REDESIGNED to address the verifier's feedback (a feedback loop that improves
+    # the world), not frozen. The name-check loop inside keeps it name-free either way.
+    world_design = _design_world(session, story, feedback=feedback)
+    story.story_bible = world_design.narrative_summary
+    world_design_text = world_design.narrative_summary
 
     # Phase 1b — name lexicon. Feed the lexicon EVERY name the world design already
     # coined (narrative prose + the named locations/archetypes it lists), not just

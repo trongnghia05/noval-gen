@@ -385,6 +385,14 @@ class WorldDesignOutput(BaseModel):
     narrative_summary: str      # 300-400 word prose summary of the new story
 
 
+class WorldNameCheckOutput(BaseModel):
+    """Verdict from the world-design name checker: which invented PROPER NAMES (of
+    people / places / clans / factions / objects) still appear, so the world design
+    can be regenerated until it is fully name-free (roles only)."""
+    proper_names: list[str] = []   # every invented proper name found (empty = clean)
+    note: str = ""
+
+
 # ── new_graph_builder Phase 1 (name lexicon) ─────────────────────────────────
 
 class NameLexiconEntry(BaseModel):
