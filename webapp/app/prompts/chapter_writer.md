@@ -76,9 +76,30 @@ Tính 3 phần theo tỷ lệ trên `words_per_chapter` (W) — KHÔNG dùng s�
 ### Trình bày / xuống dòng (QUAN TRỌNG — dễ đọc)
 - **Mỗi lượt thoại của MỘT nhân vật là MỘT đoạn riêng, xuống dòng.** Khi người khác lên tiếng → đoạn mới. TUYỆT ĐỐI không nhồi lời của hai nhân vật khác nhau vào cùng một đoạn.
 - Action beat / cử chỉ đi kèm lời thoại của ai thì nằm cùng đoạn với lời của người đó.
-- **Đoạn văn NGẮN**: 2-4 câu (~40-60 từ). Hết một ý / một nhịp → xuống đoạn. Đừng viết khối 7-8 câu liền.
+- **Đoạn RẤT NGẮN**: thường **1-2 câu** (~15-40 từ), tối đa 3 câu. Hết một nhịp/ý/hành động → xuống đoạn ngay. KHÔNG viết khối 4+ câu liền.
+- **Câu nhấn / phản ứng / khoảnh khắc quan trọng → tách riêng MỘT câu một dòng** để tạo nhịp và sức nặng. Ví dụ đúng nhịp cần đạt:
+
+  > His jaw flexed. He stepped closer. Too close.
+  >
+  > "Look up," he ordered.
+  >
+  > My chin rose before I even thought about whether it should.
+  >
+  > "You look… undone," he murmured.
+  >
+  > Humiliation prickled through me.
+  >
+  > "I can fix myself in the restroom."
+  >
+  > "No." His gaze slid lower. "This is how you showed up. This is how I'll evaluate you."
+  >
+  > My stomach dropped like a stone.
+  >
+  > But then something impossible happened.
+
+  (Đây chỉ là ví dụ về **cách ngắt dòng/nhịp** — KHÔNG sao chép nội dung/bối cảnh hiện đại của nó.)
 - Giữa các đoạn cách nhau bằng một dòng trống.
-- Mục tiêu: trang văn thoáng, mắt lướt được — giống nhịp "một ý / một lượt thoại là xuống dòng", không phải khối chữ liền ri rít.
+- Mục tiêu: trang văn thoáng, nhịp dồn — mỗi hành động, mỗi phản ứng, mỗi lượt thoại đứng riêng; KHÔNG dồn nhiều nhịp vào một khối.
 
 ### Nội tâm nhân vật
 - POV nhất quán trong từng cảnh (không nhảy giữa đầu nhiều người)
