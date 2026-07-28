@@ -14,6 +14,8 @@ continuous LangGraph run. Neither duplicates the other's logic.
 """
 
 import logging
+import re
+import unicodedata
 from pathlib import Path
 
 from sqlalchemy.orm import Session
@@ -447,6 +449,24 @@ def _generate_novel_metadata(story: Story) -> NovelMetadataOut | None:
         return None
 
 
+def _chapter_word(language: str) -> str:
+    """The word for 'chapter' in the story's language for headings/TOC. Vietnamese
+    keeps 'Chương'; every other language uses 'Chapter' (the manuscript is written in
+    that language, and an English-language novel must not be headed 'Chương').
+
+    Diacritics are stripped before matching so both 'Vietnamese' and 'Tiếng Việt'
+    ('tieng viet') are recognised."""
+    ascii_lang = unicodedata.normalize("NFKD", language or "").encode("ascii", "ignore").decode().lower()
+    return "Chương" if "viet" in ascii_lang else "Chapter"
+
+
+def _clean_chapter_title(title: str) -> str:
+    """Strip a leftover 'Chapter N:' / 'Chương N:' prefix the writer sometimes leaves
+    inside chapter.title, so the compiler's own heading isn't doubled
+    ('# Chương 2: Chương 2: ...')."""
+    return re.sub(r"^\s*(?:chapter|chương)\s*\d+\s*:\s*", "", title or "", flags=re.IGNORECASE).strip()
+
+
 def _compile_manuscript_to_file(session: Session, story: Story) -> Path:
     """Compile all done chapters into a single markdown file.
 
@@ -459,11 +479,13 @@ def _compile_manuscript_to_file(session: Session, story: Story) -> Path:
         .all()
     )
 
-    toc_lines = [f"{c.number}. {c.title or f'Chương {c.number}'}" for c in chapters]
+    word = _chapter_word(story.language)
+    titles = {c.number: (_clean_chapter_title(c.title) or f"{word} {c.number}") for c in chapters}
+    toc_lines = [f"{c.number}. {titles[c.number]}" for c in chapters]
     toc = "\n".join(toc_lines)
 
     chapter_parts = [
-        f"# Chương {c.number}: {c.title or f'Chương {c.number}'}\n\n"
+        f"# {word} {c.number}: {titles[c.number]}\n\n"
         f"{chapter_writer.normalize_paragraphs(c.content or '')}"
         for c in chapters
     ]
