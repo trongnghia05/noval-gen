@@ -69,6 +69,14 @@ Tính 3 phần theo tỷ lệ trên `words_per_chapter` (W) — KHÔNG dùng s�
 - Show don't tell: thay vì "anh ấy tức giận" → mô tả biểu hiện thể lý
 - Chi tiết cụ thể thay vì chung chung
 
+### Ngôn từ — DỄ ĐỌC, PHỔ THÔNG (QUAN TRỌNG)
+- Viết bằng từ ngữ **THÔNG DỤNG, đời thường** — như tiểu thuyết thể loại / web-novel đại chúng mà đông người đọc, KHÔNG phải văn hàn lâm khoe chữ.
+- Khi một từ "kêu" và một từ bình thường **cùng nghĩa** → luôn chọn từ bình thường. Ví dụ nên tránh → nên dùng: ostentatious→showy; recalcitrant→stubborn; cerulean→deep blue; luminescence→glow; myriad→countless; visage→face; ephemeral→fleeting; susurrus→whisper; obfuscate→hide; resplendent→glowing; cacophony→noise.
+- **TRÁNH** từ hiếm/cổ/bác học, tính từ Latinh nhiều âm tiết, và cụm rườm rà kiểu "a silence woven with ancient wards". Ưu tiên câu rõ ràng, cụ thể.
+- Vẫn được văn chương ở **HÌNH ẢNH và NHỊP**, nhưng bằng **từ đơn giản** — sức mạnh đến từ hình ảnh cụ thể, không phải từ khó.
+- Thước đo: một người đọc trình độ tiếng Anh cơ bản đọc mạch được, KHÔNG phải dừng tra từ điển.
+- Điều này áp dụng cho MỌI ngôn ngữ: dùng vốn từ phổ thông của ngôn ngữ đó, không dùng từ bác học hiếm gặp.
+
 ### Nhịp điệu
 - Câu ngắn khi action nhanh, căng thẳng
 - Câu dài khi suy tư, mô tả cảnh quan
