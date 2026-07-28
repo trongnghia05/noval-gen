@@ -1706,14 +1706,15 @@ def _sweep_orphan_names(session: Session, story: Story, variant_map: dict) -> in
                 toks = phrase.split()
                 if toks[0].lower() in _NAME_STOPWORDS:
                     return phrase
-                # Keep the phrase ONLY if it is a legit reference to real node(s):
-                # EVERY token must be a known label token. If ANY token is unknown,
-                # the phrase is an invented variant of THIS character (e.g. label is
-                # "Seraphina Nova" but a field says "Lyra Vane" — "vane" is no label's
-                # token) → fold it to the canonical label. (The old test skipped on
-                # ANY shared token, so "Lyra Vane" survived because "Lyra" matched an
-                # unrelated character — that was the hole.)
-                if all(t.lower() in label_tokens for t in toks):
+                # Keep the phrase if ANY token is a known label token (a reference to a
+                # real node). Do NOT use `all(...)` here: that folds every capitalized
+                # phrase containing one non-label word (locations, factions, "The
+                # Whispering Falls") into the character's own label, and because each
+                # loop re-reads its own output the text GROWS every pass — a runaway
+                # that inflated one node to ~1e9 chars until SQLite rejected the write.
+                # Invented single-name variants are now prevented upstream (frozen
+                # labels), so the aggressive fold is unnecessary.
+                if any(t.lower() in label_tokens for t in toks):
                     return phrase
                 if any(t.lower() in own_tokens for t in toks):
                     return phrase
@@ -1884,14 +1885,13 @@ def run(session: Session, story: Story, feedback: str | None = None) -> None:
     if not feedback:
         _enrich_graph(session, story)
 
-    # Phase 3.4 — name reconciliation (deterministic): fold enricher/creative draft
-    # names + leaked source names back onto the canonical labels, so the graph handed
-    # to verify_graph is already name-clean. story_bible / plot_outline / world are NOT
-    # derived here anymore: the graph is not yet FINAL (verify_graph's surface rewriter
-    # still runs after this). They are all derived together in finalize_after_verify(),
-    # from the FINAL graph, so every planning artifact shares one name set.
-    _reconcile_names(session, story)
-
+    # Naming is settled UPSTREAM now — the lexicon assigns every name, Phase 1.5
+    # substitution applies them deterministically across all text, the enrichers are
+    # constrained to use only exact labels, and verify_graph's reskin pass sweeps any
+    # leaked SOURCE name. So the old Phase 3.4 name-reconcile pass was removed: it was
+    # a backstop for enrichers inventing names (now prevented) whose orphan-name guess
+    # (regex-replacing "stray" capitalized phrases) was unreliable and, in one run,
+    # ran away — inflating a node's text to ~1e9 chars until SQLite rejected the write.
     story.plot_outline = None
     story.world_bible = None
     story.planning_verified = False
@@ -1907,20 +1907,17 @@ def finalize_after_verify(session: Session, story: Story) -> None:
     derives story_bible from that final graph, so story_bible / plot_outline / world /
     characters (all built from here on) share ONE canonical name set.
 
-    Order matters: verify_graph is the last step that touches graph CONTENT, so name
-    reconciliation and every artifact derivation must happen here, not inside run()
-    (which finishes before verify_graph). This is what fixed the 3-names-for-one-
-    character desync (story_bible said 'Lyra Vane', plot said 'Kira Valorant', labels
-    said 'Seraphina Nova')."""
-    # 1. Final deterministic name reconcile — folds any variant the verifier's surface
-    #    rewriter left onto the canonical labels.
-    variant_map = _reconcile_names(session, story)
-    # 2. Derive story_bible from the FINAL graph (names now settled).
+    Order matters: verify_graph is the last step that touches graph CONTENT, so every
+    artifact derivation must happen here, not inside run() (which finishes before
+    verify_graph). This is what fixed the 3-names-for-one-character desync (story_bible
+    said 'Lyra Vane', plot said 'Kira Valorant', labels said 'Seraphina Nova') —
+    everything now derives from the FINAL graph's labels."""
+    # Derive story_bible from the FINAL graph (names are settled by the lexicon +
+    # substitution + label-constrained enrichers; verify_graph's reskin already swept
+    # any leaked source name). _verify_story_bible still guards story_bible itself.
     _rewrite_story_bible(session, story, world_design=None)
-    if story.story_bible:
-        story.story_bible = _apply_variant_map_to_text(story.story_bible, variant_map)
     _verify_story_bible(session, story)
-    # 3. Retitle for the new world from the final story_bible.
+    # Retitle for the new world from the final story_bible.
     try:
         new_title = generate_title(
             PROVIDER, AGENT_MODELS["title_generator"],
