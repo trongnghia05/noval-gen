@@ -602,21 +602,92 @@ def _verify_enrichment(
 
 def _format_enrich_feedback(issues: list) -> str:
     """Render verifier issues into a feedback block for the re-enrichment call."""
-    lines = ["## VERIFIER FEEDBACK — fix EVERY issue below, keep everything else:"]
+    lines = ["## VERIFIER FEEDBACK — fix EVERY issue below on the listed items only:"]
     for i in issues:
         tgt = f"[{i.target}] " if getattr(i, "target", "") else ""
         lines.append(f"- ({i.dimension}) {tgt}{i.problem} → FIX: {i.fix}")
     return "\n".join(lines)
 
 
+def _in_scope(only_keys: set | None, *keys: str) -> bool:
+    """True if an item should be (re-)enriched this pass: no filter (first pass, all),
+    or any of the item's keys (node_key, 'src→tgt', or an endpoint) is flagged."""
+    if not only_keys:
+        return True
+    return any(k in only_keys for k in keys)
+
+
+def _issue_keys(issues: list) -> set:
+    """Collect the node/edge keys the verifier flagged, expanding 'src→tgt' targets to
+    their endpoints too, so a re-enrich touches exactly the flagged items."""
+    keys: set = set()
+    for i in issues:
+        t = (getattr(i, "target", "") or "").strip()
+        if not t:
+            continue
+        keys.add(t)
+        if "→" in t:
+            a, b = t.split("→", 1)
+            keys.add(a.strip())
+            keys.add(b.strip())
+    return keys
+
+
+def _render_enriched_group(session: Session, story: Story, group: str) -> str:
+    """Render the CURRENT (post-enrich) DB state of one group for the verifier — the
+    whole group every pass, so a targeted re-enrich of a few items is still checked in
+    full context."""
+    sid = story.id
+    if group in ("characters", "events"):
+        ntype = "character" if group == "characters" else "event"
+        nodes = (session.query(StoryGraphNode)
+                 .filter_by(story_id=sid, graph_type="new", node_type=ntype)
+                 .order_by(StoryGraphNode.node_key).all())
+        lines = []
+        for n in nodes:
+            p = n.properties or {}
+            if group == "characters":
+                lines.append(
+                    f"[{n.node_key}] label={n.label} | arc: {p.get('arc_stage','')} | "
+                    f"wants: {p.get('wants','')} | fears: {p.get('fears','')} | "
+                    f"background: {p.get('background','')} | voice: {str(p.get('voice_profile',''))[:200]}")
+            else:
+                lines.append(f"[{n.node_key}] label={n.label} | summary: {p.get('summary','')}")
+        return "\n".join(lines)
+    # edge groups
+    char_map = {n.node_key: n.label for n in session.query(StoryGraphNode)
+                .filter_by(story_id=sid, graph_type="new", node_type="character").all()}
+    ev_map = {n.node_key: n.label for n in session.query(StoryGraphNode)
+              .filter_by(story_id=sid, graph_type="new", node_type="event").all()}
+    etype = {"arc_changes": "ARC_CHANGE", "relations": "RELATION", "causes": "CAUSES"}[group]
+    edges = session.query(StoryGraphEdge).filter_by(story_id=sid, graph_type="new", edge_type=etype).all()
+    lines = []
+    for e in edges:
+        p = e.properties or {}
+        if group == "arc_changes":
+            lines.append(f"[{e.source_key}] {char_map.get(e.source_key, e.source_key)} "
+                         f"ch{e.chapter_from}: '{p.get('old_val','')}' → '{p.get('new_val','')}'")
+        elif group == "relations":
+            lines.append(f"[{e.source_key}→{e.target_key}] '{char_map.get(e.source_key, e.source_key)}' → "
+                         f"'{char_map.get(e.target_key, e.target_key)}' | rel_type:{p.get('rel_type','')} | label:{e.label}")
+        else:  # causes
+            lines.append(f"[{e.source_key}→{e.target_key}] '{ev_map.get(e.source_key, e.source_key)}' causes "
+                         f"'{ev_map.get(e.target_key, e.target_key)}' | mechanism: {p.get('mechanism','')} | label: {e.label}")
+    return "\n".join(lines)
+
+
 def _enrich_with_verify(story: Story, group: str, enrich_fn, session: Session,
                         world_design_text: str, max_attempts: int = 5) -> None:
-    """Run an enricher, then verify → re-enrich with feedback until clean (max 5).
+    """Run an enricher, then verify → re-enrich ONLY the flagged items with feedback
+    until clean (max 5 attempts).
 
-    enrich_fn(feedback) runs the enricher (feedback=None on the first pass) and RETURNS
-    a text rendering of what it produced, which the verifier inspects."""
-    rendered = enrich_fn(None)
+    Targeted re-enrichment is essential: re-running the enricher over the WHOLE group
+    each pass does not converge (fixing a flagged node rewrites — and often breaks —
+    the clean ones). enrich_fn(feedback, only_keys) rewrites only the flagged items and
+    leaves the rest untouched; the verifier then re-checks the full group from DB."""
+    enrich_fn(None, None)   # first pass: enrich all
     for attempt in range(1, max_attempts + 1):
+        rendered = _render_enriched_group(session, story, group)
         issues = _verify_enrichment(session, story, group, rendered, world_design_text)
         if not issues:
             logger.info("[%s] Phase 2 verify(%s): clean (attempt %d)", story.slug, group, attempt)
@@ -628,14 +699,14 @@ def _enrich_with_verify(story: Story, group: str, enrich_fn, session: Session,
             logger.warning("[%s] Phase 2 verify(%s): %d issue(s) survived after %d attempts — accepted",
                            story.slug, group, len(issues), max_attempts)
             return
-        rendered = enrich_fn(_format_enrich_feedback(issues))
+        enrich_fn(_format_enrich_feedback(issues), _issue_keys(issues))
 
 
 def _enrich_characters(
     session: Session, story: Story,
     lexicon: dict[str, str], world_design_text: str,
-    feedback: str | None = None,
-) -> str:
+    feedback: str | None = None, only_keys: set | None = None,
+) -> None:
     nodes = (
         session.query(StoryGraphNode)
         .filter_by(story_id=story.id, graph_type="new", node_type="character")
@@ -661,6 +732,9 @@ def _enrich_characters(
         f"## NAME LEXICON\n{lexicon_block}\n\n"
         f"## CHARACTERS\n" + "\n".join(char_lines)
     )
+    if only_keys:
+        user_content += (f"\n\n## RE-ENRICH ONLY THESE node_keys: {', '.join(sorted(only_keys))}\n"
+                         "Return ONLY these entries; leave every other character exactly as-is.")
     if feedback:
         user_content += f"\n\n{feedback}"
     output: CharacterGroupEnrichOutput = generate_structured(
@@ -669,10 +743,10 @@ def _enrich_characters(
         schema=CharacterGroupEnrichOutput, max_tokens=48000, thinking=False,
     )
     node_map = {n.node_key: n for n in nodes}
-    rendered = []
+    applied = 0
     for surf in output.characters:
         node = node_map.get(surf.node_key)
-        if not node:
+        if not node or not _in_scope(only_keys, surf.node_key):
             continue
         props = dict(node.properties or {})
         if surf.new_arc_stage:      props["arc_stage"]      = surf.new_arc_stage
@@ -682,21 +756,17 @@ def _enrich_characters(
         if surf.new_speech_pattern: props["speech_pattern"] = surf.new_speech_pattern
         if surf.new_voice_profile:  props["voice_profile"]  = surf.new_voice_profile
         node.properties = props
-        rendered.append(
-            f"[{surf.node_key}] label={node.label} | arc: {props.get('arc_stage','')} | "
-            f"wants: {props.get('wants','')} | fears: {props.get('fears','')} | "
-            f"background: {props.get('background','')} | voice: {props.get('voice_profile','')[:200]}"
-        )
+        applied += 1
     session.flush()
-    logger.info("[%s] Phase 2a: enriched %d characters", story.slug, len(output.characters))
-    return "\n".join(rendered)
+    logger.info("[%s] Phase 2a: enriched %d characters%s", story.slug, applied,
+                f" (targeted {len(only_keys)})" if only_keys else "")
 
 
 def _enrich_events(
     session: Session, story: Story,
     lexicon: dict[str, str], world_design_text: str,
-    feedback: str | None = None,
-) -> str:
+    feedback: str | None = None, only_keys: set | None = None,
+) -> None:
     nodes = (
         session.query(StoryGraphNode)
         .filter_by(story_id=story.id, graph_type="new", node_type="event")
@@ -729,6 +799,9 @@ def _enrich_events(
         f"## CHARACTER LABEL MAP\n{char_map_block}\n\n"
         f"## EVENTS\n" + "\n".join(event_lines)
     )
+    if only_keys:
+        user_content += (f"\n\n## RE-ENRICH ONLY THESE node_keys: {', '.join(sorted(only_keys))}\n"
+                         "Return ONLY these entries; leave every other event exactly as-is.")
     if feedback:
         user_content += f"\n\n{feedback}"
     output: EventGroupEnrichOutput = generate_structured(
@@ -737,25 +810,25 @@ def _enrich_events(
         schema=EventGroupEnrichOutput, max_tokens=48000, thinking=False,
     )
     node_map = {n.node_key: n for n in nodes}
-    rendered = []
+    applied = 0
     for surf in output.events:
         node = node_map.get(surf.node_key)
-        if not node:
+        if not node or not _in_scope(only_keys, surf.node_key):
             continue
         props = dict(node.properties or {})
         props["summary"] = surf.new_summary
         node.properties = props
-        rendered.append(f"[{surf.node_key}] label={node.label} | summary: {surf.new_summary}")
+        applied += 1
     session.flush()
-    logger.info("[%s] Phase 2b: enriched %d events", story.slug, len(output.events))
-    return "\n".join(rendered)
+    logger.info("[%s] Phase 2b: enriched %d events%s", story.slug, applied,
+                f" (targeted {len(only_keys)})" if only_keys else "")
 
 
 def _enrich_arc_changes(
     session: Session, story: Story,
     lexicon: dict[str, str], world_design_text: str,
-    feedback: str | None = None,
-) -> str:
+    feedback: str | None = None, only_keys: set | None = None,
+) -> None:
     edges = (
         session.query(StoryGraphEdge)
         .filter_by(story_id=story.id, graph_type="new", edge_type="ARC_CHANGE")
@@ -788,6 +861,9 @@ def _enrich_arc_changes(
         f"## CHARACTER LABEL MAP\n{char_map_block}\n\n"
         f"## ARC_CHANGES\n" + "\n".join(arc_lines)
     )
+    if only_keys:
+        user_content += (f"\n\n## RE-ENRICH ONLY arc-changes of these characters: {', '.join(sorted(only_keys))}\n"
+                         "Return ONLY those; leave every other arc-change exactly as-is.")
     if feedback:
         user_content += f"\n\n{feedback}"
     output: ArcChangeGroupEnrichOutput = generate_structured(
@@ -800,38 +876,41 @@ def _enrich_arc_changes(
     for e in edges:
         edge_map[(e.source_key, e.chapter_from)] = e
 
-    rendered = []
+    applied = 0
     for surf in output.arc_changes:
         edge = edge_map.get((surf.source_key, surf.chapter_from))
         if not edge:
             logger.warning("[%s] _enrich_arc_changes: no edge for (%s, ch%s)",
                            story.slug, surf.source_key, surf.chapter_from)
             continue
+        if not _in_scope(only_keys, surf.source_key):
+            continue
         props = dict(edge.properties or {})
         if surf.new_old_val: props["old_val"] = surf.new_old_val
         if surf.new_new_val: props["new_val"] = surf.new_new_val
         edge.properties = props
-        rendered.append(
-            f"[{surf.source_key}] {char_map.get(surf.source_key, surf.source_key)} "
-            f"ch{surf.chapter_from}: '{props.get('old_val','')}' → '{props.get('new_val','')}'"
-        )
+        applied += 1
     session.flush()
-    logger.info("[%s] Phase 2c: enriched %d arc_changes", story.slug, len(output.arc_changes))
-    return "\n".join(rendered)
+    logger.info("[%s] Phase 2c: enriched %d arc_changes%s", story.slug, applied,
+                f" (targeted {len(only_keys)})" if only_keys else "")
 
 
 def _enrich_relations(
     session: Session, story: Story,
     lexicon: dict[str, str], world_design_text: str,
-    feedback: str | None = None,
-) -> str:
+    feedback: str | None = None, only_keys: set | None = None,
+) -> None:
     edges = (
         session.query(StoryGraphEdge)
         .filter_by(story_id=story.id, graph_type="new", edge_type="RELATION")
         .all()
     )
+    if only_keys:
+        edges = [e for e in edges
+                 if _in_scope(only_keys, e.source_key, e.target_key,
+                              f"{e.source_key}→{e.target_key}")]
     if not edges:
-        return ""
+        return
 
     char_nodes = (
         session.query(StoryGraphNode)
@@ -845,7 +924,7 @@ def _enrich_relations(
     )
 
     char_map = {n.node_key: n.label for n in char_nodes}
-    rendered = []
+    applied = 0
     _BATCH = 30
     for batch_start in range(0, len(edges), _BATCH):
         batch = edges[batch_start: batch_start + _BATCH]
@@ -865,6 +944,9 @@ def _enrich_relations(
             f"## CHARACTER PROFILES\n{char_profiles}\n\n"
             f"## RELATIONS\n" + "\n".join(rel_lines)
         )
+        if only_keys:
+            user_content += ("\n\n## These are the ONLY relations to re-enrich — "
+                             "return exactly these, corrected.")
         if feedback:
             user_content += f"\n\n{feedback}"
         output: RelationGroupEnrichOutput = generate_structured(
@@ -887,29 +969,28 @@ def _enrich_relations(
             if surf.new_rel_type: props["rel_type"] = surf.new_rel_type
             edge.properties = props
             if surf.new_label:    edge.label = surf.new_label
-            rendered.append(
-                f"[{surf.source_key}→{surf.target_key}] "
-                f"'{char_map.get(surf.source_key, surf.source_key)}' → "
-                f"'{char_map.get(surf.target_key, surf.target_key)}' | "
-                f"rel_type:{props.get('rel_type','')} | label:{edge.label}"
-            )
+            applied += 1
         session.flush()
-    logger.info("[%s] Phase 2d: enriched %d relations", story.slug, len(edges))
-    return "\n".join(rendered)
+    logger.info("[%s] Phase 2d: enriched %d relations%s", story.slug, applied,
+                f" (targeted {len(only_keys)})" if only_keys else "")
 
 
 def _enrich_causes(
     session: Session, story: Story,
     lexicon: dict[str, str], world_design_text: str,
-    feedback: str | None = None,
-) -> str:
+    feedback: str | None = None, only_keys: set | None = None,
+) -> None:
     edges = (
         session.query(StoryGraphEdge)
         .filter_by(story_id=story.id, graph_type="new", edge_type="CAUSES")
         .all()
     )
+    if only_keys:
+        edges = [e for e in edges
+                 if _in_scope(only_keys, e.source_key, e.target_key,
+                              f"{e.source_key}→{e.target_key}")]
     if not edges:
-        return ""
+        return
 
     event_map = {
         n.node_key: n.label
@@ -935,6 +1016,9 @@ def _enrich_causes(
         f"## EVENT LABEL MAP\n{event_map_block}\n\n"
         f"## CAUSES\n" + "\n".join(cause_lines)
     )
+    if only_keys:
+        user_content += ("\n\n## These are the ONLY causal links to re-enrich — "
+                         "return exactly these, corrected.")
     if feedback:
         user_content += f"\n\n{feedback}"
     output: CausesGroupEnrichOutput = generate_structured(
@@ -943,7 +1027,7 @@ def _enrich_causes(
         schema=CausesGroupEnrichOutput, max_tokens=48000, thinking=False,
     )
     edge_map = {(e.source_key, e.target_key): e for e in edges}
-    rendered = []
+    applied = 0
     for surf in output.causes:
         edge = edge_map.get((surf.source_key, surf.target_key))
         if not edge:
@@ -954,15 +1038,10 @@ def _enrich_causes(
         if surf.new_mechanism: props["mechanism"] = surf.new_mechanism
         edge.properties = props
         if surf.new_label: edge.label = surf.new_label
-        rendered.append(
-            f"[{surf.source_key}→{surf.target_key}] "
-            f"'{event_map.get(surf.source_key, surf.source_key)}' causes "
-            f"'{event_map.get(surf.target_key, surf.target_key)}' | "
-            f"mechanism: {props.get('mechanism','')} | label: {edge.label}"
-        )
+        applied += 1
     session.flush()
-    logger.info("[%s] Phase 2e: enriched %d causes", story.slug, len(output.causes))
-    return "\n".join(rendered)
+    logger.info("[%s] Phase 2e: enriched %d causes%s", story.slug, applied,
+                f" (targeted {len(only_keys)})" if only_keys else "")
 
 
 # ── Phase 0: World design ──────────────────────────────────────────────────────
@@ -1789,7 +1868,8 @@ def run(session: Session, story: Story, feedback: str | None = None) -> None:
     ):
         _enrich_with_verify(
             story, group,
-            lambda fb, _fn=fn: _fn(session, story, lexicon, world_design_text, feedback=fb),
+            lambda fb, keys, _fn=fn: _fn(session, story, lexicon, world_design_text,
+                                         feedback=fb, only_keys=keys),
             session, world_design_text,
         )
 
