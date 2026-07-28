@@ -41,8 +41,13 @@ _ABBREVIATIONS = (
 # A run of consecutive PERIOD-ended narration sentences may stay together up to this
 # many; a longer run is broken. A sentence ending in ! or ? always ends its paragraph
 # (an emphatic/interrogative beat stands on its own line — like the source's "Slap!").
-_MAX_PERIOD_RUN = 3
+_MAX_PERIOD_RUN = 2
 _EMPHATIC_TRAILING = ' "“”„«»\'’)'
+# A closing double-quote immediately preceded by ,.!?… marks the end of a SPOKEN
+# sentence (e.g. `pairing," he said` / `stop!"`), i.e. real dialogue. A quoted WORD in
+# narration (`meant by "quarantine"?`) has a letter before the closing quote and does
+# NOT match — so it is correctly treated as narration and still gets split.
+_SPOKEN_QUOTE_RE = re.compile(r'[,.!?…]["”»]')
 
 
 def _split_into_sentences(para: str) -> list[str]:
@@ -68,17 +73,27 @@ def _ends_emphatic(sentence: str) -> bool:
     return s.endswith("!") or s.endswith("?")
 
 
+def _is_dialogue_paragraph(para: str) -> bool:
+    """True only for a real DIALOGUE turn (kept whole), not narration that merely
+    contains a quoted word. Dialogue = the paragraph starts with a quote, OR a closing
+    double-quote is immediately preceded by sentence/clause punctuation (a spoken
+    sentence). `meant by "quarantine"?` matches neither → treated as narration."""
+    if para.lstrip()[:1] in _DIALOGUE_QUOTES:
+        return True
+    return bool(_SPOKEN_QUOTE_RE.search(para))
+
+
 def _split_long_paragraph(para: str) -> list[str]:
     """Re-paragraph a PURE-NARRATION block at sentence boundaries (sentence text never
-    altered). A paragraph carrying quoted dialogue is returned whole so a speaker's
-    turn (and its action beat) stays intact.
+    altered). A real dialogue turn is returned whole so a speaker's turn (and its
+    action beat) stays intact.
 
     Grouping rule: walk the sentences and start a new paragraph when either
       • the current sentence ends in ! or ? (always breaks — emphatic beat alone), or
-      • the current run of period-ended sentences reaches _MAX_PERIOD_RUN (3).
-    So 1-3 plain declarative sentences stay together, a 4th forces a break, and any
+      • the current run of period-ended sentences reaches _MAX_PERIOD_RUN (2).
+    So 1-2 plain declarative sentences stay together, a 3rd forces a break, and any
     !/? sentence stands on its own line."""
-    if any(q in para for q in _DIALOGUE_QUOTES):
+    if _is_dialogue_paragraph(para):
         return [para]
     sentences = _split_into_sentences(para)
     chunks: list[str] = []
