@@ -99,8 +99,11 @@ def run(
         if not node:
             logger.warning("[%s] graph_surface_rewriter: node %s not found", story.slug, patch.node_key)
             continue
-        if patch.new_label:
-            node.label = patch.new_label
+        # NAMES ARE FROZEN: only the lexicon (source entities) and creative enrichment
+        # (new entities) may set a node's name. This step fixes CONTENT only — it must
+        # never rename an existing entity, so patch.new_label is deliberately ignored
+        # for nodes. (Applying it caused the protagonist to be renamed post-reconcile
+        # — "Kira Valorant"/"Lyra Vane" — desyncing the derived story_bible/plot.)
         props = dict(node.properties or {})
         if patch.new_summary:      props["summary"]     = patch.new_summary
         if patch.new_profile_md:   props["profile_md"]  = patch.new_profile_md

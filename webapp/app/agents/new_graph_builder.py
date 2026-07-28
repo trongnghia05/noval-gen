@@ -1706,7 +1706,14 @@ def _sweep_orphan_names(session: Session, story: Story, variant_map: dict) -> in
                 toks = phrase.split()
                 if toks[0].lower() in _NAME_STOPWORDS:
                     return phrase
-                if any(t in label_tokens or t.lower() in label_tokens for t in toks):
+                # Keep the phrase ONLY if it is a legit reference to real node(s):
+                # EVERY token must be a known label token. If ANY token is unknown,
+                # the phrase is an invented variant of THIS character (e.g. label is
+                # "Seraphina Nova" but a field says "Lyra Vane" — "vane" is no label's
+                # token) → fold it to the canonical label. (The old test skipped on
+                # ANY shared token, so "Lyra Vane" survived because "Lyra" matched an
+                # unrelated character — that was the hole.)
+                if all(t.lower() in label_tokens for t in toks):
                     return phrase
                 if any(t.lower() in own_tokens for t in toks):
                     return phrase
@@ -1877,38 +1884,13 @@ def run(session: Session, story: Story, feedback: str | None = None) -> None:
     if not feedback:
         _enrich_graph(session, story)
 
-    # Phase 3.4 — name reconciliation: the single deterministic referee that forces
-    # the entire graph onto ONE canonical name table (node labels), sweeping leaked
-    # source names + draft/variant names left by world_designer/enrichers. Returns
-    # a variant→canonical map so the SAME fix applies to story_bible below.
-    variant_map = _reconcile_names(session, story)
-
-    # Phase 3.5 — rewrite story_bible using new-graph names, then verify
-    _rewrite_story_bible(session, story, world_design)
-    # Apply the same name normalization to story_bible so world-design prose
-    # (which may still carry a draft name like "Kaito") matches the graph exactly.
-    if story.story_bible:
-        story.story_bible = _apply_variant_map_to_text(story.story_bible, variant_map)
-    _verify_story_bible(session, story, world_design)
-
-    # Phase 3.6 — retitle for the NEW world. The title was invented at creation
-    # from the SOURCE (e.g. "Mafia Nanny"), which no longer fits the reskinned
-    # world (a gothic Keep has no mafia). Re-derive it from the new story_bible.
-    # The folder slug stays as-is (a filesystem id); only the displayed title changes.
-    if not feedback:
-        try:
-            new_title = generate_title(
-                PROVIDER, AGENT_MODELS["title_generator"],
-                language=story.language, input_type="PREMISE",
-                genre=story.genre, source_content=story.story_bible or "",
-            )
-            if new_title and new_title.strip():
-                logger.info("[%s] retitled for new world: %r -> %r",
-                            story.slug, story.title, new_title.strip())
-                story.title = new_title.strip()
-                session.flush()
-        except Exception as exc:
-            logger.warning("[%s] retitle failed, keeping original: %s", story.slug, exc)
+    # Phase 3.4 — name reconciliation (deterministic): fold enricher/creative draft
+    # names + leaked source names back onto the canonical labels, so the graph handed
+    # to verify_graph is already name-clean. story_bible / plot_outline / world are NOT
+    # derived here anymore: the graph is not yet FINAL (verify_graph's surface rewriter
+    # still runs after this). They are all derived together in finalize_after_verify(),
+    # from the FINAL graph, so every planning artifact shares one name set.
+    _reconcile_names(session, story)
 
     story.plot_outline = None
     story.world_bible = None
@@ -1917,3 +1899,39 @@ def run(session: Session, story: Story, feedback: str | None = None) -> None:
     session.flush()
     story.new_graph_built = True
     logger.info("[%s] new_graph_builder: done", story.slug)
+
+
+def finalize_after_verify(session: Session, story: Story) -> None:
+    """Called by the orchestrator AFTER verify_graph (graph_verifier + its surface
+    rewriter) has run — i.e. when the new graph is FINAL. Does the last name pass and
+    derives story_bible from that final graph, so story_bible / plot_outline / world /
+    characters (all built from here on) share ONE canonical name set.
+
+    Order matters: verify_graph is the last step that touches graph CONTENT, so name
+    reconciliation and every artifact derivation must happen here, not inside run()
+    (which finishes before verify_graph). This is what fixed the 3-names-for-one-
+    character desync (story_bible said 'Lyra Vane', plot said 'Kira Valorant', labels
+    said 'Seraphina Nova')."""
+    # 1. Final deterministic name reconcile — folds any variant the verifier's surface
+    #    rewriter left onto the canonical labels.
+    variant_map = _reconcile_names(session, story)
+    # 2. Derive story_bible from the FINAL graph (names now settled).
+    _rewrite_story_bible(session, story, world_design=None)
+    if story.story_bible:
+        story.story_bible = _apply_variant_map_to_text(story.story_bible, variant_map)
+    _verify_story_bible(session, story)
+    # 3. Retitle for the new world from the final story_bible.
+    try:
+        new_title = generate_title(
+            PROVIDER, AGENT_MODELS["title_generator"],
+            language=story.language, input_type="PREMISE",
+            genre=story.genre, source_content=story.story_bible or "",
+        )
+        if new_title and new_title.strip():
+            logger.info("[%s] retitled for new world: %r -> %r",
+                        story.slug, story.title, new_title.strip())
+            story.title = new_title.strip()
+    except Exception as exc:
+        logger.warning("[%s] retitle failed, keeping original: %s", story.slug, exc)
+    session.flush()
+    logger.info("[%s] finalize_after_verify: story_bible derived from final graph", story.slug)

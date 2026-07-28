@@ -24,10 +24,12 @@ For each issue in the list:
 
 **Always identify nodes/edges by their node_key** (C001, E005, L003…), NEVER by the character's name. Look the key up in the graph; if an issue names a character, find that character's node_key and use it.
 
+**⚠️ NAMES ARE FROZEN — NEVER rename or invent an entity name.** Every character/place/faction/object already has a final name (its `label` in the graph). When you rewrite any field, refer to each entity by its EXACT existing label — do NOT change it, shorten it, add a surname, or invent a new name. You fix LOGIC and SURFACE DETAIL (props, imagery, wording) only; the name set is fixed by an earlier step. **Do not emit `new_label` for a node** — it is ignored. (Renaming here previously desynced the story from the rest of the plan.)
+
 **Patchable fields by target:**
-- CHARACTER node: `new_profile_md`, `new_arc_stage`, `new_background`, `new_wants`, `new_fears`, `new_label`
-- EVENT node: `new_summary`, `new_label`
-- LOCATION/FACTION/OBJECT/THEME node: `new_description`, `new_label`
+- CHARACTER node: `new_profile_md`, `new_arc_stage`, `new_background`, `new_wants`, `new_fears`
+- EVENT node: `new_summary`
+- LOCATION/FACTION/OBJECT/THEME node: `new_description`
 - CAUSES edge: `new_mechanism`
 - RELATION edge: `new_rel_type`, `new_condition`, `new_label`
 - **ARC_CHANGE edge**: `new_old_val`, `new_new_val` (the arc-change description — the field most often flagged as a near-verbatim translation of the source; rewrite it in fresh wording)

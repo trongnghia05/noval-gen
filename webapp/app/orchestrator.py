@@ -175,6 +175,11 @@ def run_new_graph_step(session: Session, story: Story) -> dict:
 def run_verify_graph_step(session: Session, story: Story) -> dict:
     logger.info("[%s] START verify_graph", story.slug)
     graph_verifier.run(session, story)
+    # Graph is now FINAL (verifier + its surface rewriter have run). Do the last name
+    # reconcile and derive story_bible from this final graph, so story_bible /
+    # plot_outline / world / characters — all built after this — share one name set.
+    if story.new_graph_verified:
+        new_graph_builder.finalize_after_verify(session, story)
     session.commit()
     return {"phase": "PLANNING", "step": "verify_graph"}
 
