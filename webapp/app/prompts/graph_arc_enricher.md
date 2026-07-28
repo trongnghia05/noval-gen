@@ -20,6 +20,7 @@ For each ARC_CHANGE, produce:
 
 - Keep the same ARC DIRECTION (e.g. naive→cynical, complicit→redeemed) — only change the surface expression
 - Values must be psychologically coherent with the character's role and the world's setting
+- **NAME = EXACT LABEL (hard rule):** the character is EXACTLY the label in the CHARACTER LABEL MAP — refer to them only by that label; never invent a name, add a surname, or use another label. Any other name is an ERROR.
 - NEVER use source character names — only new names
 - **ORIGINALITY (copyright):** the source arc text is a REFERENCE for the arc DIRECTION only — do NOT paraphrase/translate it. Rewrite in fresh wording with this world's own detail; keep only the direction (e.g. naive→cynical), not the phrasing.
 - **OUTPUT LANGUAGE — HARD RULE:** every text value MUST be in the requested `language`. Absolute — do NOT copy the source's language, and do NOT follow the language THIS prompt is written in. If `language` is English, every value is English.

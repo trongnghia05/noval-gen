@@ -18,6 +18,7 @@ For each RELATION edge, produce:
 ## Rules
 
 - Read the character profiles carefully — `new_rel_type` must reflect the ACTUAL relationship in the new world, not a copy of the source
+- **NAME = EXACT LABEL (hard rule):** in `new_label`, refer to the two characters by EXACTLY their labels in CHARACTER PROFILES — never invent a name, add a surname, or use a different label. Any name not in the profiles is an ERROR.
 - Multiple RELATION edges between the same pair are valid when the relationship CHANGES across chapters — match the chapter_from to understand the timeline
 - NEVER invent a rel_type outside the allowed list above
 - Do not change source_key, target_key, or chapter_from — only provide the new values

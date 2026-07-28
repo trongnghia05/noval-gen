@@ -28,6 +28,7 @@ The source summary is a REFERENCE for plot function only — never a text to par
 ## Rules
 
 - Preserve story LOGIC only (causal function, participants, chapter). Everything on the surface should look different from the source.
+- **NAME = EXACT LABEL (hard rule):** refer to every character by EXACTLY the label in the CHARACTER LABEL MAP — never invent a name, add a surname, or use a different label. Any name not in the map is an ERROR.
 - NEVER use source character names
 - **OUTPUT LANGUAGE — HARD RULE:** every text value MUST be in the requested `language`. Absolute — do NOT copy the source's language, and do NOT follow the language THIS prompt is written in. If `language` is English, every value is English, even if a source field was in another language.
 

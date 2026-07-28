@@ -616,6 +616,22 @@ class CausesGroupEnrichOutput(BaseModel):
     note: str = ""
 
 
+# ── graph_enrich_verifier (per-enricher quality/logic/naming gate) ─────────────
+
+class GraphEnrichIssueOut(BaseModel):
+    """One problem the enrich-verifier found in a group's enriched output."""
+    target: str = ""        # which node_key / edge (e.g. "C003" or "C003→C007")
+    dimension: Literal["naming", "logic", "quality"] = "naming"
+    problem: str            # what is wrong
+    fix: str = ""           # concrete instruction for the re-enrichment
+
+
+class GraphEnrichVerifyOutput(BaseModel):
+    """Verdict on one enrichment group. `issues` empty ⇒ the group passed."""
+    issues: list[GraphEnrichIssueOut] = []
+    note: str = ""
+
+
 # ── graph_verifier ─────────────────────────────────────────────────────────────
 
 class GraphVerifyIssueOut(BaseModel):

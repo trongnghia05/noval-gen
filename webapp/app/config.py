@@ -54,6 +54,7 @@ AGENT_MODELS = {
     "graph_arc_enricher":       os.getenv("MODEL_GRAPH_ARC_ENRICHER",       _DEFAULT_MODEL),
     "graph_relation_enricher":  os.getenv("MODEL_GRAPH_RELATION_ENRICHER",  _DEFAULT_MODEL),
     "graph_causes_enricher":    os.getenv("MODEL_GRAPH_CAUSES_ENRICHER",    _DEFAULT_MODEL),
+    "graph_enrich_verifier":    os.getenv("MODEL_GRAPH_ENRICH_VERIFIER",    _DEFAULT_MODEL),
     "novel_metadata":         os.getenv("MODEL_NOVEL_METADATA",          _DEFAULT_MODEL),
     "image_prompt":           os.getenv("MODEL_IMAGE_PROMPT",            _DEFAULT_MODEL),
 }
