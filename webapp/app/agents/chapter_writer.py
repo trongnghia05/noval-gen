@@ -38,9 +38,11 @@ _ABBREVIATIONS = (
     "Gen.", "Col.", "Maj.", "Rev.", "Hon.", "Jr.", "Sr.", "vs.", "etc.",
     "No.", "Dept.", "Inc.", "Ltd.",
 )
-# Pure-narration paragraphs are capped at this many sentences (source study: pure
-# narration is ~96% at 1-2 sentences). Longer ones are re-split at sentence bounds.
-_MAX_NARRATION_SENTENCES = 2
+# A run of consecutive PERIOD-ended narration sentences may stay together up to this
+# many; a longer run is broken. A sentence ending in ! or ? always ends its paragraph
+# (an emphatic/interrogative beat stands on its own line — like the source's "Slap!").
+_MAX_PERIOD_RUN = 3
+_EMPHATIC_TRAILING = ' "“”„«»\'’)'
 
 
 def _split_into_sentences(para: str) -> list[str]:
@@ -59,31 +61,50 @@ def _split_into_sentences(para: str) -> list[str]:
     return [s.replace("\x00", ".").strip() for s in out if s.strip()]
 
 
+def _ends_emphatic(sentence: str) -> bool:
+    """True if the sentence's terminal punctuation is ! or ? (ignoring trailing
+    quotes/parens) — those always end a paragraph."""
+    s = sentence.rstrip(_EMPHATIC_TRAILING)
+    return s.endswith("!") or s.endswith("?")
+
+
 def _split_long_paragraph(para: str) -> list[str]:
-    """Cap a PURE-NARRATION paragraph at _MAX_NARRATION_SENTENCES sentences, splitting
-    at sentence boundaries (sentence text never altered). A paragraph carrying quoted
-    dialogue is returned whole so a speaker's turn (and its action beat) stays intact."""
+    """Re-paragraph a PURE-NARRATION block at sentence boundaries (sentence text never
+    altered). A paragraph carrying quoted dialogue is returned whole so a speaker's
+    turn (and its action beat) stays intact.
+
+    Grouping rule: walk the sentences and start a new paragraph when either
+      • the current sentence ends in ! or ? (always breaks — emphatic beat alone), or
+      • the current run of period-ended sentences reaches _MAX_PERIOD_RUN (3).
+    So 1-3 plain declarative sentences stay together, a 4th forces a break, and any
+    !/? sentence stands on its own line."""
     if any(q in para for q in _DIALOGUE_QUOTES):
         return [para]
     sentences = _split_into_sentences(para)
-    if len(sentences) <= _MAX_NARRATION_SENTENCES:
-        return [para]
-    step = _MAX_NARRATION_SENTENCES
-    return [" ".join(sentences[i:i + step]) for i in range(0, len(sentences), step)]
+    chunks: list[str] = []
+    current: list[str] = []
+    for sent in sentences:
+        current.append(sent)
+        if _ends_emphatic(sent) or len(current) >= _MAX_PERIOD_RUN:
+            chunks.append(" ".join(current))
+            current = []
+    if current:
+        chunks.append(" ".join(current))
+    return chunks if len(chunks) > 1 else [para]
 
 
 def normalize_paragraphs(text: str) -> str:
     """Force a blank line between paragraphs so Markdown renders them separately, and
-    cap pure-narration paragraphs at 2 sentences (splitting the rest at sentence
-    boundaries).
+    re-paragraph over-long pure-narration blocks at sentence boundaries.
 
     The model separates paragraphs with a single '\\n' (each non-empty line is one
     paragraph) but ignores per-paragraph length instructions for narration — it obeys
     structural rules (dialogue on its own line) yet not the quantitative "keep
     paragraphs short" rule, producing 5-6 sentence descriptive blocks. We fix that
-    deterministically: any pure-narration paragraph over 2 sentences is re-split at
-    sentence boundaries (dialogue paragraphs untouched, no sentence text changed),
-    matching the source's ~1.7-sentences/paragraph narration density."""
+    deterministically (see _split_long_paragraph): a run of plain declarative
+    sentences stays together up to 3, a longer run is broken, and any !/? sentence
+    stands on its own line — while dialogue paragraphs are left whole and no sentence
+    text is ever changed. Matches the source's short-narration density."""
     out: list[str] = []
     for ln in (text or "").splitlines():
         ln = ln.strip()
