@@ -298,6 +298,11 @@ class ChapterBlueprintOutput(BaseModel):
     state_delta: str = ""
     emotional_arc_start: str   # reader's emotion at chapter open
     emotional_arc_end: str     # reader's emotion at chapter close
+    # For a source that uses alternating multi-POV (per source_spirit's POV
+    # section): which character "holds" this chapter's point of view. The writer
+    # renders the whole chapter inside this character's head, in the source's
+    # grammatical person. Empty = single-POV / let the writer follow source_spirit.
+    pov_character: str = ""
     scenes: list[SceneOut]
     hook: str                  # exact nature of the final hook/cliffhanger
     foreshadowing_to_plant: str | None = None  # seed to drop (for future payoff)

@@ -56,6 +56,12 @@ Tính 3 phần theo tỷ lệ trên `words_per_chapter` (W) — KHÔNG dùng s�
 
 ## Tiêu chuẩn viết
 
+### Điểm nhìn (POV) — BẮT BUỘC theo nguồn (QUAN TRỌNG NHẤT)
+- **REWRITE:** đọc mục **POV** trong "Tinh thần truyện gốc" (source_spirit) và viết ĐÚNG NGÔI KỂ đó. Nếu nguồn ghi **ngôi thứ NHẤT** ('tôi/I') thì chương của bạn PHẢI viết ngôi thứ nhất — **TUYỆT ĐỐI không tự đổi sang ngôi ba**. Chỉ viết ngôi ba khi source_spirit ghi rõ ngôi ba. Đây là lỗi hay gặp nhất: nguồn ngôi-1 lấp lánh bị viết lại thành ngôi-3 đều đều, làm mất hồn truyện.
+- **Đa POV luân phiên:** nếu source_spirit ghi nguồn đa POV, thì mỗi chương/cảnh do MỘT nhân vật giữ điểm nhìn — theo `pov_character` của blueprint nếu có, nếu không thì theo kiểu luân phiên mô tả trong source_spirit. Toàn chương ở TRONG ĐẦU nhân vật POV đó: chỉ thấy điều họ thấy, nghĩ điều họ nghĩ; không truy cập ý nghĩ người khác.
+- **Giọng nội tâm phải mang đặc trưng nhân vật POV** (snarky/châm biếm/cynical/khô khan... đúng như source_spirit mô tả) — KHÔNG phải giọng tường thuật trung tính, trang trọng, đều đều. Nếu nguồn hài thì chương phải có hài; nếu nguồn ngôi-1 tự giễu thì nội tâm phải tự giễu.
+- **IDEA/PREMISE** (không có source_spirit): theo story-bible; nếu không ghi rõ thì ngôi ba cận cảnh, một POV mỗi chương.
+
 ### Đối thoại
 - **Tuân theo DIALOGUE plan của mỗi scene trong blueprint**: mọi nhân vật liệt kê ở `speaking_characters` PHẢI có thoại thực sự trong scene đó, và đoạn thoại phải ĐẠT ĐƯỢC `dialogue must achieve` với đúng `dialogue tone`. Nếu scene ghi "none planned" → đừng nhồi thoại, để nó là cảnh nội tâm/hành động.
 - **Tôn trọng DIALOGUE INTENSITY của chương**: `heavy` → phần lớn chương là đối đáp; `balanced` → đan xen; `sparse` → rất ít thoại, chủ yếu nội tâm/hành động. Đừng vượt quá mức đã định.
@@ -66,8 +72,10 @@ Tính 3 phần theo tỷ lệ trên `words_per_chapter` (W) — KHÔNG dùng s�
 
 ### Mô tả
 - Dùng giác quan: không chỉ nhìn — còn nghe, ngửi, cảm nhận
-- Show don't tell: thay vì "anh ấy tức giận" → mô tả biểu hiện thể lý
 - Chi tiết cụ thể thay vì chung chung
+- **SHOW, ĐỪNG TELL — rule cứng (trừ khi source_spirit ghi nguồn thiên tell):** CẤM gọi tên cảm xúc bằng công thức sáo mòn khi có thể DIỄN nó. Cụ thể tránh các khuôn: *"một nỗi sợ dâng lên", "a wave of dread washed over her", "the knot tightened in her stomach", "a chill ran down her spine", "her heart hammered with fear", "disgust churned in her gut".* Thay bằng: một hành động, một câu thoại, một chi tiết cơ thể/giác quan cụ thể để lộ cảm xúc — để người đọc TỰ thấy, không bị thông báo.
+  - Tell (tránh): *Nỗi sợ tràn ngập cô.* → Show (nên): *Cô đếm lại số lối ra. Hai. Cả hai đều sau lưng gã.*
+- Mỗi chương chỉ được gọi tên cảm xúc trực tiếp vài lần cho khoảnh khắc thật sự cần — không phải mỗi đoạn một lần. Nếu thấy mình vừa viết "a [wave/surge/knot/flicker] of [cảm xúc]", dừng lại và diễn nó ra.
 
 ### Ngôn từ — DỄ ĐỌC, PHỔ THÔNG (QUAN TRỌNG)
 - Viết bằng từ ngữ **THÔNG DỤNG, đời thường** — như tiểu thuyết thể loại / web-novel đại chúng mà đông người đọc, KHÔNG phải văn hàn lâm khoe chữ.

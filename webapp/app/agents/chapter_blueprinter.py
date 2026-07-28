@@ -65,6 +65,14 @@ def run(session: Session, story: Story, chapter: Chapter) -> None:
 {csv_graph.format_recent_timeline(story.id)}
 """
 
+    spirit_section = ""
+    if story.input_type == "REWRITE" and story.source_spirit:
+        spirit_section = (
+            "\n## Tinh thần truyện gốc — POV & tone (dùng để gán pov_character)\n"
+            + story.source_spirit
+            + "\n"
+        )
+
     db_graph_section = ""
     if story.new_graph_built:
         db_graph_section = (
@@ -80,7 +88,7 @@ def run(session: Session, story: Story, chapter: Chapter) -> None:
 total_chapters: {story.total_chapters}
 act_position: {act}
 language: {story.language}
-{graph_section}{db_graph_section}
+{spirit_section}{graph_section}{db_graph_section}
 ## recent chapters' beat_type + state_delta (DO NOT repeat these — advance beyond them)
 {_recent_beats(session, story.id, chapter.number)}
 

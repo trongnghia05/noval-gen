@@ -162,7 +162,14 @@ def _format_blueprint(chapter: Chapter) -> str:
         scenes = "\n".join(scene_lines)
         plant = bp.get("foreshadowing_to_plant") or "none"
         intensity = bp.get("dialogue_intensity", "balanced")
+        pov = bp.get("pov_character") or ""
+        pov_line = (
+            f"POV CHARACTER (write the whole chapter through this person's eyes, "
+            f"in the source's grammatical person — see source_spirit POV): {pov}\n"
+            if pov else ""
+        )
         return (
+            f"{pov_line}"
             f"PURPOSE: {bp.get('purpose')}\n"
             f"ACT: {bp.get('act_position')} | BEAT: {bp.get('beat_type', '')}\n"
             f"STATE DELTA (this chapter must make this change happen): {bp.get('state_delta', '')}\n"
@@ -290,7 +297,14 @@ def _write_single_scene(
     model cannot repeat content that is already on the page."""
     is_first = scene_index == 0
 
+    pov = blueprint.get("pov_character") or ""
+    pov_line = (
+        f"POV CHARACTER (write through this person's eyes only, in the source's "
+        f"grammatical person — see source_spirit POV): {pov}\n"
+        if pov else ""
+    )
     bp_overview = (
+        f"{pov_line}"
         f"CHAPTER PURPOSE: {blueprint.get('purpose')}\n"
         f"ACT: {blueprint.get('act_position')} | "
         f"Emotion: {blueprint.get('emotional_arc_start')} → {blueprint.get('emotional_arc_end')}\n"
