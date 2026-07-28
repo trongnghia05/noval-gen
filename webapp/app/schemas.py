@@ -393,6 +393,15 @@ class WorldNameCheckOutput(BaseModel):
     note: str = ""
 
 
+class EntityResolveOutput(BaseModel):
+    """Verdict from the entity resolver during source extraction: is a newly-extracted
+    node actually the SAME real entity as one already in the graph? A code pre-filter
+    finds same-name candidates; this decides if the new node should REUSE an existing
+    key (`same_as`) or is genuinely distinct (`same_as` = null)."""
+    same_as: str | None = None   # node_key of the existing entity, or null if new
+    note: str = ""
+
+
 class StoryBibleLeakCheckOutput(BaseModel):
     """Second-stage verdict on story-bible name leaks. Python first finds SOURCE names
     that appear as whole words in the new story-bible prose (candidates); this LLM

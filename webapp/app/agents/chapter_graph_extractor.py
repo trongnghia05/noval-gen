@@ -11,6 +11,9 @@ Completeness guarantee: the orchestrator keeps dispatching this step until
 Each call is O(1 chapter) so it never hits token limits regardless of novel length.
 """
 
+import json
+import logging
+
 from sqlalchemy.orm import Session
 
 from .. import length_calc
@@ -18,7 +21,84 @@ from ..config import AGENT_MODELS, PROVIDER
 from ..db.models import Story, StoryGraphEdge, StoryGraphNode
 from ..llm_json import generate_structured
 from ..prompts.loader import load_prompt
-from ..schemas import ChapterGraphOutput
+from ..schemas import ChapterGraphOutput, EntityResolveOutput
+
+logger = logging.getLogger(__name__)
+
+# Titles / honorifics stripped before comparing two entity names, so "Alpha Theron"
+# and "Theron" normalise to the same key. Kept broad (fantasy / romance / sci-fi).
+_ENTITY_TITLES = {
+    "the", "a", "an", "lord", "lady", "master", "mistress", "dame", "sir", "madam",
+    "king", "queen", "prince", "princess", "duke", "duchess", "elder", "alpha",
+    "luna", "beta", "omega", "commander", "captain", "general", "overseer",
+    "high", "executive", "councilor", "councillor", "professor", "dr", "mr", "mrs",
+    "ms", "warden", "praetorian", "guard", "leader", "patriarch", "matriarch",
+    "young", "old", "ancient", "venerable", "seer", "healer",
+}
+
+
+def _norm_tokens(label: str) -> list[str]:
+    """Name words with titles + punctuation stripped, lowercased — order preserved."""
+    out = []
+    for raw in (label or "").replace(",", " ").split():
+        t = raw.strip(".,;:'\"()[]-").lower()
+        if t and t not in _ENTITY_TITLES:
+            out.append(t)
+    return out
+
+
+def _candidate_duplicates(session: Session, story_id: int, node_type: str,
+                          label: str, exclude_key: str) -> list[StoryGraphNode]:
+    """Existing same-type nodes that MIGHT be the same entity as `label`: their
+    stripped-title name is identical, or they share a distinctive (>=3 char) name
+    token. Deliberately loose — the LLM resolver makes the final call."""
+    toks = set(_norm_tokens(label))
+    if not toks:
+        return []
+    distinctive = {t for t in toks if len(t) >= 3}
+    cands = []
+    for n in (session.query(StoryGraphNode)
+              .filter_by(story_id=story_id, graph_type="source", node_type=node_type).all()):
+        if n.node_key == exclude_key:
+            continue
+        ntoks = set(_norm_tokens(n.label))
+        if ntoks == toks or (distinctive & {t for t in ntoks if len(t) >= 3}):
+            cands.append(n)
+    return cands
+
+
+def _resolve_duplicate(session: Session, story: Story, node) -> str | None:
+    """Return the node_key of an existing entity that `node` duplicates, or None if it
+    is genuinely new. Code finds same-name candidates; an LLM adjudicates."""
+    cands = _candidate_duplicates(session, story.id, node.node_type, node.label, node.id)
+    if not cands:
+        return None
+    def _fmt(n):
+        p = n.properties or {}
+        return f"  [{n.node_key}] {n.label} | {json.dumps({k: p[k] for k in list(p)[:4]}, ensure_ascii=False)}"
+    try:
+        out: EntityResolveOutput = generate_structured(
+            PROVIDER, system=load_prompt("entity_resolver"),
+            user_content=(
+                f"language: {story.language}\n\n"
+                f"## NEW ENTITY\n  type={node.node_type} label={node.label}\n"
+                f"  properties={json.dumps(node.properties or {}, ensure_ascii=False)}\n\n"
+                f"## CANDIDATES\n" + "\n".join(_fmt(c) for c in cands)
+            ),
+            model=AGENT_MODELS.get("entity_resolver", AGENT_MODELS["chapter_graph_extractor"]),
+            schema=EntityResolveOutput, max_tokens=1024, thinking=False,
+        )
+    except Exception as exc:
+        logger.warning("[%s] entity_resolver failed for %s (%s) — keeping as new",
+                       story.slug, node.id, exc)
+        return None
+    # Only honour a match that is actually one of the candidates we offered.
+    valid = {c.node_key for c in cands}
+    if out.same_as and out.same_as in valid:
+        logger.info("[%s] extract dedup: %r (%s) → reuse existing %s",
+                    story.slug, node.label, node.id, out.same_as)
+        return out.same_as
+    return None
 
 
 def _format_entity_list(session: Session, story_id: int, up_to_chapter: int | None = None) -> str:
@@ -182,23 +262,42 @@ def _extract_chapter(session: Session, story: Story, chapter_number: int, chapte
         chapter_introduced=chapter_number,
     ))
 
+    # key_remap: a new_node the LLM gave a fresh key but that is really an entity
+    # ALREADY in the graph (same person re-introduced) → reuse the existing key and
+    # remap this chapter's edges onto it, instead of inserting a duplicate node.
+    key_remap: dict[str, str] = {}
     for node in output.new_nodes:
         existing = (
             session.query(StoryGraphNode)
             .filter_by(story_id=story.id, graph_type="source", node_key=node.id)
             .first()
         )
-        if not existing:
-            session.add(StoryGraphNode(
-                story_id=story.id,
-                graph_type="source",
-                node_key=node.id,
-                node_type=node.node_type,
-                label=node.label,
-                properties=node.properties or {},
-                chapter_introduced=chapter_number,
-            ))
+        if existing:
+            continue
+        # Only de-dup real entities (not events, which are canonical E{chap}).
+        if node.node_type != "event":
+            canon = _resolve_duplicate(session, story, node)
+            if canon:
+                key_remap[node.id] = canon
+                continue
+        session.add(StoryGraphNode(
+            story_id=story.id,
+            graph_type="source",
+            node_key=node.id,
+            node_type=node.node_type,
+            label=node.label,
+            properties=node.properties or {},
+            chapter_introduced=chapter_number,
+        ))
     session.flush()
+
+    # Point this chapter's edges at the canonical keys for any de-duplicated node.
+    if key_remap:
+        for edge in output.edges:
+            edge.source_id = key_remap.get(edge.source_id, edge.source_id)
+            edge.target_id = key_remap.get(edge.target_id, edge.target_id)
+            if edge.trigger_event_id:
+                edge.trigger_event_id = key_remap.get(edge.trigger_event_id, edge.trigger_event_id)
 
     # Auto-create placeholder nodes for any node_key referenced in edges but
     # not yet defined. The LLM occasionally omits nodes from new_nodes despite

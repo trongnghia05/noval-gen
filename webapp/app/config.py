@@ -30,6 +30,7 @@ _DEFAULT_MODEL = "gemini-2.5-flash" if LLM_PROVIDER == "vertex" else "anthropic/
 AGENT_MODELS = {
     "story_analyzer":           os.getenv("MODEL_STORY_ANALYZER",           _DEFAULT_MODEL),
     "chapter_graph_extractor":  os.getenv("MODEL_CHAPTER_GRAPH_EXTRACTOR",  _DEFAULT_MODEL),
+    "entity_resolver":          os.getenv("MODEL_ENTITY_RESOLVER",          _DEFAULT_MODEL),
     "plot_architect":           os.getenv("MODEL_PLOT_ARCHITECT",            _DEFAULT_MODEL),
     "character_developer": os.getenv("MODEL_CHARACTER_DEVELOPER",  _DEFAULT_MODEL),
     "worldbuilder":        os.getenv("MODEL_WORLDBUILDER",         _DEFAULT_MODEL),
