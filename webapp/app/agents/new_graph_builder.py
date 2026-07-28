@@ -457,16 +457,34 @@ def substitute_labels(
     # Longest source label first so multi-word names are replaced before any of
     # their component words. Each gets a compiled word-boundary pattern.
     pairs = sorted(label_map.items(), key=lambda x: len(x[0]), reverse=True)
-    compiled = [
-        (re.compile(r"(?<!\w)" + re.escape(src) + r"(?!\w)"), new)
-        for src, new in pairs
-    ]
+    compiled = []
+    for src, new in pairs:
+        pat = re.compile(r"(?<!\w)" + re.escape(src) + r"(?!\w)")
+        # IDEMPOTENCY: skip a self-wrapping pair where the NEW label contains the SRC
+        # token (e.g. src="Elena", new="Architect Elena Nexus"). Applying it wraps the
+        # label with another layer every time substitute_labels runs (it runs in Phase
+        # 1.5 AND again in verify_graph's reskin), producing runaway labels like
+        # "Architect Architect ... Elena ... Nexus Nexus". Normal pairs (Kael→Roric)
+        # are kept, so re-sweeping freshly-leaked source names still works.
+        if pat.search(new):
+            logger.warning("[%s] substitute_labels: skip self-wrapping %r → %r",
+                           story_id, src, new)
+            continue
+        compiled.append((pat, new))
 
     def sub(text: str | None) -> str | None:
         if not text:
             return text
+        orig = text
         for pattern, new in compiled:
             text = pattern.sub(new, text)
+        # Safety net: substitution must never blow up a field's size. Any pathological
+        # growth (a runaway we didn't foresee) leaves the field untouched rather than
+        # writing a multi-megabyte blob that crashes the DB.
+        if len(text) > max(500, 4 * len(orig)):
+            logger.warning("[%s] substitute_labels: runaway growth on a field "
+                           "(%d→%d chars) — leaving it unchanged", story_id, len(orig), len(text))
+            return orig
         return text
 
     for node in session.query(StoryGraphNode).filter_by(story_id=story_id, graph_type="new").all():
