@@ -44,6 +44,7 @@ AGENT_MODELS = {
     "title_generator":     os.getenv("MODEL_TITLE_GENERATOR",      _DEFAULT_MODEL),
     "world_designer":         os.getenv("MODEL_WORLD_DESIGNER",          _DEFAULT_MODEL),
     "name_lexicon":           os.getenv("MODEL_NAME_LEXICON",            _DEFAULT_MODEL),
+    "story_bible_leak_check": os.getenv("MODEL_STORY_BIBLE_LEAK_CHECK",  _DEFAULT_MODEL),
     "new_graph_builder":      os.getenv("MODEL_NEW_GRAPH_BUILDER",       _DEFAULT_MODEL),
     "graph_enricher":         os.getenv("MODEL_GRAPH_ENRICHER",          _DEFAULT_MODEL),
     "graph_verifier":         os.getenv("MODEL_GRAPH_VERIFIER",          _DEFAULT_MODEL),

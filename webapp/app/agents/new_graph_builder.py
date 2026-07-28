@@ -41,6 +41,7 @@ from ..schemas import (
     NameLexiconOutput,
     NewGraphSurfaceOutput,
     RelationGroupEnrichOutput,
+    StoryBibleLeakCheckOutput,
     WorldDesignOutput,
     WorldNameCheckOutput,
 )
@@ -1312,13 +1313,45 @@ def _rewrite_story_bible(
                 story.slug, len(story.story_bible), len(prose), len(event_nodes), len(relation_edges))
 
 
+def _confirm_story_bible_leaks(story: Story, candidates: list[str], prose: str) -> list[str]:
+    """Stage 2 of the leak check: given Python's whole-word source-name CANDIDATES,
+    ask an LLM which are ACTUAL source-name leaks vs false positives (a coincidental
+    common word, or a name the new world legitimately reused). On any failure, treat
+    all candidates as leaks — conservative, so a real leak is never silently kept."""
+    if not candidates:
+        return []
+    try:
+        system = load_prompt("story_bible_leak_check")
+        out: StoryBibleLeakCheckOutput = generate_structured(
+            PROVIDER, system=system,
+            user_content=(
+                f"language: {story.language}\n\n"
+                f"## CANDIDATES\n{', '.join(candidates)}\n\n"
+                f"## STORY-BIBLE PROSE\n{prose}\n"
+            ),
+            model=AGENT_MODELS.get("story_bible_leak_check", AGENT_MODELS["name_lexicon"]),
+            schema=StoryBibleLeakCheckOutput, max_tokens=2048, thinking=False,
+        )
+        confirmed = {n.strip().lower() for n in (out.real_leaks or []) if n and n.strip()}
+        # Keep only names that were actually candidates — the LLM must not add new ones.
+        return [c for c in candidates if c.lower() in confirmed]
+    except Exception as exc:
+        logger.warning("[%s] story_bible leak judge failed (%s) — treating all %d "
+                       "candidate(s) as leaks", story.slug, exc, len(candidates))
+        return candidates
+
+
 def _verify_story_bible(
     session: Session,
     story: Story,
     world_design: WorldDesignOutput | None = None,
     max_retries: int = 10,
 ) -> None:
-    """Check story_bible for leaked source character names; retry rewrite if found."""
+    """Check story_bible for leaked source character names; retry rewrite if found.
+
+    Two stages: Python word-boundary scan finds candidate source names appearing as
+    WHOLE words, then an LLM judges which candidates are genuine leaks vs false
+    positives (common word / legit new-world reuse). Only confirmed leaks retry."""
     source_labels = [
         n.label for n in session.query(StoryGraphNode)
         .filter_by(story_id=story.id, graph_type="source", node_type="character")
@@ -1333,8 +1366,16 @@ def _verify_story_bible(
         # Those names are caught by graph_verifier's reskin pass, not here.
         bible = story.story_bible or ""
         prose_only = bible.split("\n\n## Bản đồ cốt truyện gốc")[0]
-        prose_lower = prose_only.lower()
-        leaked = [name for name in source_labels if name.lower() in prose_lower]
+        # Stage 1 (Python, cheap, deterministic): word-boundary match so a source name
+        # is flagged only as a WHOLE word — "Kael" no longer matches inside a new name
+        # like "Kaelen". Same rule as substitute_labels (word-boundary).
+        candidates = [
+            name for name in source_labels
+            if re.search(r"(?<!\w)" + re.escape(name) + r"(?!\w)", prose_only, re.IGNORECASE)
+        ]
+        # Stage 2 (LLM judge, only when there are candidates): keep just the genuine
+        # source-name leaks; drop false positives (common word / legit reuse).
+        leaked = _confirm_story_bible_leaks(story, candidates, prose_only)
         if not leaked:
             logger.info("[%s] story_bible verify: clean (attempt %d)", story.slug, attempt)
             return

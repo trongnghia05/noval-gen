@@ -393,6 +393,16 @@ class WorldNameCheckOutput(BaseModel):
     note: str = ""
 
 
+class StoryBibleLeakCheckOutput(BaseModel):
+    """Second-stage verdict on story-bible name leaks. Python first finds SOURCE names
+    that appear as whole words in the new story-bible prose (candidates); this LLM
+    pass judges which candidates are ACTUAL leaks — the source character re-appearing
+    — vs false positives (a coincidental common word, or a name legitimately reused by
+    the new world). Only confirmed real leaks should trigger a rewrite."""
+    real_leaks: list[str] = []   # candidates confirmed as genuine source-name leaks
+    note: str = ""
+
+
 # ── new_graph_builder Phase 1 (name lexicon) ─────────────────────────────────
 
 class NameLexiconEntry(BaseModel):
