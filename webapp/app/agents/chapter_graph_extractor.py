@@ -74,8 +74,10 @@ def _resolve_duplicate(session: Session, story: Story, node) -> str | None:
     if not cands:
         return None
     def _fmt(n):
-        p = n.properties or {}
-        return f"  [{n.node_key}] {n.label} | {json.dumps({k: p[k] for k in list(p)[:4]}, ensure_ascii=False)}"
+        # Full node (label + ALL properties) so the resolver has complete context to
+        # tell a true duplicate from two different people who share a name — never
+        # just the matched name token.
+        return f"  [{n.node_key}] {n.label} | {json.dumps(n.properties or {}, ensure_ascii=False)}"
     try:
         out: EntityResolveOutput = generate_structured(
             PROVIDER, system=load_prompt("entity_resolver"),
