@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from .. import context_builder, csv_graph
 from ..config import AGENT_MODELS, PROVIDER
-from ..db.models import Chapter, Story
+from ..db.models import Chapter, Story, StoryGraphNode
 from ..llm_json import generate_structured
 from ..prompts.loader import load_prompt
 from ..schemas import ChapterBlueprintOutput
@@ -43,6 +43,34 @@ def _recent_beats(session: Session, story_id: int, before_chapter: int, n: int =
             f"state_delta={bp.get('state_delta', '?')}"
         )
     return "\n".join(lines) or "(chưa có chương trước)"
+
+
+def _resolve_pov_from_source(session: Session, story: Story, chapter_number: int) -> str:
+    """Faithful per-chapter POV for a REWRITE with alternating multi-POV.
+
+    chapter_graph_extractor records, on each source EVENT E{N}, properties['pov'] =
+    the source character node_key whose point of view narrates that chapter. The new
+    graph preserves node_keys (only labels are reskinned), so looking up the SAME key
+    on graph_type='new' yields the reskinned name to use as this chapter's POV holder.
+    This reproduces the source's actual POV alternation instead of letting the LLM
+    guess. Returns '' when not applicable (no pov captured / third-person source).
+    """
+    if story.input_type != "REWRITE":
+        return ""
+    ev = (
+        session.query(StoryGraphNode)
+        .filter_by(story_id=story.id, graph_type="source", node_key=f"E{chapter_number:03d}")
+        .first()
+    )
+    pov_key = ((ev.properties or {}).get("pov", "") if ev else "").strip()
+    if not pov_key:
+        return ""
+    new_char = (
+        session.query(StoryGraphNode)
+        .filter_by(story_id=story.id, graph_type="new", node_key=pov_key)
+        .first()
+    )
+    return new_char.label if new_char else ""
 
 
 def run(session: Session, story: Story, chapter: Chapter) -> None:
@@ -116,5 +144,12 @@ language: {story.language}
         thinking=True,
     )
 
-    chapter.blueprint = blueprint.model_dump_json()
+    # Faithful POV: override the LLM's pov_character guess with the source's actual
+    # per-chapter POV holder, mapped to its reskinned name. Keeps the rewrite's POV
+    # alternation identical to the source instead of an approximation.
+    bp = blueprint.model_dump()
+    src_pov = _resolve_pov_from_source(session, story, chapter.number)
+    if src_pov:
+        bp["pov_character"] = src_pov
+    chapter.blueprint = json.dumps(bp, ensure_ascii=False)
     chapter.status = "blueprinted"

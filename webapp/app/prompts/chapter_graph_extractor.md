@@ -31,6 +31,7 @@ Ví dụ: nếu `story_language: English` mà chương gốc bằng tiếng Vi�
     "label": "Tên sự kiện ngắn gọn (5-10 từ)",
     "properties": {
       "summary": "1-3 câu: sự kiện chính + xung đột + bước ngoặt/tiết lộ + hệ quả sang chương sau",
+      "pov": "node_key (VD 'C001') của nhân vật mà chương gốc này KỂ QUA ĐIỂM NHÌN của họ. Nếu gốc ngôi thứ nhất/đa POV thì đây là người đang 'tôi' trong chương này (nhìn marker POV như '-- Harper', '-- Chris', hoặc ai là chủ thể xuyên suốt chương). Dùng key trong ENTITY LIST. Để '' nếu gốc ngôi thứ ba toàn tri / không có một POV rõ.",
       "event_type": "revelation|conflict|turning_point|consequence|decision",
       "emotional_weight": "low|medium|high",
       "chapter_spirit": "Mô tả TINH THẦN CỦA CHƯƠNG NÀY (2-3 câu): cảm xúc chủ đạo (ví dụ: căng thẳng dồn dập, lãng mạn ngọt ngào, u ám nặng nề, nhẹ nhàng hồi tưởng), nhịp điệu (chậm/nhanh), cung bậc cảm xúc mà chương tạo ra cho nhân vật và người đọc.",
