@@ -23,6 +23,8 @@ User message contains:
 7. **Characters** (when not already named by the world design per rule 0): invent full names (first + last where culturally appropriate); consider the character's role (protagonist gets a memorable name, antagonist a subtly ominous one)
 8. **Locations** (when not already named): invent place names that evoke the new world's geography and atmosphere
 9. **Factions / objects** (when not already named): invent names that reflect the new world's terminology and culture
+10. **Preserve families / clans.** Look at the SOURCE names: when several source characters share a family name (e.g. `'Nina Tann'`, `'Silas Tann'`, `'Genevieve Tann'` all share *Tann* — English puts the family name last; other languages, e.g. Vietnamese `'Nguyễn Văn Nam'` / `'Nguyễn Thị Lan'`, put it first), they are ONE family. Give every member of that family the **same NEW surname** and **distinct given names** — so the family bond survives the rename (→ e.g. `'Isolde Ashworth'`, `'Silas Ashworth'`, `'Genevieve Ashworth'`). Judge real families by shared surname + role/relationship; characters who merely share a common GIVEN name are not necessarily related, so do not force them onto a shared surname.
+11. **"Unique" means no two characters have an IDENTICAL full name.** Two characters legitimately sharing a surname (rule 10) is REQUIRED, not a collision. Only a fully identical name (both `'Kaito'`, or both `'Isolde Ashworth'`) is forbidden.
 
 ## Output — JSON schema: NameLexiconOutput
 

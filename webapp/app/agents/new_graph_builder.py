@@ -306,7 +306,30 @@ _NAME_TITLES = {
     "dr", "mr", "mrs", "ms", "sr", "jr", "master", "grandmaster", "artificer",
     "librarian", "councillor", "apprentice", "healer", "lord", "lady", "the",
     "madam", "sir", "professor", "captain", "reverend", "matron", "miss", "mister",
+    "mistress", "dame", "elder",
 }
+
+
+def _name_tokens(label: str) -> list[str]:
+    """Name words with titles + punctuation stripped, lowercased. Position-agnostic —
+    does NOT try to tell which token is the given name vs the surname (that ordering
+    differs by language: 'Given Surname' in English, 'Surname Given' in Vietnamese/
+    East-Asian names). Callers reason over the SET of words, never their position."""
+    out = []
+    for raw in (label or "").split():
+        t = raw.strip(".,;:'\"()[]").lower()
+        if t and t not in _NAME_TITLES:
+            out.append(t)
+    return out
+
+
+def _normalized_full_name(label: str) -> str:
+    """A language/order-independent identity key for a person's name: the set of its
+    name words (titles removed), sorted. Two labels match IFF they are the same set of
+    words — so a shared SURNAME between family members ('Isolde Ashworth' vs 'Silas
+    Ashworth') does NOT match, but a truly identical full name does. This is the ONLY
+    thing that counts as a name collision."""
+    return " ".join(sorted(_name_tokens(label)))
 
 
 def _is_clean_person_label(label: str) -> bool:
@@ -943,28 +966,21 @@ def _lexicon_collisions(entries, forbidden: set[str]) -> list:
 
 
 def _lexicon_duplicate_labels(entries) -> list:
-    """Entries that collide with an earlier entry — either the SAME full label, or a
-    shared distinctive given-name token (so two people aren't both readable as
-    'Elder Lysander' or both 'Kenji'). Titles are ignored so 'Lord X'/'Lord Y' don't
-    false-collide. Returns [(entry, reason)] for regeneration."""
+    """Entries whose FULL new name is identical to an earlier entry's (word-set, so
+    case- and order-independent). A shared surname between family/clan members is NOT
+    a collision — only a truly identical full name is, since that is the only case
+    that makes two different characters indistinguishable. Returns [(entry, reason)]
+    for regeneration."""
     bad = []
-    seen_full: dict[str, str] = {}       # full label (lower) → node_key
-    seen_tok: dict[str, str] = {}        # distinctive token (lower) → node_key
+    seen: dict[str, str] = {}       # normalized full name → node_key
     for e in entries:
-        label = (e.new_label or "").strip()
-        low = label.lower()
-        if low in seen_full:
-            bad.append((e, f"duplicate of {seen_full[low]} (identical name)"))
+        key = _normalized_full_name(e.new_label)
+        if not key:
             continue
-        seen_full[low] = e.node_key
-        toks = [t.strip(".,;:'\"()[]") for t in label.split()]
-        distinctive = [t.lower() for t in toks
-                       if len(t) >= 3 and t.lower() not in _NAME_TITLES]
-        hit = next((t for t in distinctive if t in seen_tok), None)
-        if hit:
-            bad.append((e, f"shares name '{hit}' with {seen_tok[hit]}"))
-        for t in distinctive:
-            seen_tok.setdefault(t, e.node_key)
+        if key in seen:
+            bad.append((e, f"identical full name to {seen[key]}"))
+        else:
+            seen[key] = e.node_key
     return bad
 
 
@@ -1029,8 +1045,9 @@ def _build_name_lexicon(
         retry_user = base_user + (
             "\n\n## HARD CONSTRAINT VIOLATIONS — the following invented names are REJECTED. "
             "Re-issue the FULL lexicon: each name must share NO word with the source AND "
-            "be globally unique (no two entries with the same name, and no two characters "
-            f"sharing a first/given name):\n{violation}\n"
+            "no two entries may have an IDENTICAL full name. (Family members SHARING a "
+            "surname is REQUIRED, not a violation — keep each family on one shared "
+            f"surname with distinct given names.):\n{violation}\n"
         )
         output = generate_structured(
             PROVIDER, system=system, user_content=retry_user,
@@ -1434,34 +1451,33 @@ def _sweep_orphan_names(session: Session, story: Story, variant_map: dict) -> in
 
 
 def _dedupe_character_labels(session: Session, story: Story) -> int:
-    """A — ensure character labels don't share a distinctive given-name token
-    (two different people both readable as 'Kenji'). Colliding lower-tier nodes get
-    a role/descriptor-based distinguisher appended so prose can tell them apart."""
+    """A — detect characters whose FULL name is identical to another character's.
+
+    A shared surname (family/clan members like 'Isolde Ashworth' / 'Silas Ashworth',
+    or 'Nguyễn Văn Nam' / 'Nguyễn Thị Lan') is legitimate and NOT a collision — only
+    an identical full name is. Identical names should already be prevented upstream by
+    the lexicon's uniqueness rule, so here we only LOG a survivor (never mangle a label
+    with a role/type suffix — that was the old bug that produced '(Character)' /
+    'the Minor'). Returns the count of identical-name collisions found."""
+    dupes = 0
+    seen: dict[str, str] = {}   # normalized full name → owner node_key
     chars = (session.query(StoryGraphNode)
              .filter_by(story_id=story.id, graph_type="new", node_type="character")
              .order_by(StoryGraphNode.node_key).all())
-    seen: dict[str, StoryGraphNode] = {}   # given-name token → first owner
-    fixed = 0
     for c in chars:
-        toks = [t.strip(".,;:'\"()[]") for t in (c.label or "").split()]
-        distinctive = [t for t in toks
-                       if len(t) >= 3 and t.lower() not in _NAME_TITLES]
-        collide = next((t for t in distinctive if t.lower() in seen), None)
-        if collide:
-            role = (c.properties or {}).get("role", "") or c.node_type
-            role_word = re.sub(r"[^A-Za-z ]", "", role).split(",")[0].strip().title()
-            suffix = role_word.split()[-1] if role_word else "the Younger"
-            if suffix and suffix.lower() not in (t.lower() for t in toks):
-                new_label = f"{c.label} the {suffix}" if not c.label.lower().startswith(("lord","lady","master","the")) else f"{c.label} ({suffix})"
-                logger.info("[%s] reconcile A: '%s' collides on '%s' → '%s'",
-                            story.slug, c.label, collide, new_label)
-                c.label = new_label
-                fixed += 1
-        for t in distinctive:
-            seen.setdefault(t.lower(), c)
-    if fixed:
-        session.flush()
-    return fixed
+        key = _normalized_full_name(c.label)
+        if not key:
+            continue
+        if key in seen:
+            logger.warning(
+                "[%s] reconcile A: '%s' [%s] has the SAME full name as [%s] — "
+                "identical-name collision the lexicon should have prevented (left "
+                "as-is; not auto-mangled)",
+                story.slug, c.label, c.node_key, seen[key])
+            dupes += 1
+        else:
+            seen[key] = c.node_key
+    return dupes
 
 
 def _graph_text_snapshot(session: Session, story_id: int) -> str:
