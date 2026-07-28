@@ -26,14 +26,71 @@ def _strip_leading_heading(text: str) -> str:
     return text
 
 
-def normalize_paragraphs(text: str) -> str:
-    """Force a blank line between paragraphs so Markdown renders them separately.
+# Double-quote marks only — a paragraph carrying quoted speech is a dialogue turn
+# and is left whole (source keeps a speaker's turn intact even when it runs long).
+# Apostrophes / single quotes (e.g. the ’ in "Caspian’s") are deliberately excluded
+# so a possessive never makes a narration paragraph look like dialogue.
+_DIALOGUE_QUOTES = '"“”„«»'
+# Sentence end: terminal punctuation + optional closing quote/paren, then whitespace.
+_SENT_END_RE = re.compile(r'([.!?]+["“”„«»\'\)]*)(\s+)')
+_ABBREVIATIONS = (
+    "Mr.", "Mrs.", "Ms.", "Dr.", "Prof.", "St.", "Lt.", "Sgt.", "Capt.",
+    "Gen.", "Col.", "Maj.", "Rev.", "Hon.", "Jr.", "Sr.", "vs.", "etc.",
+    "No.", "Dept.", "Inc.", "Ltd.",
+)
+# Pure-narration paragraphs are capped at this many sentences (source study: pure
+# narration is ~96% at 1-2 sentences). Longer ones are re-split at sentence bounds.
+_MAX_NARRATION_SENTENCES = 2
 
-    The model sometimes separates paragraphs with a single '\\n', which Markdown
-    collapses into one run-on block. Each non-empty line is treated as its own
-    paragraph and re-joined with a blank line ('\\n\\n')."""
-    paras = [ln.strip() for ln in (text or "").splitlines() if ln.strip()]
-    return "\n\n".join(paras)
+
+def _split_into_sentences(para: str) -> list[str]:
+    """Split a paragraph into sentences at .!? boundaries, keeping the terminal
+    punctuation (and any closing quote) attached and not breaking known abbreviations."""
+    protected = para
+    for ab in _ABBREVIATIONS:
+        protected = protected.replace(ab, ab.replace(".", "\x00"))
+    out: list[str] = []
+    last = 0
+    for m in _SENT_END_RE.finditer(protected):
+        out.append(protected[last:m.end(1)])
+        last = m.end()
+    if protected[last:].strip():
+        out.append(protected[last:])
+    return [s.replace("\x00", ".").strip() for s in out if s.strip()]
+
+
+def _split_long_paragraph(para: str) -> list[str]:
+    """Cap a PURE-NARRATION paragraph at _MAX_NARRATION_SENTENCES sentences, splitting
+    at sentence boundaries (sentence text never altered). A paragraph carrying quoted
+    dialogue is returned whole so a speaker's turn (and its action beat) stays intact."""
+    if any(q in para for q in _DIALOGUE_QUOTES):
+        return [para]
+    sentences = _split_into_sentences(para)
+    if len(sentences) <= _MAX_NARRATION_SENTENCES:
+        return [para]
+    step = _MAX_NARRATION_SENTENCES
+    return [" ".join(sentences[i:i + step]) for i in range(0, len(sentences), step)]
+
+
+def normalize_paragraphs(text: str) -> str:
+    """Force a blank line between paragraphs so Markdown renders them separately, and
+    cap pure-narration paragraphs at 2 sentences (splitting the rest at sentence
+    boundaries).
+
+    The model separates paragraphs with a single '\\n' (each non-empty line is one
+    paragraph) but ignores per-paragraph length instructions for narration — it obeys
+    structural rules (dialogue on its own line) yet not the quantitative "keep
+    paragraphs short" rule, producing 5-6 sentence descriptive blocks. We fix that
+    deterministically: any pure-narration paragraph over 2 sentences is re-split at
+    sentence boundaries (dialogue paragraphs untouched, no sentence text changed),
+    matching the source's ~1.7-sentences/paragraph narration density."""
+    out: list[str] = []
+    for ln in (text or "").splitlines():
+        ln = ln.strip()
+        if not ln:
+            continue
+        out.extend(_split_long_paragraph(ln))
+    return "\n\n".join(out)
 
 
 MIN_WORD_RATIO = 0.85
