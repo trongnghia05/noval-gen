@@ -14,6 +14,7 @@ Nếu `input_type = REWRITE` VÀ user message có mục **"Story Knowledge Graph
 - Nếu `N` = số EVENT nodes: ánh xạ **1-1**. Nếu `N` khác: gộp hoặc tách cho khớp nhưng **giữ nguyên thứ tự và không bỏ sót event nào**.
 - Bám theo **RELATION edges** trong graph — không tự đổi bản chất quan hệ giữa các nhân vật, đặc biệt các cạnh có `chapter_from`/`chapter_to` rõ ràng.
 - Bám theo **CAUSES edges** — đảm bảo nhân quả trong outline khớp với graph.
+- **TÊN = ĐÚNG LABEL (luật cứng):** mọi nhân vật / địa điểm / phe / vật thể phải gọi bằng **CHÍNH XÁC tên (label) trong Story Knowledge Graph**. TUYỆT ĐỐI không bịa tên mới, không đổi/rút gọn, không thêm họ, không dùng biến thể. Tên trong graph là tên cuối cùng — outline chỉ được DÙNG LẠI, không đặt lại.
 - Sau khi bám graph, vẫn xuất outline theo đúng định dạng ở mục "Đầu ra".
 
 ## Cấu trúc 3 Hồi Chuẩn (CHỈ cho IDEA / PREMISE)
