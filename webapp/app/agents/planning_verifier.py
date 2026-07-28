@@ -71,7 +71,10 @@ words_per_chapter: {story.words_per_chapter}
         user_content=user_content,
         model=AGENT_MODELS["planning_verifier"],
         schema=PlanningVerifierOutput,
-        max_tokens=8192,
+        # 8192 truncated the JSON mid-string on a large story (many issues across 4
+        # artifacts) -> "Unterminated string" -> crash. Same headroom fix as the
+        # blueprinter; output is structured findings, not prose, so this is plenty.
+        max_tokens=16384,
         thinking=False,  # verification is pattern-matching, not creative reasoning
     )
 
