@@ -45,6 +45,32 @@ def _dialogue_plan_block(chapter: Chapter) -> str:
     return "\n".join(lines)
 
 
+def _pov_block(chapter: Chapter) -> str:
+    """The chapter's POV contract, so the LLM can catch head-hopping and (for
+    multi-POV) missing-POV coverage — nuances the deterministic pov_check can't judge."""
+    if not chapter.blueprint:
+        return ""
+    try:
+        bp = json.loads(chapter.blueprint)
+    except Exception:
+        return ""
+    multi = [p for p in (bp.get("pov_characters") or []) if p]
+    if len(multi) > 1:
+        return (
+            f"POV MODE: MULTI-POV. This chapter is narrated from MORE THAN ONE point of "
+            f"view: {', '.join(multi)}. Each listed POV holder must have their OWN "
+            f"segment; segments are separated by a '---' break; within any one segment "
+            f"only that character's inner thoughts may be narrated."
+        )
+    pov = (bp.get("pov_character") or "").strip()
+    if pov:
+        return (
+            f"POV MODE: SINGLE-POV = {pov}. The entire chapter stays inside {pov}'s head; "
+            f"no other character's private thoughts/feelings may be narrated."
+        )
+    return ""
+
+
 def check(session: Session, story: Story, chapter: Chapter) -> list[QualityReviewIssueOut]:
     system = load_prompt("quality_reviewer")
 
@@ -76,6 +102,13 @@ def check(session: Session, story: Story, chapter: Chapter) -> list[QualityRevie
         f"---\n{voices or '(not available)'}\n---\n"
     )
 
+    pov_block = _pov_block(chapter)
+    pov_section = (
+        f"\n## POV contract for this chapter (check head-hopping / coverage)\n"
+        f"---\n{pov_block}\n---\n"
+        if pov_block else ""
+    )
+
     user_content = (
         f"language: {story.language}\n"
         f"input_type: {story.input_type}\n"
@@ -87,7 +120,8 @@ def check(session: Session, story: Story, chapter: Chapter) -> list[QualityRevie
         f"## story-bible.md — tone, setting, genre of new story\n"
         f"---\n{story.story_bible or '(not yet available)'}\n---\n"
         f"{graph_event_section}"
-        f"{dialogue_section}\n"
+        f"{dialogue_section}"
+        f"{pov_section}\n"
         f"## Chapter just written (title: {chapter.title})\n"
         f"---\n{chapter.content}\n---\n"
     )
