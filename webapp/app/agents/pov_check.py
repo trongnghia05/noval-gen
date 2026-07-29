@@ -97,40 +97,59 @@ def check(session: Session, story: Story, chapter: Chapter) -> list[QualityRevie
         bp = json.loads(chapter.blueprint)
     except Exception:
         return []
-    # Multi-POV chapter (source switched POV mid-chapter): the "whole chapter is one
-    # first person" premise does not hold — each segment is a different first-person
-    # voice. The strict single-person count would misfire, so relax this guard here;
-    # the multi-POV writer directive + quality_reviewer cover it instead.
-    if len([p for p in (bp.get("pov_characters") or []) if p]) > 1:
-        return []
-    pov = (bp.get("pov_character") or "").strip()
-    if not pov:
+
+    multi = [p for p in (bp.get("pov_characters") or []) if p]
+    is_multi = len(multi) > 1
+    pov_desc = ", ".join(multi) if is_multi else (bp.get("pov_character") or "").strip()
+    if not pov_desc:
         return []
 
-    narration = _strip_dialogue(chapter.content)
-    first = len(_FIRST.findall(narration))
-    third = len(_THIRD.findall(narration))
+    issues: list[QualityReviewIssueOut] = []
 
-    # Require a clear third-person majority over a non-trivial base, so a valid
-    # first-person chapter with lots of "he/she" about others is not flagged.
-    if third >= 12 and third > first * 1.5:
-        # Code is only a cheap pre-filter here; confirm with the LLM before paying
-        # for a rewrite, so a first-person chapter that's merely he/she-heavy about
-        # other characters isn't rewritten by mistake.
-        if not _llm_confirms_third(story, chapter, pov):
-            return []
-        return [QualityReviewIssueOut(
+    # Multi-POV: a real POV switch must be marked with a '---' section break. Zero
+    # breaks means the chapter almost certainly collapsed to a single POV (the exact
+    # failure the multi-POV path exists to prevent). The writer is explicitly told to
+    # use '---', so requiring it here is safe.
+    if is_multi and len(re.findall(r"(?m)^\s*-{3,}\s*$", chapter.content)) == 0:
+        issues.append(QualityReviewIssueOut(
             dimension="pov",
             severity="critical",
             description=(
-                f"POV drift: source is first-person and this chapter's POV holder is "
-                f"{pov}, but the narration reads third-person (I/my={first}, "
-                f"he/she={third})."
+                f"Multi-POV chapter (POV holders: {pov_desc}) has no '---' section "
+                f"break — the POV switch is missing; the chapter likely collapsed to a "
+                f"single POV."
             ),
             suggestion=(
-                f"Rewrite entirely in FIRST PERSON from {pov}'s point of view — every "
-                f"narrative sentence about {pov} must use 'I/my', not the character's "
-                f"name or he/she."
+                f"Split the chapter into segments, one per POV holder ({pov_desc}), each "
+                f"separated by a '---' line and written in that character's first person."
             ),
-        )]
-    return []
+        ))
+
+    # Both single- and multi-POV: the source is first-person, so the NARRATION must be
+    # first-person dominant either way (each multi-POV segment is still first person).
+    # A clear third-person majority means it drifted to third person.
+    narration = _strip_dialogue(chapter.content)
+    first = len(_FIRST.findall(narration))
+    third = len(_THIRD.findall(narration))
+    if third >= 12 and third > first * 1.5:
+        # Code is only a cheap pre-filter; confirm with the LLM before paying for a
+        # rewrite, so a first-person chapter merely he/she-heavy about OTHER characters
+        # isn't rewritten by mistake.
+        if _llm_confirms_third(story, chapter, pov_desc):
+            issues.append(QualityReviewIssueOut(
+                dimension="pov",
+                severity="critical",
+                description=(
+                    f"POV drift: source is first-person (POV: {pov_desc}) but the "
+                    f"narration reads third-person (I/my={first}, he/she={third})."
+                ),
+                suggestion=(
+                    "Rewrite in FIRST PERSON: "
+                    + (f"each segment from its POV holder's point of view ('I/my'), "
+                       f"never naming the current POV character or using he/she."
+                       if is_multi else
+                       f"every narrative sentence about {pov_desc} must use 'I/my', not "
+                       f"the character's name or he/she.")
+                ),
+            ))
+    return issues

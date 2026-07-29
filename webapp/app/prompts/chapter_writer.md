@@ -58,7 +58,9 @@ Tính 3 phần theo tỷ lệ trên `words_per_chapter` (W) — KHÔNG dùng s�
 
 ### Điểm nhìn (POV) — BẮT BUỘC theo nguồn (QUAN TRỌNG NHẤT)
 - **REWRITE:** đọc mục **POV** trong "Tinh thần truyện gốc" (source_spirit) và viết ĐÚNG NGÔI KỂ đó. Nếu nguồn ghi **ngôi thứ NHẤT** ('tôi/I') thì chương của bạn PHẢI viết ngôi thứ nhất — **TUYỆT ĐỐI không tự đổi sang ngôi ba**. Chỉ viết ngôi ba khi source_spirit ghi rõ ngôi ba. Đây là lỗi hay gặp nhất: nguồn ngôi-1 lấp lánh bị viết lại thành ngôi-3 đều đều, làm mất hồn truyện.
-- **Đa POV luân phiên:** nếu source_spirit ghi nguồn đa POV, thì mỗi chương/cảnh do MỘT nhân vật giữ điểm nhìn — theo `pov_character` của blueprint nếu có, nếu không thì theo kiểu luân phiên mô tả trong source_spirit. Toàn chương ở TRONG ĐẦU nhân vật POV đó: chỉ thấy điều họ thấy, nghĩ điều họ nghĩ; không truy cập ý nghĩ người khác.
+- **Nguyên tắc chung (áp cho MỌI chương):** mỗi ĐOẠN chỉ MỘT POV — bạn ở TRONG ĐẦU đúng một nhân vật, chỉ thấy/nghĩ điều họ thấy/nghĩ, **KHÔNG nhảy sang đầu người khác trong cùng đoạn** (không head-hopping).
+- **Mặc định: cả chương = MỘT POV** (`pov_character` của blueprint, hoặc kiểu luân phiên theo chương mô tả trong source_spirit).
+- **Chương MULTI-POV (chỉ khi chỉ dẫn runtime đánh dấu rõ, liệt kê nhiều POV):** chương gồm NHIỀU đoạn; **đổi POV CHỈ tại một section break (dòng `---`)**, không đổi giữa dòng. Mỗi đoạn vẫn tuân nguyên tắc trên (bạn LÀ đúng một nhân vật đó, ngôi-1 của họ). Phải phủ HẾT các POV được liệt kê. Chỉ khi được đánh dấu multi-POV mới chuyển; chương thường thì KHÔNG tự ý chuyển.
 - **Giọng nội tâm phải mang đặc trưng nhân vật POV** (snarky/châm biếm/cynical/khô khan... đúng như source_spirit mô tả) — KHÔNG phải giọng tường thuật trung tính, trang trọng, đều đều. Nếu nguồn hài thì chương phải có hài; nếu nguồn ngôi-1 tự giễu thì nội tâm phải tự giễu.
 - **IDEA/PREMISE** (không có source_spirit): theo story-bible; nếu không ghi rõ thì ngôi ba cận cảnh, một POV mỗi chương.
 
@@ -134,7 +136,7 @@ I blinked. "What?"
 - Mục tiêu: trang văn thoáng, nhịp dồn — mỗi hành động, mỗi phản ứng, mỗi lượt thoại đứng riêng; KHÔNG dồn nhiều nhịp vào một khối.
 
 ### Nội tâm nhân vật
-- POV nhất quán trong từng cảnh (không nhảy giữa đầu nhiều người)
+- POV nhất quán trong từng đoạn — không head-hopping. Chỉ chương được đánh dấu MULTI-POV mới đổi POV, và chỉ tại section break `---` (xem mục Điểm nhìn).
 - Suy nghĩ nội tâm phải lộ ra điểm yếu, nỗi sợ, khao khát của nhân vật
 
 ## Đầu ra
