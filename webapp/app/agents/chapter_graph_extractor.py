@@ -254,7 +254,7 @@ def _extract_chapter(session: Session, story: Story, chapter_number: int, chapte
             if edge.trigger_event_id == original_event_id:
                 edge.trigger_event_id = canonical_event_key
 
-    session.add(StoryGraphNode(
+    event_node = StoryGraphNode(
         story_id=story.id,
         graph_type="source",
         node_key=canonical_event_key,
@@ -262,7 +262,8 @@ def _extract_chapter(session: Session, story: Story, chapter_number: int, chapte
         label=output.event.label,
         properties=output.event.properties or {},
         chapter_introduced=chapter_number,
-    ))
+    )
+    session.add(event_node)
 
     # key_remap: a new_node the LLM gave a fresh key but that is really an entity
     # ALREADY in the graph (same person re-introduced) → reuse the existing key and
@@ -300,6 +301,13 @@ def _extract_chapter(session: Session, story: Story, chapter_number: int, chapte
             edge.target_id = key_remap.get(edge.target_id, edge.target_id)
             if edge.trigger_event_id:
                 edge.trigger_event_id = key_remap.get(edge.trigger_event_id, edge.trigger_event_id)
+        # The event's POV holder is a character key too — remap it so a POV char that
+        # got de-duplicated this chapter (e.g. C017 -> C003) still points at a live
+        # node. Missing this made the blueprinter's POV override silently fall back to
+        # a guess. Reassign the dict (not in-place) so SQLAlchemy flags it dirty.
+        pov_key = (event_node.properties or {}).get("pov")
+        if pov_key and pov_key in key_remap:
+            event_node.properties = {**event_node.properties, "pov": key_remap[pov_key]}
 
     # Auto-create placeholder nodes for any node_key referenced in edges but
     # not yet defined. The LLM occasionally omits nodes from new_nodes despite
