@@ -493,17 +493,27 @@ def _compile_manuscript_to_file(session: Session, story: Story) -> Path:
     ]
     chapters_text = "\n\n---\n\n".join(chapter_parts)
 
-    # ── Front matter: title, author, tags/type, logline, blurb ──────────────
+    # ── Front matter: title, (source), author, tags/type, logline, blurb ────
     words = story.current_words or 0
     meta_info = _generate_novel_metadata(story)
+    # For REWRITE, the source's title is the first line of the source content.
+    source_title = ""
+    if story.input_type == "REWRITE" and story.source_content:
+        _first = story.source_content.strip().splitlines()
+        source_title = _first[0].strip() if _first else ""
+
     header_lines = [f"# {story.title}", ""]
+    if source_title:
+        header_lines += [f"*Viết từ truyện {source_title}*", ""]
+    summ_lines = [story.title] + ([f"Viết từ truyện {source_title}"] if source_title else [])
     if meta_info:
         type_label = _length_type(words)
         tag_str = " · ".join([type_label] + list(meta_info.tags)) if meta_info.tags else type_label
+        length_line = f"{len(chapters)} chương · {words:,} từ · {story.language}"
         header_lines += [
             f"**Tác giả:** {meta_info.author}  ",
             f"**Thể loại:** {tag_str}  ",
-            f"**Độ dài:** {len(chapters)} chương · {words:,} từ · {story.language}  ",
+            f"**Độ dài:** {length_line}  ",
             "",
             f"**Cốt truyện:** {meta_info.logline}",
             "",
@@ -511,12 +521,26 @@ def _compile_manuscript_to_file(session: Session, story: Story) -> Path:
             "",
             meta_info.summary,
         ]
+        summ_lines += [
+            "", "",
+            f"Tác giả: {meta_info.author}",
+            f"Thể loại: {tag_str}",
+            f"Độ dài: {length_line}",
+            "",
+            f"Cốt truyện: {meta_info.logline}",
+            "",
+            "Tóm tắt",
+            "",
+            meta_info.summary,
+        ]
     else:
         meta_parts = [p for p in [story.genre, story.language] if p]
         meta_parts += [f"{len(chapters)} chương", f"{words:,} từ"]
         header_lines.append(f"*{' · '.join(meta_parts)}*")
+        summ_lines += ["", " · ".join(meta_parts)]
     header = "\n".join(header_lines)
     manuscript = f"{header}\n\n---\n\n## Mục lục\n\n{toc}\n\n---\n\n{chapters_text}\n"
+    summarize_text = "\n".join(summ_lines) + "\n"
 
     # Folder named after the story (slug is the filesystem-safe title). Suffix
     # with the id only if a different story already claimed that slug, so runs
@@ -527,9 +551,19 @@ def _compile_manuscript_to_file(session: Session, story: Story) -> Path:
         out_dir = OUTPUT_BASE / f"{folder_name}-{story.id}"
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / f".story-{story.id}").write_text("", encoding="utf-8")  # ownership marker
-    out_path = out_dir / "novel.md"
+
+    # 1) full manuscript, 2) plain-text summary/front-matter, 3) one .txt per chapter
+    out_path = out_dir / "full.md"
     out_path.write_text(manuscript, encoding="utf-8")
-    logger.info("[%s] manuscript compiled → %s (%d chars)", story.slug, out_path, len(manuscript))
+    (out_dir / "summarize.txt").write_text(summarize_text, encoding="utf-8")
+    for c in chapters:
+        ch_txt = (
+            f"{word} {c.number}: {titles[c.number]}\n\n"
+            f"{chapter_writer.normalize_paragraphs(c.content or '')}\n"
+        )
+        (out_dir / f"chapter-{c.number:02d}.txt").write_text(ch_txt, encoding="utf-8")
+    logger.info("[%s] compiled → %s + summarize.txt + %d chapter .txt files",
+                story.slug, out_path, len(chapters))
     return out_path
 
 
