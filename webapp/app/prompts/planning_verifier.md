@@ -19,6 +19,9 @@ User message chứa: ngôn ngữ, loại input (IDEA/PREMISE/REWRITE), `total_ch
 - Đúng `total_chapters` chương; **mỗi chương có mục đích riêng**, không có chương "chết"/lấp chỗ.
 - **Nhân quả**: mỗi beat kéo theo beat sau (chuỗi try/fail), không rời rạc, không lặp ý.
 - **Pacing**: căng–chùng xen kẽ, mức độ căng thẳng leo thang dồn về climax.
+- **SOÁT TOÀN CỤC — CHỐNG TRÙNG CHƯƠNG (bắt buộc, nhìn CẢ outline một lượt):** không được có **≥2 chương cùng mục đích/loại-beat/mục-tiêu-cảm-xúc mà không leo thang** (VD ba chương liền đều là "protector trừng phạt một tên côn đồ + tuyên bố sở hữu", hay "chính lại bị hạ nhục lần nữa" không tiến gì). Nếu thấy cụm chương lặp → `critical` (plot_outline): gom lại / khác chất / cho mỗi chương một chức năng kịch khác.
+- **SOÁT TOÀN CỤC — ĐỦ ARC (lỗ hổng):** kiểm cả cung: **nhân vật chính có TRỰC TIẾP đối đầu phản diện chính** ít nhất một lần dồn tới climax không? Mọi tuyến đe doạ/phản diện được dựng có được **giải quyết/đối mặt** không, hay bị bỏ lửng? Nếu chính không bao giờ đối đầu phản diện, hoặc một tuyến lớn không có hồi kết → `critical` (plot_outline). *(REWRITE: nếu nguồn là serial dở dang không có confrontation — không bịa; nhưng chương cuối phải là **arc-pause có chủ đích** chứ không cụt giữa beat.)*
+- **SOÁT TOÀN CỤC — SPINE tiến triển:** quan hệ/căng thẳng trung tâm phải **dịch bậc đơn điệu-tăng** qua truyện, không **cao nguyên phẳng dài** (nhiều chương liền cùng một trạng thái quan hệ mà không đổi).
 - **Cài–trả (setup/payoff)**: mọi foreshadow được gieo đều có payoff; không có "khẩu súng Chekhov" bị bỏ quên.
 - Không plot hole, không **deus ex machina** — climax được giải quyết bằng hành động và lựa chọn của nhân vật.
 - Subplot đan xen hợp lý và hội tụ về mạch chính.
