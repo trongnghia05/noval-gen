@@ -130,6 +130,7 @@ def build_characters_from_graph(session: Session, story: Story) -> None:
         graph_rows.append({
             "id": n.node_key,
             "name": n.label,
+            "gender": p.get("gender", "unknown"),
             "aliases": ", ".join(p.get("aliases", []) or []),
             "role": p.get("role", ""),
             "arc_status": "active",
@@ -194,7 +195,8 @@ def _format_source_compact(session: Session, story_id: int) -> str:
         p = n.properties or {}
         line = f"[{n.node_key}] {n.node_type.upper()}: '{n.label}'"
         if n.node_type == "character":
-            line += (f" | role: {p.get('role', '')}"
+            line += (f" | gender: {p.get('gender', 'unknown')}"
+                     f" | role: {p.get('role', '')}"
                      f" | wants: {p.get('wants', '')}"
                      f" | arc: {p.get('arc_stage', '')}")
         elif n.node_type == "event":

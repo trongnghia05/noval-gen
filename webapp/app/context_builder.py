@@ -123,6 +123,24 @@ def format_character_aliases(session: Session, story_id: int) -> str:
     return "\n".join(f"- {row.name}: {row.aliases}" for row in rows)
 
 
+def format_gender_roster(session: Session, story_id: int) -> str:
+    """name → gender for every character, from the new graph (the single source of
+    truth). Fed to chapter_writer (use correct pronouns) and quality_reviewer (flag
+    a character referred to with the wrong-gender pronoun). Gender is fixed by the
+    source plot; it must never flip between chapters."""
+    nodes = (
+        session.query(StoryGraphNode)
+        .filter_by(story_id=story_id, graph_type="new", node_type="character")
+        .order_by(StoryGraphNode.node_key)
+        .all()
+    )
+    lines = []
+    for n in nodes:
+        g = (n.properties or {}).get("gender", "unknown")
+        lines.append(f"- {n.label}: {g}")
+    return "\n".join(lines) if lines else "(no gender data)"
+
+
 def format_smart_planner_adjustments(session: Session, story_id: int) -> str:
     state = session.query(SmartPlannerState).filter_by(story_id=story_id).first()
     if not state or not state.outline_adjustments:

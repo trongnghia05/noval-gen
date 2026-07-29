@@ -39,6 +39,7 @@ Tôn trọng các chi tiết user đã đưa. Phát triển thêm xung đột v�
       "properties": {
         "role": "protagonist|antagonist|supporting|minor",
         "status": "alive|dead|missing",
+        "gender": "male|female|nonbinary|unknown — SUY TỪ TRUYỆN GỐC (đại từ he/she, cách gọi 'cô/anh/bà/ông', ngữ cảnh). Đây là SỰ THẬT của cốt truyện, phải GIỮ NGUYÊN khi reskin sang thế giới mới. Chỉ để 'unknown' khi gốc thực sự không tiết lộ.",
         "wants": "mục tiêu rõ ràng",
         "fears": "nỗi sợ cốt lõi",
         "arc_stage": "trạng thái nội tâm ban đầu",

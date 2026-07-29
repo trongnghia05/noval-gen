@@ -233,7 +233,16 @@ def _build_shared_context(session: Session, story: Story, chapter: "Chapter") ->
     source_spirit = context_builder.format_source_spirit_for_chapter(session, story, chapter.number)
     source_section = f"\n{source_spirit}\n" if source_spirit else ""
 
+    gender_section = ""
+    if story.new_graph_built:
+        gender_section = (
+            "\n## character genders (use the CORRECT pronouns — this is fixed, never flip)\n"
+            + context_builder.format_gender_roster(session, story.id)
+            + "\n"
+        )
+
     return (
+        f"{gender_section}"
         f"## chapter-list (bức tranh toàn cảnh — Ch.{chapter.number} là chương đang viết)\n"
         f"{context_builder.format_chapter_list(session, story.id, chapter.number)}\n\n"
         f"## world-state.md\n{context_builder.format_world_state(session, story.id)}\n\n"

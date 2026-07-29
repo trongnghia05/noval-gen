@@ -25,6 +25,7 @@ Flag if the chapter has any of the following:
 Compare the chapter against `world.md` and `story-bible.md`. Flag if:
 - **Anachronism / wrong world**: objects, technology, or terminology that don't belong to the defined setting appear in the chapter. Example: fantasy story but "coffee table," "apartment," "shell corporations," "digital infiltration," "phone," "car" appear — or conversely, modern story with undefined magical terms.
 - **Wrong setting**: locations, architecture, or scenery that don't match the world in world.md.
+- **gender_mismatch** (when a "Character genders" block is provided): a character is referred to with pronouns/terms that contradict their listed gender (e.g. a character listed `female` is called "he/him" or "the man"), or their gender is inconsistent within the chapter. Gender is fixed by the plot and must never flip. Severity: `critical` (it breaks identity). Ignore the POV character's own first-person "I" (person-neutral) — check how OTHERS refer to each character.
 
 Only flag what **clearly contradicts** world.md — don't flag vague or potentially explainable elements.
 

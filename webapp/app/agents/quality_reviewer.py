@@ -109,6 +109,13 @@ def check(session: Session, story: Story, chapter: Chapter) -> list[QualityRevie
         if pov_block else ""
     )
 
+    gender_roster = context_builder.format_gender_roster(session, story.id) if story.new_graph_built else ""
+    gender_section = (
+        f"\n## Character genders (each character's pronouns must match — flag any mismatch)\n"
+        f"---\n{gender_roster}\n---\n"
+        if gender_roster and gender_roster != "(no gender data)" else ""
+    )
+
     user_content = (
         f"language: {story.language}\n"
         f"input_type: {story.input_type}\n"
@@ -121,7 +128,8 @@ def check(session: Session, story: Story, chapter: Chapter) -> list[QualityRevie
         f"---\n{story.story_bible or '(not yet available)'}\n---\n"
         f"{graph_event_section}"
         f"{dialogue_section}"
-        f"{pov_section}\n"
+        f"{pov_section}"
+        f"{gender_section}\n"
         f"## Chapter just written (title: {chapter.title})\n"
         f"---\n{chapter.content}\n---\n"
     )

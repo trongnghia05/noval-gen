@@ -17,7 +17,7 @@ GRAPH_BASE = Path(os.getenv("GRAPH_DIR", "/data/graphs"))
 # ── Column schemas ─────────────────────────────────────────────────────────────
 
 CHAR_FIELDS = [
-    "id", "name", "aliases", "role", "arc_status",
+    "id", "name", "gender", "aliases", "role", "arc_status",
     "location", "emotional_state", "goals", "secrets",
     "speech_pattern", "last_seen_chapter",
 ]
