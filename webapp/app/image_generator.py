@@ -38,9 +38,9 @@ def _title_ok(title: str, ocr_text: str) -> bool:
 # The model now outputs each aspect ratio natively (image_config), so cropping to
 # the exact pixel size is minimal and symmetric — faces and title both survive.
 _SPECS = [
-    ("cover.png",      343, 212, "16:9", "cover",  (0.5, 0.5)),
-    ("thumbnail1.png", 109, 154, "3:4",  "thumb1", (0.5, 0.5)),
-    ("thumbnail2.png", 166, 214, "3:4",  "thumb2", (0.5, 0.5)),
+    ("cover.png",      686, 424, "16:9", "cover",  (0.5, 0.5)),
+    ("thumbnail1.png", 327, 462, "3:4",  "thumb1", (0.5, 0.5)),
+    ("thumbnail2.png", 498, 642, "3:4",  "thumb2", (0.5, 0.5)),
 ]
 
 _TIER_ORDER = {"core": 0, "important": 1, "secondary": 2, "minor": 3}
