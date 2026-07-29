@@ -68,11 +68,20 @@ world, palette family, the same faces, and the same story dynamic.
   composition may place them smaller against the world — both are valid.
 - **Match the story's ACTUAL world** — costumes, props, era, architecture fit the
   world (fantasy → period/fantasy; modern → contemporary). Never default to modern.
-- **CHARACTER CONSISTENCY across the three prompts:** fix each main character's face
-  and features ONCE and reuse the **identical appearance wording** wherever they
-  appear (same "late-20s woman, auburn hair, green eyes, pale skin, …"). Pose,
-  wardrobe and framing may differ; the person must be the same. (The cover is also
-  fed to the thumbnails as a visual reference.)
+- **USE EACH CHARACTER'S GIVEN APPEARANCE — a SPECIFIC person, not a default beauty.**
+  The MAIN CHARACTERS block gives each character's `Appearance` (heritage/ethnicity,
+  face shape, hair, eyes, skin, memorable features) and `Gender`. Build each face
+  FROM that — they should be attractive/good-looking, but a **specific, distinct
+  individual** with those exact features, NOT the image model's generic
+  conventionally-pretty default face. Honour the specified heritage/ethnicity and
+  distinctive features (this is what makes different stories look like different
+  people). If a character has no Appearance note, invent a specific, individuated
+  attractive look that fits their role and THIS world's culture — never the same
+  fair-skinned Euro-model face every time.
+- **CHARACTER CONSISTENCY across the three prompts:** having fixed each character's
+  face from their Appearance, reuse the **identical appearance wording** wherever
+  they appear across the three images. Pose, wardrobe and framing may differ; the
+  person must be the same. (The cover is also fed to the thumbnails as a reference.)
 - **RENDER THE TITLE on the image**, spelled EXACTLY and IN FULL as given (quote it
   in the prompt). **Creative typography is welcome** — horizontal, gently arched,
   curved or wavy, two-line stacked, integrated into the scene — pick a premium

@@ -587,6 +587,11 @@ class CharacterSurfaceOut(BaseModel):
     # distinct: register, vocabulary, sentence rhythm, verbal tic/"tell",
     # and 2-3 sample lines — all in the NEW world, no source prose.
     new_voice_profile: str = ""
+    # Distinctive PHYSICAL appearance for the poster/image art. Attractive, but a
+    # SPECIFIC individual (heritage/ethnicity, face shape, hair, eye colour, one or
+    # two memorable-but-still-good-looking features) that differs from a generic
+    # model-default face — so different stories yield clearly different-looking people.
+    new_appearance: str = ""
 
 
 class CharacterGroupEnrichOutput(BaseModel):

@@ -85,7 +85,7 @@ def _character_lines(session: Session, story_id: int) -> str:
     chars.sort(key=lambda c: _TIER_ORDER.get(c.tier or "minor", 9))
     lines = []
     for c in chars[:8]:
-        prof = (c.profile_md or "").replace("\n", " ")[:220]
+        prof = (c.profile_md or "").replace("\n", " ")[:420]
         lines.append(f"- {c.name} [{c.tier or 'minor'}]: {prof}")
     return "\n".join(lines)
 

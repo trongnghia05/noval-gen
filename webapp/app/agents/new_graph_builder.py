@@ -81,6 +81,8 @@ def _rebuild_characters(session: Session, story: Story) -> None:
         )
         profile_md = p.get("profile_md") or (
             f"**Role**: {role}\n"
+            f"**Gender**: {p.get('gender', '')}\n"
+            f"**Appearance**: {p.get('appearance', '')}\n"
             f"**Wants**: {p.get('wants', '')}\n"
             f"**Fears**: {p.get('fears', '')}\n"
             f"**Arc**: {p.get('arc_stage', '')}\n"
@@ -781,6 +783,7 @@ def _enrich_characters(
         if surf.new_background:     props["background"]     = surf.new_background
         if surf.new_speech_pattern: props["speech_pattern"] = surf.new_speech_pattern
         if surf.new_voice_profile:  props["voice_profile"]  = surf.new_voice_profile
+        if surf.new_appearance:     props["appearance"]     = surf.new_appearance
         node.properties = props
         applied += 1
     session.flush()
