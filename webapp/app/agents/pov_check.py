@@ -94,9 +94,16 @@ def check(session: Session, story: Story, chapter: Chapter) -> list[QualityRevie
     if not _expects_first_person(story):
         return []
     try:
-        pov = (json.loads(chapter.blueprint).get("pov_character") or "").strip()
+        bp = json.loads(chapter.blueprint)
     except Exception:
-        pov = ""
+        return []
+    # Multi-POV chapter (source switched POV mid-chapter): the "whole chapter is one
+    # first person" premise does not hold — each segment is a different first-person
+    # voice. The strict single-person count would misfire, so relax this guard here;
+    # the multi-POV writer directive + quality_reviewer cover it instead.
+    if len([p for p in (bp.get("pov_characters") or []) if p]) > 1:
+        return []
+    pov = (bp.get("pov_character") or "").strip()
     if not pov:
         return []
 

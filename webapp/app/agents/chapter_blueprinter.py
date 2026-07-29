@@ -91,32 +91,46 @@ def _motif_ledger(session: Session, story_id: int, before_chapter: int) -> tuple
     return "\n".join(lines), tally
 
 
-def _resolve_pov_from_source(session: Session, story: Story, chapter_number: int) -> str:
-    """Faithful per-chapter POV for a REWRITE with alternating multi-POV.
+def _new_label_for_key(session: Session, story_id: int, key: str) -> str:
+    n = (
+        session.query(StoryGraphNode)
+        .filter_by(story_id=story_id, graph_type="new", node_key=key)
+        .first()
+    )
+    return n.label if n else ""
 
-    chapter_graph_extractor records, on each source EVENT E{N}, properties['pov'] =
-    the source character node_key whose point of view narrates that chapter. The new
-    graph preserves node_keys (only labels are reskinned), so looking up the SAME key
-    on graph_type='new' yields the reskinned name to use as this chapter's POV holder.
-    This reproduces the source's actual POV alternation instead of letting the LLM
-    guess. Returns '' when not applicable (no pov captured / third-person source).
+
+def _resolve_pov_from_source(session: Session, story: Story, chapter_number: int) -> tuple[str, list[str]]:
+    """Faithful per-chapter POV for a REWRITE.
+
+    chapter_graph_extractor records, on each source EVENT E{N}: properties['pov'] =
+    the primary POV character's node_key, and properties['pov_others'] = keys of any
+    ADDITIONAL POV holders when the source chapter switches POV mid-chapter. The new
+    graph preserves node_keys (labels reskinned), so the same keys on graph_type='new'
+    give the reskinned names. Returns (primary_label, all_labels): all_labels has >1
+    entry only for a genuine multi-POV chapter. ('', []) when no POV was captured.
     """
     if story.input_type != "REWRITE":
-        return ""
+        return "", []
     ev = (
         session.query(StoryGraphNode)
         .filter_by(story_id=story.id, graph_type="source", node_key=f"E{chapter_number:03d}")
         .first()
     )
-    pov_key = ((ev.properties or {}).get("pov", "") if ev else "").strip()
-    if not pov_key:
-        return ""
-    new_char = (
-        session.query(StoryGraphNode)
-        .filter_by(story_id=story.id, graph_type="new", node_key=pov_key)
-        .first()
-    )
-    return new_char.label if new_char else ""
+    props = (ev.properties or {}) if ev else {}
+    primary_key = (props.get("pov") or "").strip()
+    if not primary_key:
+        return "", []
+    keys = [primary_key] + [k for k in (props.get("pov_others") or []) if k and k != primary_key]
+    labels, seen = [], set()
+    for k in keys:
+        lbl = _new_label_for_key(session, story.id, k)
+        if lbl and lbl not in seen:
+            seen.add(lbl)
+            labels.append(lbl)
+    if not labels:
+        return "", []
+    return labels[0], labels
 
 
 def run(session: Session, story: Story, chapter: Chapter) -> None:
@@ -200,9 +214,12 @@ Với mỗi beat/motif lặp lại của chương này: nếu trùng NGHĨA mộ
     # per-chapter POV holder, mapped to its reskinned name. Keeps the rewrite's POV
     # alternation identical to the source instead of an approximation.
     bp = blueprint.model_dump()
-    src_pov = _resolve_pov_from_source(session, story, chapter.number)
-    if src_pov:
-        bp["pov_character"] = src_pov
+    primary_pov, all_pov = _resolve_pov_from_source(session, story, chapter.number)
+    if primary_pov:
+        bp["pov_character"] = primary_pov
+        # Only carry the full list for a genuine multi-POV chapter; single-POV keeps
+        # pov_characters empty so the strong single-POV writer/guard path is unchanged.
+        bp["pov_characters"] = all_pov if len(all_pov) > 1 else []
 
     # Motif backstop: snap each returned tag to the existing display spelling when it
     # normalizes to a tag already in the ledger (catches case/space/hyphen variants

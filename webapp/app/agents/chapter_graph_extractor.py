@@ -301,13 +301,22 @@ def _extract_chapter(session: Session, story: Story, chapter_number: int, chapte
             edge.target_id = key_remap.get(edge.target_id, edge.target_id)
             if edge.trigger_event_id:
                 edge.trigger_event_id = key_remap.get(edge.trigger_event_id, edge.trigger_event_id)
-        # The event's POV holder is a character key too — remap it so a POV char that
-        # got de-duplicated this chapter (e.g. C017 -> C003) still points at a live
-        # node. Missing this made the blueprinter's POV override silently fall back to
-        # a guess. Reassign the dict (not in-place) so SQLAlchemy flags it dirty.
-        pov_key = (event_node.properties or {}).get("pov")
-        if pov_key and pov_key in key_remap:
-            event_node.properties = {**event_node.properties, "pov": key_remap[pov_key]}
+        # The event's POV holders are character keys too — remap them so a POV char
+        # de-duplicated this chapter (e.g. C017 -> C003) still points at a live node.
+        # Missing this made the blueprinter's POV override silently fall back to a
+        # guess. Reassign the dict (not in-place) so SQLAlchemy flags it dirty.
+        props = dict(event_node.properties or {})
+        changed = False
+        if props.get("pov") in key_remap:
+            props["pov"] = key_remap[props["pov"]]
+            changed = True
+        if props.get("pov_others"):
+            remapped = [key_remap.get(k, k) for k in props["pov_others"]]
+            if remapped != props["pov_others"]:
+                props["pov_others"] = remapped
+                changed = True
+        if changed:
+            event_node.properties = props
 
     # Auto-create placeholder nodes for any node_key referenced in edges but
     # not yet defined. The LLM occasionally omits nodes from new_nodes despite

@@ -41,6 +41,7 @@ Ví dụ tệ: "A và B gặp nhau và nói chuyện về quá khứ."
 - Nếu nguồn **một POV duy nhất** → đặt `pov_character` = nhân vật đó ở mọi chương.
 - Nếu không có source_spirit (IDEA/PREMISE) → để `pov_character` = `""`.
 - `speaking_characters` và mọi thứ khác vẫn theo graph; `pov_character` chỉ quy định "chương này nhìn qua mắt AI".
+- **Chương đổi POV giữa chừng** (nguồn chuyển điểm nhìn trong một chương): điền `pov_characters` = danh sách TẤT CẢ nhân vật giữ POV (KHÔNG cần thứ tự — writer tự đặt chỗ chuyển). Chương 1-POV để `pov_characters = []`. (Với REWRITE, code sẽ tự suy hai trường này từ POV thật của nguồn, nên cứ ước lượng hợp lý.)
 
 ### 1c. Bám sự thật trong graph
 Mọi sự kiện/quan hệ/danh tính trong blueprint phải khớp **chapter graph constraints** (event node của chương, PARTICIPATES, ARC_CHANGE) và world-state. Không bịa sự kiện ngoài graph. Nếu không chắc một dữ kiện, bám theo graph đã cho.
@@ -103,7 +104,8 @@ Trả về **DUY NHẤT một object JSON** hợp lệ, đúng schema:
   "state_delta": "Trạng thái truyện KHÁC gì khi hết chương so với đầu chương (thay đổi cụ thể, không phải cảm xúc lặp lại)",
   "emotional_arc_start": "Độc giả đang cảm thấy...",
   "emotional_arc_end": "Khi đóng chương, độc giả sẽ cảm thấy...",
-  "pov_character": "tên nhân vật giữ điểm nhìn chương này (đa POV luân phiên theo nguồn); '' nếu không áp dụng",
+  "pov_character": "tên nhân vật giữ điểm nhìn CHÍNH của chương; '' nếu không áp dụng",
+  "pov_characters": ["chỉ điền khi chương đổi POV giữa chừng: liệt kê TẤT CẢ nhân vật giữ POV; [] nếu chương chỉ 1 POV"],
   "motifs_used": ["tag-ngắn-khớp-ledger-nếu-trùng", "..."],
   "scenes": [
     {

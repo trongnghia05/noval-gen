@@ -303,6 +303,11 @@ class ChapterBlueprintOutput(BaseModel):
     # renders the whole chapter inside this character's head, in the source's
     # grammatical person. Empty = single-POV / let the writer follow source_spirit.
     pov_character: str = ""
+    # Populated ONLY when the source chapter narrates from more than one POV
+    # (a mid-chapter switch). Full set of POV-holder names — order not significant,
+    # the writer places the switch where the narrative flows. Empty for the common
+    # single-POV chapter, in which case pov_character alone applies.
+    pov_characters: list[str] = []
     scenes: list[SceneOut]
     hook: str                  # exact nature of the final hook/cliffhanger
     foreshadowing_to_plant: str | None = None  # seed to drop (for future payoff)

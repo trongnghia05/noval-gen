@@ -138,6 +138,30 @@ def _word_count(text: str) -> int:
     return len(text.split())
 
 
+def _pov_directive(bp: dict) -> str:
+    """POV instruction for the writer. Single-POV = one imperative line. Multi-POV
+    (source switched POV mid-chapter) = list the POV holders and let the writer place
+    the switch; we assert WHICH POVs and the person, not the order/where."""
+    multi = [p for p in (bp.get("pov_characters") or []) if p]
+    if len(multi) > 1:
+        names = ", ".join(multi)
+        return (
+            f"⚠ MULTI-POV CHAPTER. This chapter is narrated from MORE THAN ONE point of "
+            f"view: {names}. Switch POV where the narrative naturally shifts, and mark "
+            f"each switch with a section break line '---'. Within each segment you ARE "
+            f"that one character: narrate in their FIRST person ('I/my') and never refer "
+            f"to the current POV character by name or as he/she. Do NOT blend two POVs in "
+            f"one segment. Cover every listed POV.\n"
+        )
+    pov = bp.get("pov_character") or ""
+    return (
+        f"⚠ POV = {pov}. You ARE {pov}. Narrate in the source's grammatical person "
+        f"(see source_spirit POV — first-person = 'I/my'). NEVER refer to {pov} by name "
+        f"or as he/she in narration; only other characters get he/she.\n"
+        if pov else ""
+    )
+
+
 def _format_blueprint(chapter: Chapter) -> str:
     if not chapter.blueprint:
         return "(no blueprint — write using your best judgment)"
@@ -162,13 +186,7 @@ def _format_blueprint(chapter: Chapter) -> str:
         scenes = "\n".join(scene_lines)
         plant = bp.get("foreshadowing_to_plant") or "none"
         intensity = bp.get("dialogue_intensity", "balanced")
-        pov = bp.get("pov_character") or ""
-        pov_line = (
-            f"⚠ POV = {pov}. You ARE {pov}. Narrate in the source's grammatical person "
-            f"(see source_spirit POV — first-person = 'I/my'). NEVER refer to {pov} by "
-            f"name or as he/she in narration; only other characters get he/she.\n"
-            if pov else ""
-        )
+        pov_line = _pov_directive(bp)
         return (
             f"{pov_line}"
             f"PURPOSE: {bp.get('purpose')}\n"
@@ -298,13 +316,7 @@ def _write_single_scene(
     model cannot repeat content that is already on the page."""
     is_first = scene_index == 0
 
-    pov = blueprint.get("pov_character") or ""
-    pov_line = (
-        f"⚠ POV = {pov}. You ARE {pov}. Narrate in the source's grammatical person "
-        f"(see source_spirit POV — first-person = 'I/my'). NEVER refer to {pov} by name "
-        f"or as he/she in narration; only other characters get he/she.\n"
-        if pov else ""
-    )
+    pov_line = _pov_directive(blueprint)
     bp_overview = (
         f"{pov_line}"
         f"CHAPTER PURPOSE: {blueprint.get('purpose')}\n"
