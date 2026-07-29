@@ -746,9 +746,15 @@ def _enrich_characters(
 
     lexicon_block = "\n".join(f"  {k}: \"{v}\"" for k, v in sorted(lexicon.items()))
     system = load_prompt("graph_character_enricher")
+    spirit_block = (
+        f"## SOURCE TONE (match its ENERGY LEVEL — lively/funny vs grim — in this world's idiom)\n"
+        f"{story.source_spirit}\n\n"
+        if story.source_spirit else ""
+    )
     user_content = (
         f"language: {story.language}\n\n"
         f"## WORLD DESIGN\n{world_design_text}\n\n"
+        f"{spirit_block}"
         f"## NAME LEXICON\n{lexicon_block}\n\n"
         f"## CHARACTERS\n" + "\n".join(char_lines)
     )
