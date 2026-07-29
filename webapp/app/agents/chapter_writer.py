@@ -164,8 +164,9 @@ def _format_blueprint(chapter: Chapter) -> str:
         intensity = bp.get("dialogue_intensity", "balanced")
         pov = bp.get("pov_character") or ""
         pov_line = (
-            f"POV CHARACTER (write the whole chapter through this person's eyes, "
-            f"in the source's grammatical person — see source_spirit POV): {pov}\n"
+            f"⚠ POV = {pov}. You ARE {pov}. Narrate in the source's grammatical person "
+            f"(see source_spirit POV — first-person = 'I/my'). NEVER refer to {pov} by "
+            f"name or as he/she in narration; only other characters get he/she.\n"
             if pov else ""
         )
         return (
@@ -299,8 +300,9 @@ def _write_single_scene(
 
     pov = blueprint.get("pov_character") or ""
     pov_line = (
-        f"POV CHARACTER (write through this person's eyes only, in the source's "
-        f"grammatical person — see source_spirit POV): {pov}\n"
+        f"⚠ POV = {pov}. You ARE {pov}. Narrate in the source's grammatical person "
+        f"(see source_spirit POV — first-person = 'I/my'). NEVER refer to {pov} by name "
+        f"or as he/she in narration; only other characters get he/she.\n"
         if pov else ""
     )
     bp_overview = (

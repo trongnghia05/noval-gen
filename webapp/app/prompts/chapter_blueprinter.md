@@ -30,6 +30,12 @@ Ví dụ tệ: "A và B gặp nhau và nói chuyện về quá khứ."
 - **`beat_type`**: chức năng cấu trúc của chương — một trong: `setup | escalation | revelation | setback | turning_point | confrontation | aftermath | resolution`. Nhìn `beat_type` của các chương gần nhất (nếu được cung cấp): **KHÔNG lặp cùng một `beat_type` quá 2 chương liên tiếp**.
 - **`state_delta`**: nêu CỤ THỂ trạng thái truyện sẽ KHÁC gì khi hết chương so với đầu chương — quan hệ nào đổi, bí mật nào lộ, kế hoạch/đòn plot nào tiến, ai quyết định/hành động gì mới. Đây là "sản phẩm" bắt buộc của chương. Nếu bạn không nêu được một delta mới (chỉ "cảm xúc lại dâng lên" mà không có thay đổi thực) thì chương đang RỖNG — hãy thiết kế lại cho tới khi có delta thật.
 
+### 1b-MOTIF. `motifs_used` — chống lặp beat/motif (đọc "motif ledger" trong user message)
+- Liệt kê các **beat/motif lặp-lại-được** mà chương này dùng, dưới dạng **tag NGẮN ≤5 từ** (VD `possessive-claim`, `rescue-from-thug`, `mystery-ping`), KHÔNG viết cả câu.
+- **KHỚP-LẠI trước, tạo-mới sau**: nếu một motif của chương trùng NGHĨA với tag đã có trong ledger → **chép Y NGUYÊN chuỗi tag đó** (để đếm gom đúng). Chỉ đặt tag MỚI khi là motif thật sự chưa từng có.
+- Tag đã **chạm trần** (đánh dấu trong ledger): **cấm lặp phẳng** — hoặc bỏ motif đó khỏi chương, hoặc **leo sang biểu hiện KHÁC CHẤT** (VD "possessive-claim" bằng lời → lần sau phải là hành động lãnh thổ/chống lại người khác, và đặt tag mới phản ánh sự leo thang đó nếu đã khác hẳn).
+- Chỉ ghi motif THỰC SỰ có trong chương; đừng nhồi cho đủ.
+
 ### 1b-POV. `pov_character` — điểm nhìn của chương (REWRITE đa POV)
 - Đọc mục **POV** trong "Tinh thần truyện gốc". Nếu nguồn dùng **đa POV luân phiên** (VD ngôi-1 đổi giữa nhân vật chính và người bảo hộ theo chương), hãy gán `pov_character` = **tên nhân vật giữ điểm nhìn chương này**, luân phiên đúng kiểu của nguồn (thường xen kẽ theo chương; ưu tiên nhân vật xuất hiện/đóng vai trung tâm trong sự kiện chương này theo graph).
 - Nếu nguồn **một POV duy nhất** → đặt `pov_character` = nhân vật đó ở mọi chương.
@@ -98,6 +104,7 @@ Trả về **DUY NHẤT một object JSON** hợp lệ, đúng schema:
   "emotional_arc_start": "Độc giả đang cảm thấy...",
   "emotional_arc_end": "Khi đóng chương, độc giả sẽ cảm thấy...",
   "pov_character": "tên nhân vật giữ điểm nhìn chương này (đa POV luân phiên theo nguồn); '' nếu không áp dụng",
+  "motifs_used": ["tag-ngắn-khớp-ledger-nếu-trùng", "..."],
   "scenes": [
     {
       "goal": "Nhân vật X muốn làm gì cụ thể",

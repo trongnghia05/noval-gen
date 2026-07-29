@@ -45,6 +45,52 @@ def _recent_beats(session: Session, story_id: int, before_chapter: int, n: int =
     return "\n".join(lines) or "(chưa có chương trước)"
 
 
+MOTIF_CAP = 3  # a motif tag may recur at most this many times before it must be dropped/escalated
+
+
+def _norm_motif(tag: str) -> str:
+    """Deterministic backstop canonicalization: lowercase, collapse whitespace and
+    separators. Catches case/spacing variants of the same tag; semantic near-dupes
+    (different words, same meaning) are handled by the LLM's match-or-reuse rule."""
+    return " ".join(tag.lower().replace("-", " ").replace("_", " ").split())
+
+
+def _motif_ledger(session: Session, story_id: int, before_chapter: int) -> tuple[str, dict]:
+    """Cumulative motif tally across ALL prior chapters' blueprints (single source of
+    truth = Chapter.blueprint JSON; no separate store). Returns a human-readable block
+    for the prompt plus a {normalized_tag: (display_tag, count, [chapters])} map used to
+    merge exact/case-variant tags deterministically after generation."""
+    rows = (
+        session.query(Chapter)
+        .filter(Chapter.story_id == story_id, Chapter.number < before_chapter,
+                Chapter.blueprint.isnot(None))
+        .order_by(Chapter.number.asc())
+        .all()
+    )
+    tally: dict[str, list] = {}  # norm -> [display, count, [chapters]]
+    for c in rows:
+        try:
+            used = json.loads(c.blueprint).get("motifs_used", []) or []
+        except Exception:
+            continue
+        for tag in used:
+            if not isinstance(tag, str) or not tag.strip():
+                continue
+            key = _norm_motif(tag)
+            if key in tally:
+                tally[key][1] += 1
+                tally[key][2].append(c.number)
+            else:
+                tally[key] = [tag.strip(), 1, [c.number]]
+    if not tally:
+        return "(chưa có motif nào — chương đầu)", tally
+    lines = []
+    for _, (disp, cnt, chaps) in sorted(tally.items(), key=lambda kv: -kv[1][1]):
+        flag = "  ← ĐÃ CHẠM TRẦN: cấm lặp, phải BỎ hoặc LEO chất mới" if cnt >= MOTIF_CAP else ""
+        lines.append(f"  - {disp} ({cnt}×: ch{','.join(map(str, chaps))}){flag}")
+    return "\n".join(lines), tally
+
+
 def _resolve_pov_from_source(session: Session, story: Story, chapter_number: int) -> str:
     """Faithful per-chapter POV for a REWRITE with alternating multi-POV.
 
@@ -112,6 +158,8 @@ def run(session: Session, story: Story, chapter: Chapter) -> None:
             + "\n"
         )
 
+    ledger_block, ledger_map = _motif_ledger(session, story.id, chapter.number)
+
     user_content = f"""chapter_number: {chapter.number}
 total_chapters: {story.total_chapters}
 act_position: {act}
@@ -119,6 +167,10 @@ language: {story.language}
 {spirit_section}{graph_section}{db_graph_section}
 ## recent chapters' beat_type + state_delta (DO NOT repeat these — advance beyond them)
 {_recent_beats(session, story.id, chapter.number)}
+
+## motif ledger — tag đã dùng tích luỹ (KHỚP-LẠI, đừng đẻ biến thể mới)
+Với mỗi beat/motif lặp lại của chương này: nếu trùng NGHĨA một tag dưới đây, chép Y NGUYÊN chuỗi tag đó vào `motifs_used` (để đếm gom được); chỉ tạo tag MỚI khi là motif thật sự mới. Tag chạm trần ({MOTIF_CAP}×) thì CẤM lặp — bỏ hoặc leo sang biểu hiện khác chất.
+{ledger_block}
 
 ## chapter-summaries (story so far)
 {context_builder.format_chapter_summaries(session, story.id)}
@@ -151,5 +203,22 @@ language: {story.language}
     src_pov = _resolve_pov_from_source(session, story, chapter.number)
     if src_pov:
         bp["pov_character"] = src_pov
+
+    # Motif backstop: snap each returned tag to the existing display spelling when it
+    # normalizes to a tag already in the ledger (catches case/space/hyphen variants
+    # the LLM might reintroduce), and drop exact-dupes within this chapter. Keeps the
+    # cumulative count honest without a separate store.
+    canon = {norm: disp for norm, (disp, _c, _ch) in ledger_map.items()}
+    cleaned, seen = [], set()
+    for tag in (bp.get("motifs_used") or []):
+        if not isinstance(tag, str) or not tag.strip():
+            continue
+        key = _norm_motif(tag)
+        display = canon.get(key, tag.strip())
+        if key not in seen:
+            seen.add(key)
+            cleaned.append(display)
+    bp["motifs_used"] = cleaned
+
     chapter.blueprint = json.dumps(bp, ensure_ascii=False)
     chapter.status = "blueprinted"

@@ -311,6 +311,12 @@ class ChapterBlueprintOutput(BaseModel):
     # A solitary-introspection chapter is legitimately "sparse"; the verifier
     # checks dialogue against THIS target, not a global constant.
     dialogue_intensity: str = "balanced"
+    # Short canonical tags (<=5 words each) for the recurring dramatic beats /
+    # motifs this chapter uses, e.g. "possessive-claim", "rescue-from-thug". The
+    # blueprinter MUST reuse an existing tag verbatim when the motif recurs (so a
+    # cumulative count is meaningful) and only mint a new tag for a genuinely new
+    # motif. A tag at its cap must be dropped or escalated, not repeated flat.
+    motifs_used: list[str] = []
 
 
 # ── continuity_editor ─────────────────────────────────────────────────────────
@@ -365,7 +371,7 @@ class PlanningVerifierOutput(BaseModel):
 # ── quality_reviewer ───────────────────────────────────────────────────────────
 
 class QualityReviewIssueOut(BaseModel):
-    dimension: Literal["quality", "world_consistency", "graph_consistency", "dialogue"]
+    dimension: Literal["quality", "world_consistency", "graph_consistency", "dialogue", "pov"]
     description: str
     suggestion: str
     severity: Literal["critical", "minor"]
