@@ -442,12 +442,38 @@ Your job: polish it into one seamless chapter.
 
 Rules:
 1. Remove any verbatim duplicate sentences or paragraphs (keep the first occurrence).
-2. Smooth transitions between scenes — the "---scene-break---" markers show where scenes were joined; replace each marker with natural prose flow (a line break, a transitional sentence, or a section break as fits the tone).
+2. Smooth transitions between scenes — the "---scene-break---" markers show where scenes were joined; replace each marker with natural prose flow (a line break, a transitional sentence, or a section break as fits the tone). EXCEPTION: never smooth across a point of view change — see rule 7.
 3. Do NOT add new plot events, characters, or facts not already in the draft.
 4. Do NOT change character names, outcomes, or any established story detail.
 5. Keep the chapter heading on line 1 exactly as written.
 6. Return ONLY the polished chapter text — no commentary, no explanation.
+7. POV INTEGRITY (follow the "POV CONTRACT" in the user message):
+   - SINGLE-POV: the entire chapter must stay inside the one named character's point of view. If any passage narrates a DIFFERENT character's private thoughts/feelings, rewrite it as the POV character's outside observation (what they see/hear). Never head-hop.
+   - MULTI-POV: the chapter is narrated from more than one character. At EVERY point where the narrating POV changes from one holder to another, put a hard section break — a line containing only "---" — and keep each segment ENTIRELY inside that one character's first-person POV. Do NOT smooth across a POV change, and do NOT blend two characters' inner thoughts in one segment. A "---" line marking a POV switch is intentional: it MUST appear in your output (it is not a "---scene-break---" marker to erase). Every listed POV holder must get at least one segment.
 """
+
+
+def _pov_contract_for_synth(chapter: "Chapter") -> str:
+    """A concise POV contract for the synthesis pass (the whole-chapter step that
+    produces the final content the verifier checks). Without this, synthesis smooths
+    POV switches away and head-hops."""
+    if not chapter.blueprint:
+        return ""
+    try:
+        bp = json.loads(chapter.blueprint)
+    except Exception:
+        return ""
+    multi = [p for p in (bp.get("pov_characters") or []) if p]
+    if len(multi) > 1:
+        return (
+            f"MULTI-POV. POV holders: {', '.join(multi)}. Insert a '---' line at every "
+            f"change of narrating POV; keep each segment in one holder's first person; "
+            f"never smooth across a POV change or blend two POVs."
+        )
+    pov = (bp.get("pov_character") or "").strip()
+    if pov:
+        return f"SINGLE-POV = {pov}. The whole chapter stays in {pov}'s POV; never narrate another character's private thoughts."
+    return ""
 
 _FINALIZE_SYSTEM = """\
 You receive a complete, polished chapter. Extract structured metadata and return ONLY a JSON object — no markdown fence, no commentary.
@@ -462,9 +488,12 @@ Fields:
 
 def _synthesize_chapter(story: "Story", chapter: "Chapter", draft: str) -> str:
     """Polish the scene-assembled draft: remove duplicates, smooth transitions."""
+    pov_contract = _pov_contract_for_synth(chapter)
+    pov_block = f"## POV CONTRACT (rule 7 — enforce this)\n{pov_contract}\n\n" if pov_contract else ""
     user_content = (
         f"chapter_number: {chapter.number} | language: {story.language} "
         f"| target_words: ~{story.words_per_chapter}\n\n"
+        f"{pov_block}"
         f"## DRAFT\n---\n{draft}\n---\n\n"
         f"Return the complete polished chapter starting with the heading.\n"
     )
