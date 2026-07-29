@@ -493,19 +493,11 @@ def _compile_manuscript_to_file(session: Session, story: Story) -> Path:
     ]
     chapters_text = "\n\n---\n\n".join(chapter_parts)
 
-    # ── Front matter: title, (source), author, tags/type, logline, blurb ────
+    # ── Front matter: title, author, tags/type, logline, blurb ─────────────
     words = story.current_words or 0
     meta_info = _generate_novel_metadata(story)
-    # For REWRITE, the source's title is the first line of the source content.
-    source_title = ""
-    if story.input_type == "REWRITE" and story.source_content:
-        _first = story.source_content.strip().splitlines()
-        source_title = _first[0].strip() if _first else ""
-
     header_lines = [f"# {story.title}", ""]
-    if source_title:
-        header_lines += [f"*Viết từ truyện {source_title}*", ""]
-    summ_lines = [story.title] + ([f"Viết từ truyện {source_title}"] if source_title else [])
+    summ_lines = [story.title]
     if meta_info:
         type_label = _length_type(words)
         tag_str = " · ".join([type_label] + list(meta_info.tags)) if meta_info.tags else type_label
