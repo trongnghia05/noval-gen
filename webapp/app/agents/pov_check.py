@@ -18,9 +18,14 @@ characters, so we require third to clearly outweigh first, not merely appear.
 import json
 import re
 
+from pydantic import BaseModel
+from typing import Literal
+
 from sqlalchemy.orm import Session
 
+from ..config import AGENT_MODELS, PROVIDER
 from ..db.models import Chapter, Story
+from ..llm_json import generate_structured
 from ..schemas import QualityReviewIssueOut
 
 # Dialogue spans to strip before counting narration pronouns.
@@ -53,6 +58,36 @@ def _strip_dialogue(text: str) -> str:
     return text
 
 
+class _PovClassifyOut(BaseModel):
+    person: Literal["first", "third"]  # narration's grammatical person for the POV character
+
+
+def _llm_confirms_third(story: Story, chapter: Chapter, pov: str) -> bool:
+    """Cheap LLM confirmation, run ONLY after the code pre-filter fires. Guards
+    against a false positive — a valid first-person chapter that merely contains
+    lots of he/she about *other* characters. The code count can't tell "narrated
+    as 'I'" from "narrated about the POV char in third person"; the LLM can.
+    On any error, fall back to the code verdict (assume the flag stands)."""
+    system = (
+        "You classify narrative point of view. Ignore text inside quotation marks "
+        "(dialogue). Look ONLY at the narration. Decide whether the narration is written "
+        "in FIRST person (the narrator IS the POV character, using 'I/me/my') or THIRD "
+        "person (the narrator refers to the POV character by name or as he/she). "
+        "Other characters appearing as he/she does NOT make it third person — what "
+        "matters is how the POV character themselves is narrated. Answer with person only."
+    )
+    user = f"POV character: {pov}\n\nChapter narration:\n{chapter.content[:6000]}"
+    try:
+        out = generate_structured(
+            PROVIDER, system=system, user_content=user,
+            model=AGENT_MODELS.get("pov_check", AGENT_MODELS["quality_reviewer"]),
+            schema=_PovClassifyOut, max_tokens=200, thinking=False,
+        )
+        return out.person == "third"
+    except Exception:
+        return True  # can't confirm -> trust the code flag rather than silently skip
+
+
 def check(session: Session, story: Story, chapter: Chapter) -> list[QualityReviewIssueOut]:
     if story.input_type != "REWRITE" or not chapter.content or not chapter.blueprint:
         return []
@@ -72,6 +107,11 @@ def check(session: Session, story: Story, chapter: Chapter) -> list[QualityRevie
     # Require a clear third-person majority over a non-trivial base, so a valid
     # first-person chapter with lots of "he/she" about others is not flagged.
     if third >= 12 and third > first * 1.5:
+        # Code is only a cheap pre-filter here; confirm with the LLM before paying
+        # for a rewrite, so a first-person chapter that's merely he/she-heavy about
+        # other characters isn't rewritten by mistake.
+        if not _llm_confirms_third(story, chapter, pov):
+            return []
         return [QualityReviewIssueOut(
             dimension="pov",
             severity="critical",
