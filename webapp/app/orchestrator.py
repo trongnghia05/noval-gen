@@ -553,7 +553,7 @@ def _compile_manuscript_to_file(session: Session, story: Story) -> Path:
             f"{word} {c.number}: {titles[c.number]}\n\n"
             f"{chapter_writer.normalize_paragraphs(c.content or '')}\n"
         )
-        (out_dir / f"chapter-{c.number:02d}.txt").write_text(ch_txt, encoding="utf-8")
+        (out_dir / f"ch-{c.number:03d}.txt").write_text(ch_txt, encoding="utf-8")
     logger.info("[%s] compiled → %s + summarize.txt + %d chapter .txt files",
                 story.slug, out_path, len(chapters))
     return out_path
@@ -564,7 +564,9 @@ def run_complete_step(session: Session, story: Story) -> dict:
     # Poster art (cover + 2 thumbnails) — best-effort, never blocks completion.
     try:
         from . import image_generator
-        image_generator.generate(session, story, out_path.parent)
+        image_dir = out_path.parent / "image"
+        image_dir.mkdir(parents=True, exist_ok=True)
+        image_generator.generate(session, story, image_dir)
     except Exception as exc:
         logger.warning("[%s] image generation step failed: %s", story.slug, exc)
     if story.phase != "COMPLETE":
