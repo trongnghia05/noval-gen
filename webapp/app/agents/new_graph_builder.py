@@ -30,7 +30,7 @@ from ..config import AGENT_MODELS, PROVIDER
 from ..db.models import Character, Story, StoryGraphEdge, StoryGraphNode
 from ..llm_json import generate_structured
 from ..prompts.loader import load_prompt
-from ..slug import generate_title
+from ..slug import generate_title, slugify
 from ..schemas import (
     ArcChangeGroupEnrichOutput,
     ArcChangeSurfaceOut,
@@ -1764,6 +1764,13 @@ def finalize_after_verify(session: Session, story: Story) -> None:
             logger.info("[%s] retitled for new world: %r -> %r",
                         story.slug, story.title, new_title.strip())
             story.title = new_title.strip()
+            # Keep the slug (used for the output folder name) in sync with the final
+            # title — otherwise the folder keeps the stale pre-retitle slug and no
+            # longer matches the story's name. Collision with another story's folder
+            # is still resolved at export time via the .story-{id} ownership marker.
+            new_slug = slugify(story.title)
+            if new_slug:
+                story.slug = new_slug
     except Exception as exc:
         logger.warning("[%s] retitle failed, keeping original: %s", story.slug, exc)
     session.flush()
