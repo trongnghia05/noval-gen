@@ -11,7 +11,7 @@ import logging
 
 from sqlalchemy.orm import Session
 
-from .. import context_builder
+from .. import context_builder, csv_graph
 from ..config import AGENT_MODELS, PROVIDER
 from ..db.models import Chapter, Story
 from ..llm_json import generate_structured
@@ -34,8 +34,11 @@ def run(session: Session, story: Story, chapter: Chapter, feedback: str) -> Chap
 
     system = load_prompt("chapter_reviser")
 
-    # New-graph constraints help it fix factual/identity issues correctly.
+    # Reference truth so the reviser can JUDGE whether each flagged issue is real
+    # (reject false positives) and fix the real ones CORRECTLY — not guess. Same
+    # blocks the writer/quality_reviewer see, scoped to what fixes typically need.
     graph_section = ""
+    pov_line = ""
     if story.new_graph_built:
         graph_section = (
             "\n## chapter graph constraints (source of truth for events/identities)\n"
@@ -44,12 +47,30 @@ def run(session: Session, story: Story, chapter: Chapter, feedback: str) -> Chap
             )
             + "\n"
         )
+        try:
+            import json as _json
+            pov_line = chapter_writer._pov_directive(_json.loads(chapter.blueprint)) if chapter.blueprint else ""
+        except Exception:
+            pov_line = ""
+
+    gender_roster = context_builder.format_gender_roster(session, story.id) if story.new_graph_built else ""
+    gender_section = (
+        f"\n## Character genders (correct pronouns — the truth to check gender flags against)\n{gender_roster}\n"
+        if gender_roster and gender_roster != "(no gender data)" else ""
+    )
+    voices = csv_graph.get_character_voices(story.id) if csv_graph.graph_exists(story.id) else ""
+    voices_section = f"\n## Character voices (the truth to check voice/dialogue flags against)\n{voices}\n" if voices else ""
+    world_section = (
+        f"\n## world.md (the truth to check world/anachronism flags against)\n{(story.world_bible or '')[:2000]}\n"
+        if story.world_bible else ""
+    )
+    pov_section = f"\n## POV contract (the truth to check POV flags against)\n{pov_line}\n" if pov_line else ""
 
     user_content = (
         f"language: {story.language}\n"
         f"chapter_number: {chapter.number}\n\n"
-        f"## ISSUES TO FIX (change ONLY these; keep everything else identical)\n{feedback}\n"
-        f"{graph_section}\n"
+        f"## ISSUES FLAGGED (verify each against the reference truth below; fix only the REAL ones)\n{feedback}\n"
+        f"{graph_section}{gender_section}{voices_section}{pov_section}{world_section}\n"
         f"## CURRENT CHAPTER (revise in place)\n---\n{current}\n---\n"
     )
 

@@ -11,13 +11,16 @@ import logging
 import time
 from typing import TypedDict
 
+import httpx
 from langgraph.graph import END, StateGraph
 from openai import APIError
 
 try:
     from google.genai.errors import ClientError as GoogleClientError
+    from google.genai.errors import ServerError as GoogleServerError
 except ImportError:
     GoogleClientError = None
+    GoogleServerError = None
 
 from . import orchestrator
 from .db.models import Story
@@ -66,9 +69,19 @@ def _run_step_with_retry(step: str, session, story: Story) -> None:
             executor(session, story)
             return
         except Exception as exc:
-            is_transient = isinstance(exc, APIError) or (
-                GoogleClientError is not None and isinstance(exc, GoogleClientError)
-                and getattr(exc, "status_code", None) in (429, 500, 502, 503)
+            is_transient = (
+                isinstance(exc, APIError)
+                # Transient network drops mid-request (observed: the provider closing
+                # the connection with no response). Previously these propagated and
+                # killed the whole run even though the DB was safely committed.
+                or isinstance(exc, (httpx.RemoteProtocolError, httpx.ReadError,
+                                    httpx.ConnectError, httpx.ReadTimeout,
+                                    httpx.WriteError))
+                or (GoogleServerError is not None and isinstance(exc, GoogleServerError))
+                or (
+                    GoogleClientError is not None and isinstance(exc, GoogleClientError)
+                    and getattr(exc, "status_code", None) in (429, 500, 502, 503)
+                )
             )
             if not is_transient or not remaining:
                 raise
