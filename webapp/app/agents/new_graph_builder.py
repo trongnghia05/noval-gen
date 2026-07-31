@@ -740,8 +740,10 @@ def _enrich_characters(
     char_lines = []
     for n in nodes:
         p = n.properties or {}
+        new_label = lexicon.get(n.node_key, n.label)
         char_lines.append(
-            f"[{n.node_key}] {n.label} | role: {p.get('role','')} | "
+            f"[{n.node_key}] NEW NAME: {new_label} | current_gender: {p.get('gender','unknown')} | "
+            f"role: {p.get('role','')} | "
             f"arc: {p.get('arc_stage','')} | wants: {p.get('wants','')} | "
             f"fears: {p.get('fears','')} | background: {p.get('background','')}"
         )
@@ -784,6 +786,8 @@ def _enrich_characters(
         if surf.new_speech_pattern: props["speech_pattern"] = surf.new_speech_pattern
         if surf.new_voice_profile:  props["voice_profile"]  = surf.new_voice_profile
         if surf.new_appearance:     props["appearance"]     = surf.new_appearance
+        if surf.new_gender and surf.new_gender.strip().lower() in ("male", "female", "nonbinary"):
+            props["gender"] = surf.new_gender.strip().lower()
         node.properties = props
         applied += 1
     session.flush()

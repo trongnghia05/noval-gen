@@ -13,6 +13,17 @@ User message contains:
 ## Task
 
 For each character, produce:
+- `new_gender` — `male` / `female` / `nonbinary` for the NEW world. Choose it to be
+  SELF-CONSISTENT: it must agree with (a) the NEW NAME's gender signal, (b) the
+  character's role & relationships in the new plot (a heterosexual romance needs the
+  love interests to be opposite genders for the relationship to still make sense), and
+  (c) every pronoun you write below. `current_gender` in the input is only a hint — if
+  it contradicts the new name or would break the plot's relationships, OVERRIDE it with
+  the consistent choice. Whatever you pick, ALL of `arc_stage/wants/fears/background/
+  voice_profile/appearance` for this character MUST use that gender's pronouns
+  consistently — never mix "he" and "she" for the same person. (This was a real bug: a
+  male love interest named e.g. "Silas" ended up marked female with a female-pronoun
+  gender field but male-pronoun prose — do NOT let name, gender, and pronouns disagree.)
 - `new_arc_stage` — current emotional/psychological state at story start (1-2 sentences, period-appropriate)
 - `new_wants` — concrete external goal (what they're actively pursuing)
 - `new_fears` — core vulnerability (what they're afraid of losing or becoming)
@@ -47,6 +58,7 @@ For each character, produce:
   "characters": [
     {
       "node_key": "C001",
+      "new_gender": "male | female | nonbinary — consistent with the new name, plot role, and all pronouns below",
       "new_arc_stage": "...",
       "new_wants": "...",
       "new_fears": "...",

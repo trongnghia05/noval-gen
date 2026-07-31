@@ -578,6 +578,10 @@ class GraphSurfaceRepairOutput(BaseModel):
 
 class CharacterSurfaceOut(BaseModel):
     node_key: str
+    # Gender for the NEW world, chosen to be self-consistent: it must match the new
+    # name's gender signal, the character's role/relationships in the new plot, and
+    # every pronoun used in arc/background/voice/appearance. male|female|nonbinary.
+    new_gender: str = ""
     new_arc_stage: str
     new_wants: str
     new_fears: str
