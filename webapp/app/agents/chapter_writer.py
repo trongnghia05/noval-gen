@@ -626,7 +626,13 @@ def run(session: Session, story: Story, chapter: Chapter, feedback: str | None =
 
     logger.info("[%s] chapter_writer DONE ch%d: %d words | title=%r",
                 story.slug, chapter.number, _word_count(output.content), output.title)
-    chapter.title = output.title
+    # Strip any leftover "Chapter N:" / "Chương N:" prefix the finalizer sometimes
+    # leaves on the generated title (it occasionally echoes the Vietnamese "Chương"
+    # from the prompt language into an English story). Language-agnostic — matches
+    # both words — so the STORED title is clean regardless of input language; the
+    # heading word is added separately per language at export.
+    chapter.title = re.sub(r"^\s*(?:chapter|chương)\s*\d+\s*[:.\-–]\s*", "",
+                           (output.title or ""), flags=re.IGNORECASE).strip() or output.title
     chapter.content = normalize_paragraphs(output.content)
     chapter.word_count = _word_count(chapter.content)
     chapter.status = "done"

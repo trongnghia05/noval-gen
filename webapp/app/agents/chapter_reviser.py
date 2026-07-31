@@ -8,6 +8,7 @@ rewrite via chapter_writer.
 """
 
 import logging
+import re
 
 from sqlalchemy.orm import Session
 
@@ -85,7 +86,9 @@ def run(session: Session, story: Story, chapter: Chapter, feedback: str) -> Chap
     )
 
     chapter.content = chapter_writer.normalize_paragraphs(output.content)
-    chapter.title = output.title or chapter.title
+    if output.title:
+        chapter.title = re.sub(r"^\s*(?:chapter|chương)\s*\d+\s*[:.\-–]\s*", "",
+                               output.title, flags=re.IGNORECASE).strip() or output.title
     chapter.word_count = chapter_writer._word_count(chapter.content)
     logger.info("[%s] chapter_reviser DONE ch%d: %d words",
                 story.slug, chapter.number, chapter.word_count)
