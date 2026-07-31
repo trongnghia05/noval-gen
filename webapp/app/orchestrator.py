@@ -462,6 +462,24 @@ def _chapter_word(language: str) -> str:
     return "Chương" if "viet" in ascii_lang else "Chapter"
 
 
+def _is_vietnamese(language: str) -> bool:
+    ascii_lang = unicodedata.normalize("NFKD", language or "").encode("ascii", "ignore").decode().lower()
+    return "viet" in ascii_lang
+
+
+def _frontmatter_labels(language: str) -> dict:
+    """Localized front-matter labels for the export header + summarize.txt. Only a
+    Vietnamese-language story gets Vietnamese labels; every other language defaults to
+    English so an English (or other) novel never leaks Vietnamese label words."""
+    if _is_vietnamese(language):
+        return {"author": "Tác giả", "genre": "Thể loại", "length": "Độ dài",
+                "plot": "Cốt truyện", "summary": "Tóm tắt", "toc": "Mục lục",
+                "chapters": "chương", "words": "từ"}
+    return {"author": "Author", "genre": "Genre", "length": "Length",
+            "plot": "Plot", "summary": "Summary", "toc": "Table of Contents",
+            "chapters": "chapters", "words": "words"}
+
+
 def _clean_chapter_title(title: str) -> str:
     """Strip a leftover 'Chapter N:' / 'Chương N:' prefix the writer sometimes leaves
     inside chapter.title, so the compiler's own heading isn't doubled
@@ -494,6 +512,9 @@ def _compile_manuscript_to_file(session: Session, story: Story) -> Path:
     chapters_text = "\n\n---\n\n".join(chapter_parts)
 
     # ── Front matter: title, author, tags/type, logline, blurb ─────────────
+    # Labels follow the story's language (English default) so an English novel never
+    # leaks Vietnamese label words.
+    lbl = _frontmatter_labels(story.language)
     words = story.current_words or 0
     meta_info = _generate_novel_metadata(story)
     header_lines = [f"# {story.title}", ""]
@@ -501,37 +522,39 @@ def _compile_manuscript_to_file(session: Session, story: Story) -> Path:
     if meta_info:
         type_label = _length_type(words)
         tag_str = " · ".join([type_label] + list(meta_info.tags)) if meta_info.tags else type_label
-        length_line = f"{len(chapters)} chương · {words:,} từ · {story.language}"
+        length_line = f"{len(chapters)} {lbl['chapters']} · {words:,} {lbl['words']} · {story.language}"
         header_lines += [
-            f"**Tác giả:** {meta_info.author}  ",
-            f"**Thể loại:** {tag_str}  ",
-            f"**Độ dài:** {length_line}  ",
+            f"**{lbl['author']}:** {meta_info.author}  ",
+            f"**{lbl['genre']}:** {tag_str}  ",
+            f"**{lbl['length']}:** {length_line}  ",
             "",
-            f"**Cốt truyện:** {meta_info.logline}",
+            f"**{lbl['plot']}:** {meta_info.logline}",
             "",
-            "**Tóm tắt**",
+            f"**{lbl['summary']}**",
             "",
             meta_info.summary,
         ]
         summ_lines += [
             "", "",
-            f"Tác giả: {meta_info.author}",
-            f"Thể loại: {tag_str}",
-            f"Độ dài: {length_line}",
+            f"{lbl['author']}: {meta_info.author}",
+            f"{lbl['genre']}: {tag_str}",
+            f"{lbl['length']}: {length_line}",
             "",
-            f"Cốt truyện: {meta_info.logline}",
+            f"{lbl['plot']}: {meta_info.logline}",
             "",
-            "Tóm tắt",
+            lbl['summary'],
             "",
             meta_info.summary,
         ]
     else:
         meta_parts = [p for p in [story.genre, story.language] if p]
-        meta_parts += [f"{len(chapters)} chương", f"{words:,} từ"]
+        meta_parts += [f"{len(chapters)} {lbl['chapters']}", f"{words:,} {lbl['words']}"]
         header_lines.append(f"*{' · '.join(meta_parts)}*")
         summ_lines += ["", " · ".join(meta_parts)]
+    # summarize.txt also carries the table of contents.
+    summ_lines += ["", "", lbl['toc'], "", toc]
     header = "\n".join(header_lines)
-    manuscript = f"{header}\n\n---\n\n## Mục lục\n\n{toc}\n\n---\n\n{chapters_text}\n"
+    manuscript = f"{header}\n\n---\n\n## {lbl['toc']}\n\n{toc}\n\n---\n\n{chapters_text}\n"
     summarize_text = "\n".join(summ_lines) + "\n"
 
     # Folder named after the story (slug is the filesystem-safe title). Suffix
