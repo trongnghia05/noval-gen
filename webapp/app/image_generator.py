@@ -1,0 +1,255 @@
+"""Generate poster art for a finished novel — a wide cover + two portrait
+thumbnails — with a Gemini image model, with the title rendered by the model and
+OCR-verified for correct spelling.
+
+Runs best-effort at story completion: any failure (image gen not enabled, safety
+filter, provider without image support) is logged and skipped so the novel export
+is never blocked. Images land next to novel.md in the host-mounted output folder.
+"""
+
+import io
+import logging
+import random
+import re
+
+from PIL import Image, ImageOps
+from sqlalchemy.orm import Session
+
+from .config import AGENT_MODELS, IMAGE_MODEL, PROVIDER
+from .db.models import Character, Story
+from .llm_json import generate_structured
+from .prompts.loader import load_prompt
+from .schemas import ImagePromptSetOut, NovelMetadataOut
+
+logger = logging.getLogger(__name__)
+
+
+def _norm(s: str) -> str:
+    """Lowercase, strip everything but a-z0-9 — for spelling-tolerant compare."""
+    return re.sub(r"[^a-z0-9]", "", (s or "").lower())
+
+
+def _title_ok(title: str, ocr_text: str) -> bool:
+    """True if the full title (normalized) appears in the OCR'd image text."""
+    t = _norm(title)
+    return bool(t) and t in _norm(ocr_text)
+
+# (filename, width, height, aspect-ratio, attr, crop-centering)
+# The model now outputs each aspect ratio natively (image_config), so cropping to
+# the exact pixel size is minimal and symmetric — faces and title both survive.
+_SPECS = [
+    ("cover.png",      686, 424, "16:9", "cover",  (0.5, 0.5)),
+    ("thumbnail1.png", 327, 462, "3:4",  "thumb1", (0.5, 0.5)),
+    ("thumbnail2.png", 498, 642, "3:4",  "thumb2", (0.5, 0.5)),
+]
+
+_TIER_ORDER = {"core": 0, "important": 1, "secondary": 2, "minor": 3}
+
+
+def _relationship_dynamics(session: Session, story_id: int) -> str:
+    """The main power dynamics between top characters — who pursues/controls/is
+    captive to whom — so the poster staging reflects the story instead of a random
+    (possibly reversed) pose."""
+    from .db.models import StoryGraphNode, StoryGraphEdge
+    nodes = {
+        n.node_key: n for n in session.query(StoryGraphNode)
+        .filter_by(story_id=story_id, graph_type="new", node_type="character").all()
+    }
+    if not nodes:
+        return ""
+    _tier = {"protagonist": 0, "antagonist": 1, "love_interest": 1,
+             "antagonist/love_interest": 1, "supporting": 2}
+    top = sorted(nodes.values(),
+                 key=lambda n: _tier.get((n.properties or {}).get("role", ""), 3))[:5]
+    top_keys = {n.node_key for n in top}
+    lines = []
+    for e in session.query(StoryGraphEdge).filter_by(
+            story_id=story_id, graph_type="new", edge_type="RELATION").all():
+        if e.source_key in top_keys and e.target_key in top_keys:
+            a, b = nodes.get(e.source_key), nodes.get(e.target_key)
+            if not a or not b:
+                continue
+            rel = (e.properties or {}).get("rel_type", e.label or "")
+            cond = (e.condition or e.label or "")[:90]
+            lines.append(f"- {a.label} ({(a.properties or {}).get('role','')}) → "
+                         f"{b.label} ({(b.properties or {}).get('role','')}): {rel}. {cond}")
+    return "\n".join(lines[:8])
+
+
+def _character_lines(session: Session, story_id: int) -> str:
+    chars = (
+        session.query(Character)
+        .filter_by(story_id=story_id)
+        .all()
+    )
+    chars.sort(key=lambda c: _TIER_ORDER.get(c.tier or "minor", 9))
+    lines = []
+    for c in chars[:8]:
+        prof = (c.profile_md or "").replace("\n", " ")[:420]
+        lines.append(f"- {c.name} [{c.tier or 'minor'}]: {prof}")
+    return "\n".join(lines)
+
+
+# Art-direction menus. The prompt designer sees the same story every run, so with a
+# single fixed recipe it returns near-identical art (every cover a row of big faces
+# shot at 85mm). One option is drawn from each menu per run and passed in as ART
+# DIRECTION, which is what actually moves the output between runs.
+_COMPOSITIONS = [
+    "ensemble montage — the cast's faces packed large and overlapping, classic key-art wall",
+    "single hero off-centre, large, with the world opening up in the empty half of the frame",
+    "two figures in symmetrical opposition, the frame split between their worlds",
+    "one figure small against an overwhelming environment, epic scale, tiny silhouette",
+    "extreme close-up of the protagonist's face filling the frame, the rest of the cast small and soft behind",
+    "layered depth — one figure sharp in the foreground, others receding at decreasing scale",
+    "low-angle hero shot looking up at the cast, the sky and architecture towering behind",
+    "over-the-shoulder framing: the protagonist's back to us, facing the world she must enter",
+    "wide negative-space composition, the cast pushed to one edge, most of the frame atmosphere",
+    "tight two-shot, faces close and nearly touching, everything else fallen away",
+]
+_LENSES = [
+    "24mm wide angle, sweeping and immersive",
+    "35mm, environmental and grounded",
+    "50mm, natural and unforced",
+    "85mm portrait, shallow depth of field",
+    "135mm telephoto, compressed and intimate",
+    "anamorphic wide with horizontal flares and oval bokeh",
+]
+_LIGHTING = [
+    "hard backlight rim-lighting the figures, faces lifted by bounced fill",
+    "chiaroscuro from one hard source, deep shadow holding most of the frame",
+    "diffuse fog light, layered atmospheric haze separating each plane",
+    "cold edge light on one side, warm practical glow on the other",
+    "golden-hour sun raking low across the scene",
+    "overcast soft light, flat and cool, colour doing the work",
+    "light from below or behind a translucent surface, unnatural and unsettling",
+    "high-key bright light, airy and open",
+]
+_PALETTES = [
+    "restrained near-monochrome with one saturated accent colour",
+    "warm-cool split complementary, the two worlds colour-coded against each other",
+    "deep jewel tones, rich and saturated",
+    "desaturated earth and metal with a single luminous highlight",
+    "high-contrast dark ground with brilliant highlights",
+    "pale, washed and bleached, quiet and sparse",
+    "duotone treatment built from the story's two dominant forces",
+]
+
+
+def _art_direction(seed: int | None = None) -> str:
+    """One randomly-drawn composition / lens / lighting / palette recipe. These are
+    VISUAL-style knobs only (dynamic-neutral) — the pair's staging is decided by the
+    LLM from the story's power dynamic, not randomised, so it never reverses it."""
+    rnd = random.Random(seed)
+    return (
+        f"- Composition (anchor for the cover): {rnd.choice(_COMPOSITIONS)}\n"
+        f"- Lens: {rnd.choice(_LENSES)}\n"
+        f"- Lighting: {rnd.choice(_LIGHTING)}\n"
+        f"- Palette direction: {rnd.choice(_PALETTES)}\n"
+    )
+
+
+def _build_prompts(session: Session, story: Story, meta: NovelMetadataOut | None) -> ImagePromptSetOut:
+    tags = ", ".join(meta.tags) if (meta and meta.tags) else (story.genre or "")
+    system = load_prompt("image_prompt")
+    art_direction = _art_direction()
+    logger.info("[%s] art direction for this run:\n%s", story.slug, art_direction)
+    logline = (meta.logline if meta and meta.logline else "")
+    dynamics = _relationship_dynamics(session, story.id)
+    user_content = (
+        f"title (render EXACTLY this text on each image): {story.title}\n"
+        f"tags: {tags}\n\n"
+        f"## STORY DIRECTION (the plot's power dynamic — ALL three images must honour "
+        f"this; never reverse who pursues/controls/is captive to whom)\n"
+        f"logline: {logline or '(derive from world below)'}\n"
+        f"main relationships:\n{dynamics or '(derive from characters below)'}\n\n"
+        f"## ART DIRECTION (visual style for this run — composition/lens/lighting/palette; "
+        f"vary the three images from each other around them)\n{art_direction}\n"
+        f"## world (setting / genre / tone)\n{(story.story_bible or story.world_bible or '')[:3000]}\n\n"
+        f"## MAIN CHARACTERS\n{_character_lines(session, story.id)}\n"
+    )
+    return generate_structured(
+        PROVIDER, system=system, user_content=user_content,
+        model=AGENT_MODELS.get("image_prompt", AGENT_MODELS["quality_reviewer"]),
+        schema=ImagePromptSetOut, max_tokens=2048, thinking=False,
+    )
+
+
+def generate(session: Session, story: Story, out_dir, meta: NovelMetadataOut | None = None) -> list[str]:
+    """Generate cover + 2 thumbnails into out_dir. Best-effort; returns filenames written."""
+    try:
+        prompts = _build_prompts(session, story, meta)
+    except Exception as exc:
+        logger.warning("[%s] image prompt design failed, skipping images: %s", story.slug, exc)
+        return []
+
+    # _SPECS is ordered cover-first on purpose: the cover fixes each character's
+    # face, then its raw bytes are fed as a reference into the thumbnails so the
+    # SAME people appear consistently (Nano Banana keeps identity from a reference
+    # image even when pose/wardrobe/framing changes).
+    _CONSISTENCY = (
+        "\n\nIMPORTANT: the attached reference image is ONLY a face guide for keeping "
+        "characters consistent. Use it solely to match the FACES / hair / identity of "
+        "whichever characters appear in THIS image. Do NOT copy the reference's "
+        "composition, layout, or the NUMBER of people — this image has its own subject "
+        "list and framing described above. If this prompt calls for a single-person "
+        "portrait, show ONLY that one person even though the reference has several. "
+        "Any character who does appear must match their reference face."
+    )
+    ocr_model = AGENT_MODELS.get("quality_reviewer") or IMAGE_MODEL
+    _MAX_ATTEMPTS = 4
+    written: list[str] = []
+    cover_ref: bytes | None = None
+    for filename, w, h, aspect, attr, centering in _SPECS:
+        prompt = getattr(prompts, attr, "") or ""
+        if not prompt:
+            continue
+        is_cover = attr == "cover"
+        refs = None if (is_cover or not cover_ref) else [cover_ref]
+        full_prompt = prompt if is_cover else prompt + _CONSISTENCY
+
+        best_raw: bytes | None = None  # keep a usable image even if none verify
+        verified_raw: bytes | None = None
+        for attempt in range(_MAX_ATTEMPTS):
+            try:
+                raw = PROVIDER.generate_image(
+                    prompt=full_prompt, model=IMAGE_MODEL,
+                    aspect_ratio=aspect, reference_images=refs,
+                )
+            except NotImplementedError:
+                logger.warning("[%s] provider has no image support — skipping all images", story.slug)
+                return written
+            except Exception as exc:
+                logger.warning("[%s] image %s attempt %d gen failed: %s",
+                               story.slug, filename, attempt + 1, exc)
+                continue
+
+            best_raw = best_raw or raw
+            # OCR-verify the rendered title spelling; regenerate if it's wrong.
+            try:
+                ocr = PROVIDER.read_image_text(image_bytes=raw, model=ocr_model)
+                if _title_ok(story.title, ocr):
+                    verified_raw = raw
+                    break
+                logger.info("[%s] %s attempt %d: title misspelled in art (ocr=%r), retrying",
+                            story.slug, filename, attempt + 1, (ocr or "")[:60])
+            except NotImplementedError:
+                verified_raw = raw  # no OCR available → accept first good image
+                break
+            except Exception as exc:
+                logger.warning("[%s] %s OCR check failed: %s — accepting image",
+                               story.slug, filename, exc)
+                verified_raw = raw
+                break
+
+        chosen = verified_raw or best_raw
+        if not chosen:
+            continue
+        img = Image.open(io.BytesIO(chosen)).convert("RGB")
+        img = ImageOps.fit(img, (w, h), method=Image.LANCZOS, centering=centering)
+        img.save(out_dir / filename, format="PNG")
+        if is_cover:
+            cover_ref = chosen  # reference for thumbnail character consistency
+        written.append(filename)
+        logger.info("[%s] image written: %s (%dx%d)%s", story.slug, filename, w, h,
+                    "" if verified_raw else " [title unverified]")
+    return written

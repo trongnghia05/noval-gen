@@ -1,3 +1,5 @@
+import logging
+
 from sqlalchemy.orm import Session
 
 from .. import context_builder, csv_graph
@@ -6,6 +8,8 @@ from ..db.models import Chapter, ChapterSummary, Foreshadowing, StateLog, Story,
 from ..llm_json import generate_structured
 from ..prompts.loader import load_prompt
 from ..schemas import ChapterSummaryOutput
+
+logger = logging.getLogger(__name__)
 
 
 def _upsert_world_state_row(session: Session, story_id: int, chapter_number: int, row) -> None:
@@ -58,7 +62,8 @@ def run(session: Session, story: Story, chapter: Chapter) -> None:
         id_list = "\n".join(f"  {r['id']}: {r['name']}" for r in chars)
         graph_ids_section = f"\n## character-graph ids (use these ids in character_updates)\n{id_list}\n"
 
-    user_content = f"""chapter_number: {chapter.number}
+    user_content = f"""language: {story.language}
+chapter_number: {chapter.number}
 
 ## characters.md (tên chính thức + aliases)
 {context_builder.format_character_aliases(session, story.id)}
@@ -80,7 +85,12 @@ def run(session: Session, story: Story, chapter: Chapter) -> None:
 
     # ── DB updates (existing) ──────────────────────────────────────────────────
     session.add(
-        ChapterSummary(story_id=story.id, chapter_number=chapter.number, summary_text=output.summary)
+        ChapterSummary(
+            story_id=story.id,
+            chapter_number=chapter.number,
+            summary_text=output.summary,
+            short_summary=output.short_summary,
+        )
     )
     for change in output.state_changes:
         session.add(
@@ -135,3 +145,6 @@ def run(session: Session, story: Story, chapter: Chapter) -> None:
                 story.id, chapter.number,
                 e.story_time, e.location, e.characters, e.summary,
             )
+
+    logger.info("[%s] chapter_summarizer DONE ch%d: %d state_changes, %d world_state_rows",
+                story.slug, chapter.number, len(output.state_changes), len(output.world_state_rows))

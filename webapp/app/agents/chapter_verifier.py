@@ -1,0 +1,72 @@
+import logging
+
+from sqlalchemy.orm import Session
+
+from .. import context_builder
+from ..config import AGENT_MODELS, PROVIDER
+from ..db.models import Chapter, Story
+from ..llm_json import generate_structured
+from ..prompts.loader import load_prompt
+from ..schemas import ChapterVerifierOutput, ChapterVerifyIssueOut
+
+logger = logging.getLogger(__name__)
+
+
+def check(
+    session: Session,
+    story: Story,
+    chapter: Chapter,
+    graph_context: str = "",
+) -> list[ChapterVerifyIssueOut]:
+    """Run continuity check on the just-written chapter.
+
+    Returns all issues found (critical + minor). Logging and rewrite logic
+    live in the orchestrator's verification loop — this function only checks.
+
+    graph_context: BFS subgraph from the new graph's event node for this chapter
+    (characters, relations, arc changes, causal chains) — used to cross-check
+    structured graph state in addition to the flat world-state snapshot.
+    """
+    system = load_prompt("chapter_verifier")
+    graph_section = (
+        f"\n## Story graph (new) — structured state to cross-check against\n{graph_context}\n"
+        if graph_context
+        else ""
+    )
+    blueprint_section = (
+        f"\n## Blueprint — kế hoạch đã duyệt cho chương này\n{chapter.blueprint}\n"
+        if chapter.blueprint
+        else ""
+    )
+    user_content = (
+        f"language: {story.language}\n"
+        f"chapter_number: {chapter.number}\n\n"
+        f"## world.md (định nghĩa thế giới — chuẩn cho world-consistency)\n"
+        f"{story.world_bible or '(chưa có)'}\n\n"
+        f"## story-bible.md (tone, thể loại, chủ đề)\n"
+        f"{story.story_bible or '(chưa có)'}\n\n"
+        f"## Nhân vật (đầy đủ)\n{context_builder.format_characters(session, story.id)}\n\n"
+        f"## world-state hiện tại\n{context_builder.format_world_state(session, story.id)}\n\n"
+        f"## Vấn đề continuity đang mở (từ lần rà soát sâu gần nhất, nếu có)\n"
+        f"{context_builder.format_continuity_log(session, story.id)}\n"
+        f"{graph_section}"
+        f"{blueprint_section}\n"
+        f"## 3 chương gần nhất (bao gồm chương vừa viết, "
+        f"Ch.{max(1, chapter.number - 2)}-{chapter.number})\n"
+        f"{context_builder.last_n_chapters_text(session, story.id, chapter.number, n=3)}\n"
+    )
+    output: ChapterVerifierOutput = generate_structured(
+        PROVIDER,
+        system=system,
+        user_content=user_content,
+        model=AGENT_MODELS["chapter_verifier"],
+        schema=ChapterVerifierOutput,
+        max_tokens=8192,
+        thinking=False,
+    )
+    critical = [i for i in output.issues if i.severity == "critical"]
+    logger.info("[%s] chapter_verifier ch%d: %d issues (%d critical)",
+                story.slug, chapter.number, len(output.issues), len(critical))
+    for issue in output.issues:
+        logger.info("  [%s] %s | fix: %s", issue.severity.upper(), issue.description, issue.suggestion)
+    return output.issues

@@ -8,7 +8,7 @@ from ..prompts.loader import load_prompt
 from ..schemas import CharacterDeveloperOutput
 
 
-def run(session: Session, story: Story) -> None:
+def run(session: Session, story: Story, feedback: str | None = None) -> None:
     system = load_prompt("character_developer")
     user_content = f"""Ngôn ngữ: {story.language}
 
@@ -22,6 +22,11 @@ plot-outline.md:
 {story.plot_outline}
 ---
 """
+    if feedback:
+        user_content += (
+            "\n## LỖI TỪ VÒNG KIỂM TRA TRƯỚC — bắt buộc khắc phục, giữ nguyên phần đã đúng\n"
+            f"{feedback}\n"
+        )
     output = generate_structured(
         PROVIDER,
         system=system,
@@ -32,8 +37,12 @@ plot-outline.md:
         thinking=True,
     )
 
-    # Save to DB (existing logic)
+    seen_names: set[str] = set()
     for character in output.characters:
+        name_key = character.name.strip().lower()
+        if name_key in seen_names:
+            continue
+        seen_names.add(name_key)
         session.add(
             Character(
                 story_id=story.id,
@@ -43,6 +52,7 @@ plot-outline.md:
                 profile_md=character.profile_md,
             )
         )
+    session.flush()
 
     # Init CSV knowledge graph
     graph_rows = []

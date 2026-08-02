@@ -17,7 +17,7 @@ GRAPH_BASE = Path(os.getenv("GRAPH_DIR", "/data/graphs"))
 # ── Column schemas ─────────────────────────────────────────────────────────────
 
 CHAR_FIELDS = [
-    "id", "name", "aliases", "role", "arc_status",
+    "id", "name", "gender", "aliases", "role", "arc_status",
     "location", "emotional_state", "goals", "secrets",
     "speech_pattern", "last_seen_chapter",
 ]
@@ -75,11 +75,20 @@ def _append(path: Path, fields: list[str], row: dict) -> None:
 
 # ── Init (called once after character_developer) ───────────────────────────────
 
-def init_graph(story_id: int, characters: list[dict], voices_md: str) -> None:
-    """Seed all CSV files. characters is a list of dicts with CHAR_FIELDS keys."""
+def init_graph(
+    story_id: int,
+    characters: list[dict],
+    voices_md: str,
+    relationships: list[dict] | None = None,
+) -> None:
+    """Seed all CSV files. characters is a list of dicts with CHAR_FIELDS keys.
+
+    relationships (optional): initial RELATION rows with REL_FIELDS keys — used
+    when the graph carries pre-story relationships (REWRITE). Defaults to empty.
+    """
     d = _dir(story_id)
     _write(d / "characters.csv", CHAR_FIELDS, characters)
-    _write(d / "relationships.csv", REL_FIELDS, [])
+    _write(d / "relationships.csv", REL_FIELDS, relationships or [])
     _write(d / "relationship_history.csv", REL_HIST_FIELDS, [])
     _write(d / "plot_threads.csv", THREAD_FIELDS, [])
     _write(d / "timeline.csv", TIMELINE_FIELDS, [])

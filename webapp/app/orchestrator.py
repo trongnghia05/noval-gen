@@ -2,112 +2,406 @@
 
 Writing flow per chapter (3 advances):
   1. blueprint_{N}  — chapter_blueprinter plans structure + scenes
-  2. chapter_{N}    — chapter_writer writes prose, chapter_summarizer updates memory
+  2. chapter_{N}    — chapter_writer writes prose, chapter_verifier (continuity)
+                     + quality_reviewer (quality; originality vs source for
+                     REWRITE) gate it, then chapter_summarizer updates memory
   3. checkpoint_{N} — continuity_editor + smart_planner (every 5 chapters or last)
+
+_decide_next_step() (what runs next) and the run_*_step() functions below
+(what each step does) are the single source of truth both consumers dispatch
+through: advance() drives the single-step HTTP API, graph.py drives the
+continuous LangGraph run. Neither duplicates the other's logic.
 """
+
+import logging
+import re
+import unicodedata
+from pathlib import Path
 
 from sqlalchemy.orm import Session
 
 from .agents import (
     chapter_blueprinter,
+    chapter_graph_extractor,
+    chapter_reviser,
     chapter_summarizer,
+    chapter_verifier,
     chapter_writer,
     character_developer,
     continuity_editor,
+    dialogue_check,
+    graph_verifier,
+    pov_check,
+    prose_check,
+    new_graph_builder,
+    planning_verifier,
     plot_architect,
+    quality_reviewer,
     smart_planner,
+    source_graph_verifier,
     story_analyzer,
     worldbuilder,
 )
-from .db.models import Character, Chapter, Story
+from .config import AGENT_MODELS, OUTPUT_BASE, PROVIDER
+from .db.models import Character, Chapter, ChapterSummary, ChapterVerifyLog, Story
+from .llm_json import generate_structured
+from .prompts.loader import load_prompt
+from .schemas import ChapterWriterOutput, NovelMetadataOut
 
-
-def advance(session: Session, story: Story) -> dict:
-    if story.phase == "PLANNING":
-        return _advance_planning(session, story)
-    if story.phase == "WRITING":
-        return _advance_writing(session, story)
-    return {"phase": "COMPLETE", "step": None}
-
-
-def _advance_planning(session: Session, story: Story) -> dict:
-    if not story.story_bible:
-        story.story_bible = story_analyzer.run(story)
-        session.commit()
-        return {"phase": "PLANNING", "step": "story_bible"}
-
-    if not story.plot_outline:
-        story.plot_outline = plot_architect.run(story)
-        session.commit()
-        return {"phase": "PLANNING", "step": "plot_outline"}
-
-    has_characters = session.query(Character).filter_by(story_id=story.id).first() is not None
-    if not has_characters:
-        character_developer.run(session, story)
-        session.commit()
-        return {"phase": "PLANNING", "step": "characters"}
-
-    if not story.world_bible:
-        story.world_bible = worldbuilder.run(story)
-        session.commit()
-        return {"phase": "PLANNING", "step": "world"}
-
-    story.phase = "WRITING"
-    session.commit()
-    return {"phase": "WRITING", "step": "planning_complete"}
+logger = logging.getLogger(__name__)
 
 
 def _is_checkpoint_chapter(story: Story, chapter_number: int) -> bool:
     return chapter_number % 5 == 0 or chapter_number == story.total_chapters
 
 
-def _advance_writing(session: Session, story: Story) -> dict:
-    # Run checkpoint before scanning pending — makes a failed checkpoint
-    # retriable even after all chapters are marked done.
+def _decide_next_step(session: Session, story: Story) -> str:
+    """Pure decision, no execution. Mirrors the old _advance_planning /
+    _advance_writing if-chains, including the checkpoint-before-pending
+    invariant: a pending checkpoint is checked before scanning for the next
+    pending chapter, so a failed checkpoint stays retriable even after all
+    chapters are marked done.
+
+    Planning ends with a verify_planning gate (once all 4 artifacts exist but
+    story.planning_verified is still False) before phase flips to WRITING.
+
+    For REWRITE, graph_extract runs between story_bible and plot_outline:
+    the orchestrator dispatches it once per source chapter until all
+    source chapters have an EVENT node, then moves to plot_outline.
+    """
+    if story.phase == "PLANNING":
+        if not story.story_bible:
+            return "story_bible"
+        # REWRITE: extract one source chapter into graph per advance call
+        # until all source chapters have a source EVENT node.
+        if story.input_type == "REWRITE" and story.source_chapter_count:
+            from .db.models import StoryGraphNode
+            extracted = (
+                session.query(StoryGraphNode)
+                .filter_by(story_id=story.id, graph_type="source", node_type="event")
+                .count()
+            )
+            if extracted < story.source_chapter_count:
+                return "graph_extract"
+            # Verify source graph before building new graph.
+            if not story.source_graph_verified:
+                return "verify_source_graph"
+            # Build new story graph from source graph.
+            if not story.new_graph_built:
+                return "new_graph"
+            # Verify the new graph before deriving narrative artifacts from it.
+            if not story.new_graph_verified:
+                return "verify_graph"
+        # Narrative artifacts — same path for REWRITE (after graph) and IDEA/PREMISE.
+        if not story.plot_outline:
+            return "plot_outline"
+        has_characters = session.query(Character).filter_by(story_id=story.id).first() is not None
+        if not has_characters:
+            return "characters"
+        if not story.world_bible:
+            return "world"
+        if not story.planning_verified:
+            return "verify_planning"
+        return "planning_complete"
+
+    if story.phase == "WRITING":
+        last_done = (
+            session.query(Chapter)
+            .filter_by(story_id=story.id, status="done")
+            .order_by(Chapter.number.desc())
+            .first()
+        )
+        if last_done is not None and _is_checkpoint_chapter(story, last_done.number):
+            if (story.last_checkpoint_chapter or 0) < last_done.number:
+                return "checkpoint"
+
+        next_chapter = (
+            session.query(Chapter)
+            .filter(
+                Chapter.story_id == story.id,
+                Chapter.status.in_(["pending", "blueprinted"]),
+            )
+            .order_by(Chapter.number)
+            .first()
+        )
+        if next_chapter is None:
+            return "complete"
+        if next_chapter.status == "pending":
+            return "blueprint"
+        return "write_chapter"
+
+    return "complete"
+
+
+def run_graph_extract_step(session: Session, story: Story) -> dict:
+    chapter_number = chapter_graph_extractor.run(session, story)
+    session.commit()
+    from .db.models import StoryGraphNode
+    extracted = (
+        session.query(StoryGraphNode)
+        .filter_by(story_id=story.id, graph_type="source", node_type="event")
+        .count()
+    )
+    return {
+        "phase": "PLANNING",
+        "step": "graph_extract",
+        "chapter_extracted": chapter_number,
+        "extracted_total": extracted,
+        "source_total": story.source_chapter_count,
+    }
+
+
+def run_verify_source_graph_step(session: Session, story: Story) -> dict:
+    logger.info("[%s] START verify_source_graph", story.slug)
+    source_graph_verifier.run(session, story)
+    session.commit()
+    return {"phase": "PLANNING", "step": "verify_source_graph"}
+
+
+def run_new_graph_step(session: Session, story: Story) -> dict:
+    logger.info("[%s] START new_graph", story.slug)
+    new_graph_builder.run(session, story)
+    session.commit()
+    from .db.models import StoryGraphNode
+    new_node_count = (
+        session.query(StoryGraphNode)
+        .filter_by(story_id=story.id, graph_type="new")
+        .count()
+    )
+    return {
+        "phase": "PLANNING",
+        "step": "new_graph",
+        "new_graph_nodes": new_node_count,
+    }
+
+
+def run_verify_graph_step(session: Session, story: Story) -> dict:
+    logger.info("[%s] START verify_graph", story.slug)
+    graph_verifier.run(session, story)
+    # Graph is now FINAL (verifier + its surface rewriter have run). Do the last name
+    # reconcile and derive story_bible from this final graph, so story_bible /
+    # plot_outline / world / characters — all built after this — share one name set.
+    if story.new_graph_verified:
+        new_graph_builder.finalize_after_verify(session, story)
+    session.commit()
+    return {"phase": "PLANNING", "step": "verify_graph"}
+
+
+def run_story_bible_step(session: Session, story: Story) -> dict:
+    logger.info("[%s] START story_bible", story.slug)
+    story_analyzer.run(session, story)
+    session.commit()
+    return {"phase": "PLANNING", "step": "story_bible"}
+
+
+def run_plot_outline_step(session: Session, story: Story) -> dict:
+    logger.info("[%s] START plot_outline", story.slug)
+    from . import context_builder
+    # REWRITE: use the new (reskinned) graph as the event anchor.
+    # IDEA/PREMISE: use source graph if available, otherwise no graph context.
+    if story.new_graph_built:
+        graph_ctx = context_builder.format_story_graph(session, story.id, graph_type="new")
+    else:
+        graph_ctx = context_builder.format_story_graph(session, story.id, graph_type="source")
+    story.plot_outline = plot_architect.run(story, story_graph=graph_ctx)
+    session.commit()
+    return {"phase": "PLANNING", "step": "plot_outline"}
+
+
+def run_characters_step(session: Session, story: Story) -> dict:
+    logger.info("[%s] START characters", story.slug)
+    # REWRITE: the verified new graph already holds fully-enriched character
+    # nodes — build Character rows + CSV graph deterministically from it so
+    # there's a single source of truth (no second LLM pass that could drift from
+    # the graph). IDEA/PREMISE: no graph, so character_developer invents them.
+    if story.new_graph_built:
+        new_graph_builder.build_characters_from_graph(session, story)
+        source = "graph"
+    else:
+        character_developer.run(session, story)
+        source = "llm"
+    session.commit()
+    return {"phase": "PLANNING", "step": "characters", "source": source}
+
+
+def run_world_step(session: Session, story: Story) -> dict:
+    logger.info("[%s] START world", story.slug)
+    from . import context_builder
+    graph_ctx = ""
+    if story.new_graph_built:
+        graph_ctx = context_builder.format_story_graph(session, story.id, graph_type="new")
+    story.world_bible = worldbuilder.run(story, story_graph=graph_ctx)
+    session.commit()
+    return {"phase": "PLANNING", "step": "world"}
+
+
+def run_verify_planning_step(session: Session, story: Story) -> dict:
+    planning_verifier.run(session, story)
+    story.planning_verified = True
+    session.commit()
+    return {"phase": "PLANNING", "step": "verify_planning"}
+
+
+def run_planning_complete_step(session: Session, story: Story) -> dict:
+    story.phase = "WRITING"
+    session.commit()
+    return {"phase": "WRITING", "step": "planning_complete"}
+
+
+def run_checkpoint_step(session: Session, story: Story) -> dict:
+    logger.info("[%s] START checkpoint", story.slug)
     last_done = (
         session.query(Chapter)
         .filter_by(story_id=story.id, status="done")
         .order_by(Chapter.number.desc())
         .first()
     )
-    if last_done is not None and _is_checkpoint_chapter(story, last_done.number):
-        if (story.last_checkpoint_chapter or 0) < last_done.number:
-            continuity_editor.run(session, story, last_done.number)
-            smart_planner.run(session, story, last_done.number)
-            story.last_checkpoint_chapter = last_done.number
-            session.commit()
-            return {"phase": "WRITING", "step": f"checkpoint_{last_done.number}"}
+    continuity_editor.run(session, story, last_done.number)
+    smart_planner.run(session, story, last_done.number)
+    story.last_checkpoint_chapter = last_done.number
+    session.commit()
+    return {"phase": "WRITING", "step": f"checkpoint_{last_done.number}"}
 
-    # Find next chapter that still needs work
+
+def run_blueprint_step(session: Session, story: Story) -> dict:
+    logger.info("[%s] START blueprint", story.slug)
     next_chapter = (
         session.query(Chapter)
-        .filter(
-            Chapter.story_id == story.id,
-            Chapter.status.in_(["pending", "blueprinted"]),
-        )
+        .filter(Chapter.story_id == story.id, Chapter.status == "pending")
         .order_by(Chapter.number)
         .first()
     )
-    if next_chapter is None:
-        story.phase = "COMPLETE"
-        session.commit()
-        return {"phase": "COMPLETE", "step": None}
+    chapter_blueprinter.run(session, story, next_chapter)
+    session.commit()
+    return {
+        "phase": "WRITING",
+        "step": f"blueprint_{next_chapter.number}",
+        "chapter_number": next_chapter.number,
+    }
 
-    # Step 1: blueprint (if not yet done)
-    if next_chapter.status == "pending":
-        chapter_blueprinter.run(session, story, next_chapter)
-        session.commit()
-        return {
-            "phase": "WRITING",
-            "step": f"blueprint_{next_chapter.number}",
-            "chapter_number": next_chapter.number,
-        }
 
-    # Step 2: write + summarize
-    chapter_writer.run(session, story, next_chapter)
+# Two-stage repair budget: first try cheap LOCAL fixes (chapter_reviser, keeps the
+# good prose), and only if those still can't clear critical issues, fall back to
+# full REWRITES (chapter_writer regenerates the whole chapter).
+_MAX_LOCAL_REVISE = 5
+_MAX_FULL_REWRITE = 5
+
+
+def _verify_chapter_loop(session: Session, story: Story, chapter: Chapter) -> int:
+    """Run continuity + quality checks in a loop, repairing on critical issues.
+
+    Repair escalates: up to _MAX_LOCAL_REVISE targeted local fixes (preserve the
+    chapter, patch only flagged spots), then up to _MAX_FULL_REWRITE full rewrites
+    if local fixes can't clear the issues. Critical issues accumulate as feedback
+    so each repair sees the full history of what went wrong.
+
+    Graph context (new graph up to current chapter) is passed to
+    chapter_verifier so it can cross-check character arcs, relationships, and
+    causal chains against structured graph state — not just the flat world-state
+    snapshot.
+
+    Returns the number of rewrites performed (0 = clean on first check).
+    """
+    from . import context_builder
+
+    graph_context = ""
+    if story.new_graph_built:
+        graph_context = context_builder.format_chapter_subgraph(
+            session, story.id, chapter.number, graph_type="new", max_depth=1
+        )
+
+    accumulated_feedback: list[str] = []
+    rewrites = 0
+    last_rewrite_output: ChapterWriterOutput | None = None
+    total_iters = _MAX_LOCAL_REVISE + _MAX_FULL_REWRITE
+
+    for iteration in range(total_iters):
+        d_issues = dialogue_check.check(session, story, chapter)  # deterministic pre-check (no LLM)
+        p_issues = prose_check.check(session, story, chapter)     # deterministic meta-leak check (no LLM)
+        pov_issues = pov_check.check(session, story, chapter)     # deterministic POV-drift check (no LLM)
+        v_issues = chapter_verifier.check(session, story, chapter, graph_context)
+        q_issues = quality_reviewer.check(session, story, chapter)
+
+        all_issues = d_issues + p_issues + pov_issues + v_issues + q_issues
+        critical = [i for i in all_issues if i.severity == "critical"]
+
+        # First _MAX_LOCAL_REVISE repairs are local fixes; after that, full rewrites.
+        stage = "local_revise" if rewrites < _MAX_LOCAL_REVISE else "full_rewrite"
+        action = f"{stage}_iter_{iteration + 1}" if critical else "logged_only"
+        for issue in all_issues:
+            # QualityReviewIssueOut has a dimension field; ChapterVerifyIssueOut does not.
+            dim = getattr(issue, "dimension", "continuity")
+            session.add(
+                ChapterVerifyLog(
+                    story_id=story.id,
+                    chapter_number=chapter.number,
+                    severity=issue.severity,
+                    description=f"[{dim}] {issue.description}",
+                    suggestion=issue.suggestion,
+                    action_taken=action,
+                )
+            )
+        session.flush()
+
+        if not critical:
+            break
+
+        # Accumulate all critical issues across iterations so each repair
+        # knows the full history of what was wrong.
+        for issue in critical:
+            dim = getattr(issue, "dimension", "continuity")
+            accumulated_feedback.append(
+                f"[iter {iteration + 1}][{dim}] {issue.description} → SỬA: {issue.suggestion}"
+            )
+        feedback_text = "\n".join(accumulated_feedback)
+
+        if rewrites < _MAX_LOCAL_REVISE:
+            # Stage 1: cheap local fix, preserve the rest of the chapter.
+            last_rewrite_output = chapter_reviser.run(session, story, chapter, feedback_text)
+        else:
+            # Stage 2: local fixes exhausted — regenerate the whole chapter.
+            last_rewrite_output = chapter_writer.run(session, story, chapter, feedback=feedback_text)
+        session.flush()
+        rewrites += 1
+
+    return rewrites, last_rewrite_output
+
+
+def run_write_chapter_step(session: Session, story: Story) -> dict:
+    logger.info("[%s] START write_chapter", story.slug)
+    next_chapter = (
+        session.query(Chapter)
+        .filter(Chapter.story_id == story.id, Chapter.status == "blueprinted")
+        .order_by(Chapter.number)
+        .first()
+    )
+    logger.info("[%s] write_chapter ch%d/%d", story.slug, next_chapter.number, story.total_chapters)
+    initial_output = chapter_writer.run(session, story, next_chapter)
     session.commit()
 
+    # Verify + quality gate before summarizing — a wrong/truncated chapter must
+    # be fixed before it enters memory (world-state, chapter-summaries).
+    # Escalating repair: up to _MAX_LOCAL_REVISE local fixes, then up to
+    # _MAX_FULL_REWRITE full rewrites; each repair gets accumulated feedback.
+    rewrites, rewrite_output = _verify_chapter_loop(session, story, next_chapter)
+    logger.info("[%s] verify_loop ch%d: %d rewrite(s)", story.slug, next_chapter.number, rewrites)
+    session.commit()
+
+    # The final output (after any rewrites) carries the chapter's hook sentence.
+    final_output: ChapterWriterOutput = rewrite_output or initial_output
+
     chapter_summarizer.run(session, story, next_chapter)
+    logger.info("[%s] summarizer DONE ch%d", story.slug, next_chapter.number)
+
+    # Backfill hook onto the ChapterSummary row created by the summarizer.
+    summary_row = (
+        session.query(ChapterSummary)
+        .filter_by(story_id=story.id, chapter_number=next_chapter.number)
+        .one_or_none()
+    )
+    if summary_row:
+        summary_row.hook = final_output.hook
+
     story.current_words = (story.current_words or 0) + next_chapter.word_count
     session.commit()
 
@@ -120,3 +414,208 @@ def _advance_writing(session: Session, story: Story) -> dict:
         "target_words": story.target_words,
         "checkpoint_pending": _is_checkpoint_chapter(story, next_chapter.number),
     }
+
+
+def _length_type(word_count: int) -> str:
+    """Standard length category from word count."""
+    if word_count < 7500:
+        return "Short story"
+    if word_count < 17500:
+        return "Novelette"
+    if word_count < 40000:
+        return "Novella"
+    return "Novel"
+
+
+def _generate_novel_metadata(story: Story) -> NovelMetadataOut | None:
+    """LLM front-matter (author / tags / logline / blurb) for the export header.
+
+    Best-effort: on any failure the export still proceeds without the block."""
+    try:
+        system = load_prompt("novel_metadata")
+        user_content = (
+            f"language: {story.language}\n"
+            f"title: {story.title}\n"
+            f"genre: {story.genre or '(derive from the story)'}\n"
+            f"word_count: {story.current_words or 0}\n\n"
+            f"## story-bible\n{story.story_bible or ''}\n\n"
+            f"## plot-outline\n{story.plot_outline or ''}\n"
+        )
+        return generate_structured(
+            PROVIDER, system=system, user_content=user_content,
+            model=AGENT_MODELS.get("novel_metadata", AGENT_MODELS["quality_reviewer"]),
+            schema=NovelMetadataOut, max_tokens=4096, thinking=False,
+        )
+    except Exception as exc:
+        logger.warning("[%s] novel metadata generation failed: %s", story.slug, exc)
+        return None
+
+
+def _chapter_word(language: str) -> str:
+    """The word for 'chapter' in the story's language for headings/TOC. Vietnamese
+    keeps 'Chương'; every other language uses 'Chapter' (the manuscript is written in
+    that language, and an English-language novel must not be headed 'Chương').
+
+    Diacritics are stripped before matching so both 'Vietnamese' and 'Tiếng Việt'
+    ('tieng viet') are recognised."""
+    ascii_lang = unicodedata.normalize("NFKD", language or "").encode("ascii", "ignore").decode().lower()
+    return "Chương" if "viet" in ascii_lang else "Chapter"
+
+
+def _is_vietnamese(language: str) -> bool:
+    ascii_lang = unicodedata.normalize("NFKD", language or "").encode("ascii", "ignore").decode().lower()
+    return "viet" in ascii_lang
+
+
+def _frontmatter_labels(language: str) -> dict:
+    """Localized front-matter labels for the export header + summarize.txt. Only a
+    Vietnamese-language story gets Vietnamese labels; every other language defaults to
+    English so an English (or other) novel never leaks Vietnamese label words."""
+    if _is_vietnamese(language):
+        return {"author": "Tác giả", "genre": "Thể loại", "length": "Độ dài",
+                "plot": "Cốt truyện", "summary": "Tóm tắt", "toc": "Mục lục",
+                "chapters": "chương", "words": "từ"}
+    return {"author": "Author", "genre": "Genre", "length": "Length",
+            "plot": "Plot", "summary": "Summary", "toc": "Table of Contents",
+            "chapters": "chapters", "words": "words"}
+
+
+def _clean_chapter_title(title: str) -> str:
+    """Strip a leftover 'Chapter N:' / 'Chương N:' prefix the writer sometimes leaves
+    inside chapter.title, so the compiler's own heading isn't doubled
+    ('# Chương 2: Chương 2: ...')."""
+    return re.sub(r"^\s*(?:chapter|chương)\s*\d+\s*:\s*", "", title or "", flags=re.IGNORECASE).strip()
+
+
+def _compile_manuscript_to_file(session: Session, story: Story) -> Path:
+    """Compile all done chapters into a single markdown file.
+
+    Saves to {OUTPUT_DIR}/{slug}/novel.md and returns the path.
+    """
+    chapters = (
+        session.query(Chapter)
+        .filter_by(story_id=story.id, status="done")
+        .order_by(Chapter.number)
+        .all()
+    )
+
+    word = _chapter_word(story.language)
+    titles = {c.number: (_clean_chapter_title(c.title) or f"{word} {c.number}") for c in chapters}
+    toc_lines = [f"{c.number}. {titles[c.number]}" for c in chapters]
+    toc = "\n".join(toc_lines)
+
+    chapter_parts = [
+        f"# {word} {c.number}: {titles[c.number]}\n\n"
+        f"{chapter_writer.normalize_paragraphs(c.content or '')}"
+        for c in chapters
+    ]
+    chapters_text = "\n\n---\n\n".join(chapter_parts)
+
+    # ── Front matter: title, author, tags/type, logline, blurb ─────────────
+    # Labels follow the story's language (English default) so an English novel never
+    # leaks Vietnamese label words.
+    lbl = _frontmatter_labels(story.language)
+    words = story.current_words or 0
+    meta_info = _generate_novel_metadata(story)
+    header_lines = [f"# {story.title}", ""]
+    summ_lines = [story.title]
+    if meta_info:
+        type_label = _length_type(words)
+        tag_str = " · ".join([type_label] + list(meta_info.tags)) if meta_info.tags else type_label
+        length_line = f"{len(chapters)} {lbl['chapters']} · {words:,} {lbl['words']} · {story.language}"
+        header_lines += [
+            f"**{lbl['author']}:** {meta_info.author}  ",
+            f"**{lbl['genre']}:** {tag_str}  ",
+            f"**{lbl['length']}:** {length_line}  ",
+            "",
+            f"**{lbl['plot']}:** {meta_info.logline}",
+            "",
+            f"**{lbl['summary']}**",
+            "",
+            meta_info.summary,
+        ]
+        summ_lines += [
+            "", "",
+            f"{lbl['author']}: {meta_info.author}",
+            f"{lbl['genre']}: {tag_str}",
+            f"{lbl['length']}: {length_line}",
+            "",
+            f"{lbl['plot']}: {meta_info.logline}",
+            "",
+            lbl['summary'],
+            "",
+            meta_info.summary,
+        ]
+    else:
+        meta_parts = [p for p in [story.genre, story.language] if p]
+        meta_parts += [f"{len(chapters)} {lbl['chapters']}", f"{words:,} {lbl['words']}"]
+        header_lines.append(f"*{' · '.join(meta_parts)}*")
+        summ_lines += ["", " · ".join(meta_parts)]
+    # summarize.txt also carries the table of contents.
+    summ_lines += ["", "", lbl['toc'], "", toc]
+    header = "\n".join(header_lines)
+    manuscript = f"{header}\n\n---\n\n## {lbl['toc']}\n\n{toc}\n\n---\n\n{chapters_text}\n"
+    summarize_text = "\n".join(summ_lines) + "\n"
+
+    # Folder named after the story (slug is the filesystem-safe title). Suffix
+    # with the id only if a different story already claimed that slug, so runs
+    # never overwrite each other.
+    folder_name = story.slug or f"story-{story.id}"
+    out_dir = OUTPUT_BASE / folder_name
+    if out_dir.exists() and not (out_dir / f".story-{story.id}").exists():
+        out_dir = OUTPUT_BASE / f"{folder_name}-{story.id}"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / f".story-{story.id}").write_text("", encoding="utf-8")  # ownership marker
+
+    # 1) full manuscript, 2) plain-text summary/front-matter, 3) one .txt per chapter
+    out_path = out_dir / "full.md"
+    out_path.write_text(manuscript, encoding="utf-8")
+    (out_dir / "summarize.txt").write_text(summarize_text, encoding="utf-8")
+    for c in chapters:
+        ch_txt = (
+            f"{word} {c.number}: {titles[c.number]}\n\n"
+            f"{chapter_writer.normalize_paragraphs(c.content or '')}\n"
+        )
+        (out_dir / f"ch-{c.number:03d}.txt").write_text(ch_txt, encoding="utf-8")
+    logger.info("[%s] compiled → %s + summarize.txt + %d chapter .txt files",
+                story.slug, out_path, len(chapters))
+    return out_path
+
+
+def run_complete_step(session: Session, story: Story) -> dict:
+    out_path = _compile_manuscript_to_file(session, story)
+    # Poster art (cover + 2 thumbnails) — best-effort, never blocks completion.
+    try:
+        from . import image_generator
+        image_dir = out_path.parent / "image"
+        image_dir.mkdir(parents=True, exist_ok=True)
+        image_generator.generate(session, story, image_dir)
+    except Exception as exc:
+        logger.warning("[%s] image generation step failed: %s", story.slug, exc)
+    if story.phase != "COMPLETE":
+        story.phase = "COMPLETE"
+        session.commit()
+    return {"phase": "COMPLETE", "step": None, "output_file": str(out_path)}
+
+
+_STEP_EXECUTORS = {
+    "story_bible": run_story_bible_step,
+    "graph_extract": run_graph_extract_step,
+    "verify_source_graph": run_verify_source_graph_step,
+    "new_graph": run_new_graph_step,
+    "verify_graph": run_verify_graph_step,
+    "plot_outline": run_plot_outline_step,
+    "characters": run_characters_step,
+    "world": run_world_step,
+    "verify_planning": run_verify_planning_step,
+    "planning_complete": run_planning_complete_step,
+    "checkpoint": run_checkpoint_step,
+    "blueprint": run_blueprint_step,
+    "write_chapter": run_write_chapter_step,
+    "complete": run_complete_step,
+}
+
+
+def advance(session: Session, story: Story) -> dict:
+    step = _decide_next_step(session, story)
+    return _STEP_EXECUTORS[step](session, story)

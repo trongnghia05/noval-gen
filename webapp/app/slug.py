@@ -24,9 +24,25 @@ def generate_title(
     source_content: str,
 ) -> str:
     system = (
-        "Ban dat ten truyen ngan gon (2-6 tu), cung ngon ngu voi truyen (hoac tieng Anh "
-        "neu ngon ngu viet la tieng Anh), dua tren noi dung duoc cung cap. "
-        "CHI tra ve ten truyen, khong giai thich, khong dau ngoac kep."
+        "You are a hit-title copywriter for viral web novels / short dramas "
+        "(ShortTV / Dreame / GoodNovel style). Create ONE title for the story below.\n"
+        "The title MUST be:\n"
+        "- INSTANTLY CLEAR and easy to understand at a glance — never abstract, "
+        "literary, cryptic or vague. A stranger should grasp the hook immediately. "
+        "Avoid one-word mood nouns like 'Reckoning', 'Haven', 'Oath', 'Gambit', 'Echoes'.\n"
+        "- HOOKY & TREND-WORTHY: signal the core trope / relationship / emotional "
+        "promise that makes someone click — e.g. billionaire, CEO, ex-husband, "
+        "revenge, contract/fake marriage, secret baby, rebirth/second chance, "
+        "substitute bride, mafia, forbidden love. Name the DYNAMIC concretely.\n"
+        "- EASY TO REMEMBER: punchy, concrete, emotional. Think titles like "
+        "'Married to My Enemy', \"The Billionaire's Runaway Bride\", "
+        "\"His Substitute Wife\", 'Rebirth: I Will Take Back Everything', "
+        "'Divorcing My Cheating Husband'.\n"
+        "- LENGTH: about 3 to 7 words. Short but complete enough to convey the hook "
+        "(a bare 1-2 word abstract title is NOT acceptable).\n"
+        "- Written in the SAME language as the story (English if the writing "
+        "language is English).\n"
+        "Return ONLY the title text — no explanation, no quotation marks."
     )
     user_content = (
         f"Ngon ngu: {language}\nLoai input: {input_type}\nThe loai: {genre or '(tu chon)'}\n\n"
