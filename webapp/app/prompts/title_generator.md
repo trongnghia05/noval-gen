@@ -66,6 +66,26 @@ Leader, Young Master, Madam; a fantasy court gets Warlord, High Priest, Matriarc
 a guild world gets Guildmaster. A hanfu drama must never be titled "Break Me, CEO".
 Only use CEO / Billionaire / Mafia King when the story really is modern.
 
+## Write ONLY from what you were given — invent nothing
+
+Everything in the title must be traceable to the material in this request: the
+relationship map, the synopsis, the genre. You are naming a book that already
+exists, not pitching one.
+
+- **Never invent a relationship.** If the map does not say two characters are
+  married, engaged, siblings, exes or parent-and-child, then they are not. A tie you
+  cannot point to in the supplied text does not go in the title.
+- **Never upgrade the stage of a relationship.** Fake *dating* is not a fake
+  engagement, and neither is a marriage. Only use `marriage`, `wedding`, `bride`,
+  `groom`, `wife`, `husband` or `divorce` if the supplied material actually contains
+  one. This is the single most common way this task goes wrong: a fake-dating
+  premise gets titled as a fake marriage because it sounds bigger.
+- **Never invent a job, rank or setting** that the material does not mention.
+- If you are unsure whether a detail is really there, leave it out and build the
+  hook from something you can point to. A slightly plainer accurate title always
+  beats a punchier invented one — a reader who arrives expecting the promised trope
+  and does not find it stops reading and rates the book down.
+
 ## Get the direction of the relationship right
 
 When a relationship map is supplied, it is authoritative — **do not infer family ties

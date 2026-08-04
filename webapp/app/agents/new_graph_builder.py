@@ -1450,15 +1450,52 @@ def _enrich_graph(session: Session, story: Story) -> None:
 
 # ── Phase 3.5: Rewrite story_bible from new-graph names ──────────────────────
 
-def relation_lines_for(session: Session, story: Story) -> list[str]:
-    """Deduped, readable RELATION lines between the new graph's characters.
+# Words that mark a STRUCTURAL tie — the kind that is permanent and defines whether a
+# romance is forbidden. Kept separate from emotional state because the two compete
+# badly: "step-siblings" is 13 characters and always loses a longest-string contest to
+# something like "Ethan Thorne holds contempt for Julian Martel".
+_KINSHIP_RE = re.compile(
+    r"\b(step-?\w*|half-?(?:brother|sister|sibling)\w*|sibling\w*|brother\w*|sister\w*|"
+    r"father\w*|mother\w*|son|daughter|parent\w*|spouse|husband|wife|married|marriage|"
+    r"fianc\w+|ex-\w+|cousin\w*|uncle|aunt|in-?law\w*|adopt\w+|guardian|widow\w*)\b",
+    re.IGNORECASE,
+)
+# Property values that carry no meaning on their own.
+_NOISE_VALUES = {"strong", "medium", "weak", "high", "low", "none", "family", "relation"}
 
-    Fixes two things that together erased a book's central hook. The same pair is
-    stored once per chapter that touches it (one story had ~20 edges for a single
-    couple), and the render preferred the one-word `rel_type` property over the far
-    richer `label`/`condition` — which is how "Julian and Dominic are step-brothers
-    and rivals" was reduced to "rivalry", leaving nothing anywhere in the planning
-    artifacts to say the love interest was the antagonist's brother.
+
+def _edge_strings(edge: StoryGraphEdge) -> list[str]:
+    """Every human-readable string attached to an edge.
+
+    Reads ALL of `properties`, not just `rel_type`. The enrichers are not consistent
+    about which key they use — kinship turns up under `relationship`, and some edges
+    have no `rel_type` at all — so keying on one name silently loses the fact.
+    """
+    out: list[str] = []
+    for value in (edge.properties or {}).values():
+        if isinstance(value, str):
+            v = value.strip()
+            if len(v) > 2 and v.lower() not in _NOISE_VALUES:
+                out.append(v)
+    for value in (edge.label, edge.condition):
+        if value and value.strip():
+            out.append(value.strip())
+    return out
+
+
+def relation_lines_for(session: Session, story: Story) -> list[str]:
+    """Deduped RELATION lines between the new graph's characters, one per pair.
+
+    Each line carries TWO things, chosen independently so neither can crowd out the
+    other: the structural tie (who they permanently are to each other) and the
+    current state (where they stand). A book whose whole premise is "the man she
+    fake-dates is her ex's step-brother" loses its hook the moment the structural
+    half goes missing — which is exactly what happened when this picked a single
+    longest string per pair.
+
+    Structural picks the SHORTEST kinship-bearing string, because a structural fact
+    is terse by nature ("step-siblings"); state picks the LONGEST non-kinship string,
+    because there the detail is the point.
 
     Direction is dropped on purpose: a relationship map wants one line per pair, and
     both directions carry the same fact.
@@ -1468,19 +1505,26 @@ def relation_lines_for(session: Session, story: Story) -> list[str]:
         for n in session.query(StoryGraphNode).filter_by(
             story_id=story.id, graph_type="new", node_type="character")
     }
-    best: dict[tuple[str, str], str] = {}
+    structural: dict[tuple[str, str], str] = {}
+    state: dict[tuple[str, str], str] = {}
     for e in session.query(StoryGraphEdge).filter_by(
             story_id=story.id, graph_type="new", edge_type="RELATION"):
         src, tgt = char_labels.get(e.source_key), char_labels.get(e.target_key)
         if not src or not tgt or src == tgt:
             continue
-        p = e.properties or {}
-        # Longest wins: never let a terse rel_type be the only survivor.
-        detail = max((p.get("rel_type") or "", e.label or "", e.condition or ""), key=len)
         key = (src, tgt) if src <= tgt else (tgt, src)
-        if len(detail) > len(best.get(key, "")):
-            best[key] = detail
-    return [f"- {a} ↔ {b}: {d[:160]}" for (a, b), d in sorted(best.items()) if d]
+        for s in _edge_strings(e):
+            if _KINSHIP_RE.search(s):
+                if key not in structural or len(s) < len(structural[key]):
+                    structural[key] = s
+            elif len(s) > len(state.get(key, "")):
+                state[key] = s
+
+    lines = []
+    for key in sorted(set(structural) | set(state)):
+        parts = [p for p in (structural.get(key), state.get(key)) if p]
+        lines.append(f"- {key[0]} ↔ {key[1]}: {' — '.join(parts)[:200]}")
+    return lines
 
 
 def _rewrite_story_bible(
