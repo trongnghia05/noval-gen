@@ -27,11 +27,31 @@ class VertexProvider(LLMProvider):
     """
 
     def __init__(self, project: str | None = None, location: str | None = None):
+        self._project = project or os.getenv("GOOGLE_CLOUD_PROJECT")
+        self._location = location or os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1")
         self.client = genai.Client(
-            vertexai=True,
-            project=project or os.getenv("GOOGLE_CLOUD_PROJECT"),
-            location=location or os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1"),
+            vertexai=True, project=self._project, location=self._location,
         )
+        self._image_client: genai.Client | None = None
+
+    @property
+    def image_client(self) -> genai.Client:
+        """Client for image generation, which may live in a different region.
+
+        Image models are not published everywhere: gemini-3-pro-image exists only in
+        `global`, while the text models are called in GOOGLE_CLOUD_LOCATION. Built
+        lazily so a project that never generates images pays nothing for it, and
+        reused so we don't open a client per image."""
+        image_location = os.getenv("IMAGE_LOCATION", "global")
+        if image_location == self._location:
+            return self.client
+        if self._image_client is None:
+            logger.info("Vertex image client: region %s (text region is %s)",
+                        image_location, self._location)
+            self._image_client = genai.Client(
+                vertexai=True, project=self._project, location=image_location,
+            )
+        return self._image_client
 
     def generate(
         self,
@@ -117,7 +137,9 @@ class VertexProvider(LLMProvider):
         IMAGE response modality); returns raw image bytes.
 
         Vertex Imagen (`generate_images`) is not enabled on this project, so we use
-        the Gemini image model instead. Aspect ratio is not a config knob here —
+        the Gemini image model instead. Goes through `image_client`, not `client`,
+        because the image model may only be published in another region.
+        Aspect ratio is not a config knob here —
         it's hinted in the prompt; exact pixels are handled downstream (Pillow crop).
         `reference_images` (raw bytes) are passed as visual context so the model
         keeps the SAME characters' faces/identity across a set of posters."""
@@ -134,7 +156,7 @@ class VertexProvider(LLMProvider):
             pass
         for attempt in range(_MAX_RETRIES + 1):
             try:
-                resp = self.client.models.generate_content(
+                resp = self.image_client.models.generate_content(
                     model=model,
                     contents=contents,
                     config=config,

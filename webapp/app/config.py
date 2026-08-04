@@ -63,7 +63,14 @@ AGENT_MODELS = {
 # Text-to-image model for cover / thumbnail generation. Uses a Gemini image model
 # via generate_content (Vertex Imagen / generate_images is not enabled on this
 # project). Override with IMAGE_MODEL.
-IMAGE_MODEL = os.getenv("IMAGE_MODEL", "gemini-2.5-flash-image")
+IMAGE_MODEL = os.getenv("IMAGE_MODEL", "gemini-3-pro-image")
+
+# Image models are not published in every region: gemini-3-pro-image exists ONLY in
+# `global`, while the text models run in GOOGLE_CLOUD_LOCATION (us-central1). So image
+# calls get their own client/region — see VertexProvider.image_client.
+# Beware: models.get() resolves gemini-3-pro-image in us-central1 and then
+# generate_content 404s there, so a metadata probe is not proof a region works.
+IMAGE_LOCATION = os.getenv("IMAGE_LOCATION", "global")
 
 DB_URL = os.getenv("DATABASE_URL", "sqlite:///./novelgen.db")
 OUTPUT_BASE = Path(os.getenv("OUTPUT_DIR", "/data/output"))
