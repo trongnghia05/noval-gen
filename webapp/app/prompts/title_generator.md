@@ -91,6 +91,12 @@ exists, not pitching one.
 When a relationship map is supplied, it is authoritative — **do not infer family ties
 from shared surnames**, and do not trust your reading of the prose over it.
 
+The map lists every recorded fact per pair, with **permanent ties** (family,
+marriage, exes, guardianship) mixed in among **passing states** (attraction,
+contempt, rivalry). Sort them out before you write: the permanent tie is what makes a
+premise forbidden and is almost always the hook, while a passing state usually is
+not. Only what appears in the map counts as a tie.
+
 A relationship title names the person from the **heroine's** side, and it must point
 at the character the story is actually about. Before you commit, check: if the hook
 is "her love interest is X's brother", the title must name **X**, not the love

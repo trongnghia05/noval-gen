@@ -1450,54 +1450,42 @@ def _enrich_graph(session: Session, story: Story) -> None:
 
 # ── Phase 3.5: Rewrite story_bible from new-graph names ──────────────────────
 
-# Words that mark a STRUCTURAL tie — the kind that is permanent and defines whether a
-# romance is forbidden. Kept separate from emotional state because the two compete
-# badly: "step-siblings" is 13 characters and always loses a longest-string contest to
-# something like "Ethan Thorne holds contempt for Julian Martel".
-_KINSHIP_RE = re.compile(
-    r"\b(step-?\w*|half-?(?:brother|sister|sibling)\w*|sibling\w*|brother\w*|sister\w*|"
-    r"father\w*|mother\w*|son|daughter|parent\w*|spouse|husband|wife|married|marriage|"
-    r"fianc\w+|ex-\w+|cousin\w*|uncle|aunt|in-?law\w*|adopt\w+|guardian|widow\w*)\b",
-    re.IGNORECASE,
-)
-# Property values that carry no meaning on their own.
-_NOISE_VALUES = {"strong", "medium", "weak", "high", "low", "none", "family", "relation"}
-
-
-def _edge_strings(edge: StoryGraphEdge) -> list[str]:
-    """Every human-readable string attached to an edge.
+def _edge_facts(edge: StoryGraphEdge) -> list[str]:
+    """Every human-readable fact on an edge, as `key: value` where a key exists.
 
     Reads ALL of `properties`, not just `rel_type`. The enrichers are not consistent
     about which key they use — kinship turns up under `relationship`, and some edges
-    have no `rel_type` at all — so keying on one name silently loses the fact.
+    carry no `rel_type` at all — so keying on one name silently loses the fact.
     """
-    out: list[str] = []
-    for value in (edge.properties or {}).values():
-        if isinstance(value, str):
-            v = value.strip()
-            if len(v) > 2 and v.lower() not in _NOISE_VALUES:
-                out.append(v)
-    for value in (edge.label, edge.condition):
-        if value and value.strip():
-            out.append(value.strip())
-    return out
+    facts = []
+    for k, v in (edge.properties or {}).items():
+        if isinstance(v, str) and v.strip():
+            facts.append(f"{k}: {v.strip()}")
+    for v in (edge.label, edge.condition):
+        if v and v.strip():
+            facts.append(v.strip())
+    return facts
 
 
 def relation_lines_for(session: Session, story: Story) -> list[str]:
-    """Deduped RELATION lines between the new graph's characters, one per pair.
+    """Every recorded relationship fact, grouped by character pair.
 
-    Each line carries TWO things, chosen independently so neither can crowd out the
-    other: the structural tie (who they permanently are to each other) and the
-    current state (where they stand). A book whose whole premise is "the man she
-    fake-dates is her ex's step-brother" loses its hook the moment the structural
-    half goes missing — which is exactly what happened when this picked a single
-    longest string per pair.
+    This deliberately does NOT decide which fact matters — the model reading it does.
+    An earlier version tried to pick one line per pair and lost the thing it existed
+    to protect: for a story premised on "she fake-dates her ex's step-brother", the
+    pair's own line came out as "Ethan holds contempt for Julian" with no mention of
+    step-siblings, so the bible invented a different relationship and the title
+    dropped the hook. Picking by length failed because a structural fact is terse by
+    nature; classifying by a kinship keyword list failed differently, because such a
+    list is never finished — grandmother, godfather, foster and stepmother-in-law all
+    have to be predicted in advance, and whatever is missed is silently discarded.
 
-    Structural picks the SHORTEST kinship-bearing string, because a structural fact
-    is terse by nature ("step-siblings"); state picks the LONGEST non-kinship string,
-    because there the detail is the point.
+    Grouping is lossless, so no prediction is needed. Duplicates within a pair are
+    collapsed (the graph stores one edge per chapter that touches a relationship, so
+    the same phrase recurs many times), which is safe — it removes repetition, never
+    a distinct fact.
 
-    Direction is dropped on purpose: a relationship map wants one line per pair, and
+    Direction is dropped on purpose: a relationship map wants one entry per pair, and
     both directions carry the same fact.
     """
     char_labels = {
@@ -1505,25 +1493,24 @@ def relation_lines_for(session: Session, story: Story) -> list[str]:
         for n in session.query(StoryGraphNode).filter_by(
             story_id=story.id, graph_type="new", node_type="character")
     }
-    structural: dict[tuple[str, str], str] = {}
-    state: dict[tuple[str, str], str] = {}
+    by_pair: dict[tuple[str, str], list[str]] = {}
     for e in session.query(StoryGraphEdge).filter_by(
             story_id=story.id, graph_type="new", edge_type="RELATION"):
         src, tgt = char_labels.get(e.source_key), char_labels.get(e.target_key)
         if not src or not tgt or src == tgt:
             continue
         key = (src, tgt) if src <= tgt else (tgt, src)
-        for s in _edge_strings(e):
-            if _KINSHIP_RE.search(s):
-                if key not in structural or len(s) < len(structural[key]):
-                    structural[key] = s
-            elif len(s) > len(state.get(key, "")):
-                state[key] = s
+        seen = by_pair.setdefault(key, [])
+        for fact in _edge_facts(e):
+            if fact not in seen:
+                seen.append(fact)
 
     lines = []
-    for key in sorted(set(structural) | set(state)):
-        parts = [p for p in (structural.get(key), state.get(key)) if p]
-        lines.append(f"- {key[0]} ↔ {key[1]}: {' — '.join(parts)[:200]}")
+    for (a, b), facts in sorted(by_pair.items()):
+        if not facts:
+            continue
+        lines.append(f"- {a} ↔ {b}:")
+        lines.extend(f"    • {f[:200]}" for f in facts)
     return lines
 
 
@@ -1603,18 +1590,24 @@ def _rewrite_story_bible(
         "Write a concise, vivid story bible (300-500 words) using ONLY the provided "
         "new-world information and character names. "
         "Never reference source/original character names, company names, or settings. "
-        "State the CHARACTER RELATIONSHIPS explicitly in the prose — above all the "
-        "family, marriage and rivalry ties between the main characters, because those "
-        "are what make the premise forbidden or high-stakes. If the love interest is "
-        "the antagonist's brother, say so in a sentence; a reader of this bible must "
-        "never have to infer who is whose sibling, spouse, ex or parent. "
+        "The CHARACTER RELATIONSHIPS block lists every recorded fact per pair, mixing "
+        "PERMANENT ties (family, marriage, exes, guardianship — including ones no "
+        "single word covers, e.g. raised in the same household) with the CURRENT "
+        "emotional state (affection, contempt, rivalry), in no particular order. Work "
+        "out which facts are permanent and state EVERY one of them explicitly in the "
+        "prose — those are what make a premise forbidden or high-stakes. If the love "
+        "interest is the antagonist's step-brother, say so in a sentence. A reader of "
+        "this bible must never have to infer who is whose sibling, spouse, ex or "
+        "parent, and must never be told a tie the block does not contain. "
         "Return ONLY the story bible prose — no headings, no commentary."
     )
     user_content = (
         f"language: {story.language}\n\n"
         f"## WORLD DESIGN\n{world_block}\n\n"
         f"## NEW CHARACTERS (use EXACTLY these names — no others)\n{char_block}\n\n"
-        f"## CHARACTER RELATIONSHIPS (state the load-bearing ones in the prose)\n"
+        f"## CHARACTER RELATIONSHIPS — every recorded fact, grouped by pair.\n"
+        f"## Permanent ties and current mood are mixed together; sort them out and "
+        f"put every permanent tie into the prose.\n"
         f"{relation_block or '(none recorded)'}\n\n"
         f"## KEY PLOT EVENTS (in order)\n{event_block}\n"
     )

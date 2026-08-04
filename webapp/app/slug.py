@@ -35,7 +35,10 @@ def generate_title(
     # was whose brother. One story shipped as "My Fake Fiance's Brother" when the fake
     # fiancé WAS the brother; the title named the villain instead of the love interest.
     rel_block = (
-        f"\n\nQuan he nhan vat (chinh xac — dung suy dien tu ten ho):\n{relationships.strip()}"
+        "\n\nQuan he nhan vat — moi du kien ghi nhan, nhom theo cap. Quan he VINH VIEN "
+        "(gia dinh, hon nhan, nguoi yeu cu) va trang thai NHAT THOI (yeu, han, ganh dua) "
+        "nam lan nhau; tu phan biet lay. Chi dung nhung gi co o day, khong suy dien tu ho ten:\n"
+        f"{relationships.strip()}"
         if relationships and relationships.strip() else ""
     )
     user_content = (
