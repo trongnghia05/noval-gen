@@ -35,22 +35,22 @@ User message contains:
       "node_key": "C001",
       "node_type": "character",
       "source_label": "Elara Vance",
-      "new_label": "Shen Mei-Lin"
+      "new_label": "Delaney Boone"
     },
     {
       "node_key": "C002",
       "node_type": "character",
       "source_label": "Rhys Thorne",
-      "new_label": "Director Haruki Nishida"
+      "new_label": "Colton Reeves"
     },
     {
       "node_key": "L001",
       "node_type": "location",
       "source_label": "Nexus Corp HQ",
-      "new_label": "The Jade Pavilion Trading House"
+      "new_label": "The Wheelhouse Records Building"
     }
   ],
-  "world_note": "Names follow 1930s Shanghai convention: Chinese characters for local residents, Japanese for the colonial administration faction, English/hybrid for the neutral merchant class."
+  "world_note": "Contemporary American names: old-money Nashville families get surname-as-first-name (Delaney, Sutton, Beckett); the label's roster gets punchier modern names; venues are named after the streets and warehouses they occupy."
 }
 ```
 
