@@ -75,9 +75,29 @@ promises a trope the book doesn't contain is the worst outcome here — readers 
 and rate it down. When in doubt, build the hook from the betrayal, the rank gap, or
 the forbidden bond, which are almost always really there.
 
+## A command must be aimed at a character, never at the reader
+
+The command mould works because the *heroine* is speaking — "Claim Me, **Alpha**"
+is her, addressing him. A bare instruction pointed at the reader is not a hook:
+
+- ✗ *Reject the Executive's Brother* — reads as an order to whoever is browsing
+- ✓ *My Ex's Brother Wants Me* · *I Rejected the Label's Golden Boy*
+
+So every command-mould title needs either **"Me" plus a vocative** (`Break Me,
+Boss`) or a **first-person subject** (`I Divorced…`, `I Rejected…`). If neither
+fits, use mould 2 or 3 instead.
+
+Also avoid limp job-titles as the power word: *Executive*, *Manager*, *Employee*,
+*Colleague* carry no charge. Reach for the rank that implies power over the
+heroine — the owner, the boss, the heir, the captain, the frontman, the closer.
+
 ## Hard rules
 
 - **3-6 words.** A bare 1-2 word title is not acceptable.
+- **At most ONE apostrophe-s possessive in the whole title.** Two possessives
+  chained together (a relation of a relation of a thing) is clumsy English and
+  buries the hook. If you find yourself writing a second `'s`, rephrase: turn the
+  last noun into a verb the heroine performs, or open with a preposition.
 - **NO COLONS, no subtitle, no second clause.** One hook, not two stacked. Long
   titles also break the poster art — the image model misspells them.
 - **Instantly clear.** Never abstract, literary, cryptic or moody. Banned shapes:

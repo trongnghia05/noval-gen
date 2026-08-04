@@ -25,6 +25,17 @@ User message contains:
 9. **Factions / objects** (when not already named): invent names that reflect the new world's terminology and culture
 10. **Preserve families / clans.** Look at the SOURCE names: when several source characters share a family name (e.g. `'Nina Tann'`, `'Silas Tann'`, `'Genevieve Tann'` all share *Tann* — English puts the family name last; other languages, e.g. Vietnamese `'Nguyễn Văn Nam'` / `'Nguyễn Thị Lan'`, put it first), they are ONE family. Give every member of that family the **same NEW surname** and **distinct given names** — so the family bond survives the rename (→ e.g. `'Isolde Ashworth'`, `'Silas Ashworth'`, `'Genevieve Ashworth'`). Judge real families by shared surname + role/relationship; characters who merely share a common GIVEN name are not necessarily related, so do not force them onto a shared surname.
 11. **"Unique" means no two characters have an IDENTICAL full name.** Two characters legitimately sharing a surname (rule 10) is REQUIRED, not a collision. Only a fully identical name (both `'Kaito'`, or both `'Isolde Ashworth'`) is forbidden.
+12. **NEVER copy a name from the worked example below.** The example at the end of
+    this prompt is a formatting sample, not a name bank. `Delaney Boone`,
+    `Colton Reeves`, `The Wheelhouse Records Building` and every other name printed
+    in this prompt are **banned** — using one produces a catalogue where every book
+    has the same cast. Invent names yourself, from THIS story's world design.
+13. **Vary the naming register between stories.** American names have wide range —
+    old-money surnames-as-first-names (Sutton, Beckett), plain working-class names
+    (Dana Kowalski, Ray Alvarez), Southern (Wyatt, Maybelle), urban-ethnic (Marisol
+    Ortega, Deshawn Carter), preppy East Coast (Whitney Ellis). Pick the register
+    that fits this story's region and social class, and do not default to the same
+    one every time.
 
 ## Output — JSON schema: NameLexiconOutput
 
