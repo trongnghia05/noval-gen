@@ -1,6 +1,10 @@
+import logging
 import re
 
+from .prompts.loader import load_prompt
 from .providers.base import LLMProvider
+
+logger = logging.getLogger(__name__)
 
 _VIETNAMESE_D = str.maketrans({"đ": "d", "Đ": "D"})  # đ / Đ don't decompose under NFKD
 
@@ -23,27 +27,7 @@ def generate_title(
     genre: str | None,
     source_content: str,
 ) -> str:
-    system = (
-        "You are a hit-title copywriter for viral web novels / short dramas "
-        "(ShortTV / Dreame / GoodNovel style). Create ONE title for the story below.\n"
-        "The title MUST be:\n"
-        "- INSTANTLY CLEAR and easy to understand at a glance — never abstract, "
-        "literary, cryptic or vague. A stranger should grasp the hook immediately. "
-        "Avoid one-word mood nouns like 'Reckoning', 'Haven', 'Oath', 'Gambit', 'Echoes'.\n"
-        "- HOOKY & TREND-WORTHY: signal the core trope / relationship / emotional "
-        "promise that makes someone click — e.g. billionaire, CEO, ex-husband, "
-        "revenge, contract/fake marriage, secret baby, rebirth/second chance, "
-        "substitute bride, mafia, forbidden love. Name the DYNAMIC concretely.\n"
-        "- EASY TO REMEMBER: punchy, concrete, emotional. Think titles like "
-        "'Married to My Enemy', \"The Billionaire's Runaway Bride\", "
-        "\"His Substitute Wife\", 'Rebirth: I Will Take Back Everything', "
-        "'Divorcing My Cheating Husband'.\n"
-        "- LENGTH: about 3 to 7 words. Short but complete enough to convey the hook "
-        "(a bare 1-2 word abstract title is NOT acceptable).\n"
-        "- Written in the SAME language as the story (English if the writing "
-        "language is English).\n"
-        "Return ONLY the title text — no explanation, no quotation marks."
-    )
+    system = load_prompt("title_generator")
     user_content = (
         f"Ngon ngu: {language}\nLoai input: {input_type}\nThe loai: {genre or '(tu chon)'}\n\n"
         f"Noi dung:\n{source_content[:4000]}"
@@ -52,4 +36,38 @@ def generate_title(
     # models spend part of max_tokens on invisible chain-of-thought before
     # the visible answer, so a tight budget here starves the real output.
     response = provider.generate(system=system, user_content=user_content, model=model, max_tokens=500)
-    return response.text.strip().strip('"').strip("'")
+    return _clean_title(response.text)
+
+
+def _clean_title(raw: str) -> str:
+    """Turn whatever the model returned into a usable title.
+
+    Two failure modes this guards against, both seen in practice:
+    a reasoning model answering with a paragraph of deliberation instead of a title,
+    and a two-part "Hook: Second Hook" title. The colon form is banned in the prompt
+    but the model still reaches for it, and a long title is what makes the image
+    model misspell it on the poster."""
+    lines = [ln.strip() for ln in (raw or "").splitlines() if ln.strip()]
+    if not lines:
+        return ""
+
+    def _looks_like_a_title(s: str) -> bool:
+        s = s.strip('"').strip("'").lstrip("#").strip()
+        return bool(s) and len(s.split()) <= 8 and not s.endswith((".", "?", "!", ":"))
+
+    # A reasoning model puts its deliberation FIRST and the answer LAST, so scan from
+    # the bottom for the last line that actually looks like a title. Falling back to
+    # the first line would keep "The best title depends on the following…".
+    line = next((ln for ln in reversed(lines) if _looks_like_a_title(ln)), lines[0])
+    line = line.strip('"').strip("'").lstrip("#").strip()
+    line = re.sub(r"^(?:title|tiêu đề)\s*[:\-]\s*", "", line, flags=re.IGNORECASE).strip()
+
+    # Drop the subtitle: keep whichever side of the colon carries more of the hook.
+    if ":" in line:
+        parts = [p.strip() for p in line.split(":") if p.strip()]
+        if parts:
+            best = max(parts, key=lambda p: len(p.split()))
+            logger.info("title: dropped subtitle %r -> %r", line, best)
+            line = best
+
+    return line.strip('"').strip("'").strip()
