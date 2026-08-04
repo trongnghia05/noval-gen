@@ -66,6 +66,17 @@ Leader, Young Master, Madam; a fantasy court gets Warlord, High Priest, Matriarc
 a guild world gets Guildmaster. A hanfu drama must never be titled "Break Me, CEO".
 Only use CEO / Billionaire / Mafia King when the story really is modern.
 
+## Get the direction of the relationship right
+
+When a relationship map is supplied, it is authoritative — **do not infer family ties
+from shared surnames**, and do not trust your reading of the prose over it.
+
+A relationship title names the person from the **heroine's** side, and it must point
+at the character the story is actually about. Before you commit, check: if the hook
+is "her love interest is X's brother", the title must name **X**, not the love
+interest. Naming the love interest as somebody's brother points the reader at the
+wrong man — usually straight at the villain.
+
 ## Only promise what the story delivers
 
 The twist vocabulary is a menu to **pick from**, not to invent with. Use a twist ONLY

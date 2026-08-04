@@ -1450,6 +1450,39 @@ def _enrich_graph(session: Session, story: Story) -> None:
 
 # ── Phase 3.5: Rewrite story_bible from new-graph names ──────────────────────
 
+def relation_lines_for(session: Session, story: Story) -> list[str]:
+    """Deduped, readable RELATION lines between the new graph's characters.
+
+    Fixes two things that together erased a book's central hook. The same pair is
+    stored once per chapter that touches it (one story had ~20 edges for a single
+    couple), and the render preferred the one-word `rel_type` property over the far
+    richer `label`/`condition` — which is how "Julian and Dominic are step-brothers
+    and rivals" was reduced to "rivalry", leaving nothing anywhere in the planning
+    artifacts to say the love interest was the antagonist's brother.
+
+    Direction is dropped on purpose: a relationship map wants one line per pair, and
+    both directions carry the same fact.
+    """
+    char_labels = {
+        n.node_key: n.label
+        for n in session.query(StoryGraphNode).filter_by(
+            story_id=story.id, graph_type="new", node_type="character")
+    }
+    best: dict[tuple[str, str], str] = {}
+    for e in session.query(StoryGraphEdge).filter_by(
+            story_id=story.id, graph_type="new", edge_type="RELATION"):
+        src, tgt = char_labels.get(e.source_key), char_labels.get(e.target_key)
+        if not src or not tgt or src == tgt:
+            continue
+        p = e.properties or {}
+        # Longest wins: never let a terse rel_type be the only survivor.
+        detail = max((p.get("rel_type") or "", e.label or "", e.condition or ""), key=len)
+        key = (src, tgt) if src <= tgt else (tgt, src)
+        if len(detail) > len(best.get(key, "")):
+            best[key] = detail
+    return [f"- {a} ↔ {b}: {d[:160]}" for (a, b), d in sorted(best.items()) if d]
+
+
 def _rewrite_story_bible(
     session: Session,
     story: Story,
@@ -1492,6 +1525,8 @@ def _rewrite_story_bible(
         )
         for n in char_nodes
     )
+    relation_lines = relation_lines_for(session, story)
+    relation_block = "\n".join(relation_lines)
     event_block = "\n".join(
         "ch{ch}: {label} — {summary}".format(
             ch=n.chapter_introduced, label=n.label,
@@ -1524,12 +1559,19 @@ def _rewrite_story_bible(
         "Write a concise, vivid story bible (300-500 words) using ONLY the provided "
         "new-world information and character names. "
         "Never reference source/original character names, company names, or settings. "
+        "State the CHARACTER RELATIONSHIPS explicitly in the prose — above all the "
+        "family, marriage and rivalry ties between the main characters, because those "
+        "are what make the premise forbidden or high-stakes. If the love interest is "
+        "the antagonist's brother, say so in a sentence; a reader of this bible must "
+        "never have to infer who is whose sibling, spouse, ex or parent. "
         "Return ONLY the story bible prose — no headings, no commentary."
     )
     user_content = (
         f"language: {story.language}\n\n"
         f"## WORLD DESIGN\n{world_block}\n\n"
         f"## NEW CHARACTERS (use EXACTLY these names — no others)\n{char_block}\n\n"
+        f"## CHARACTER RELATIONSHIPS (state the load-bearing ones in the prose)\n"
+        f"{relation_block or '(none recorded)'}\n\n"
         f"## KEY PLOT EVENTS (in order)\n{event_block}\n"
     )
     if feedback:
@@ -1558,25 +1600,12 @@ def _rewrite_story_bible(
 
     # "Sơ đồ quan hệ nhân vật": from RELATION edges — mirrors the source structure
     # under new names, which planning_verifier cross-checks against characters.md.
-    relation_edges = (
-        session.query(StoryGraphEdge)
-        .filter_by(story_id=story.id, graph_type="new", edge_type="RELATION")
-        .all()
-    )
-    node_label_map = {n.node_key: n.label for n in char_nodes}
-    rel_lines = ["## Sơ đồ quan hệ nhân vật\n"]
-    for e in relation_edges:
-        src = node_label_map.get(e.source_key, e.source_key)
-        tgt = node_label_map.get(e.target_key, e.target_key)
-        p = e.properties or {}
-        rel_type = p.get("rel_type", "") or e.label or "RELATION"
-        cond = (e.condition or "")[:100]
-        rel_lines.append(f"- {src} ↔ {tgt}: {rel_type}" + (f" — {cond}" if cond else ""))
-    rel_section = "\n".join(rel_lines) if len(rel_lines) > 1 else ""
+    # Same deduped lines the prose writer was given, so the two can't disagree.
+    rel_section = ("## Sơ đồ quan hệ nhân vật\n\n" + relation_block) if relation_lines else ""
 
     story.story_bible = prose + "\n\n" + plot_map_section + (("\n\n" + rel_section) if rel_section else "")
     logger.info("[%s] story_bible rewritten: %d chars (prose=%d, events=%d, relations=%d)",
-                story.slug, len(story.story_bible), len(prose), len(event_nodes), len(relation_edges))
+                story.slug, len(story.story_bible), len(prose), len(event_nodes), len(relation_lines))
 
 
 def _confirm_story_bible_leaks(story: Story, candidates: list[str], prose: str) -> list[str]:
@@ -1763,6 +1792,7 @@ def finalize_after_verify(session: Session, story: Story) -> None:
             PROVIDER, AGENT_MODELS["title_generator"],
             language=story.language, input_type="PREMISE",
             genre=story.genre, source_content=story.story_bible or "",
+            relationships="\n".join(relation_lines_for(session, story)),
         )
         if new_title and new_title.strip():
             logger.info("[%s] retitled for new world: %r -> %r",

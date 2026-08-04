@@ -26,10 +26,21 @@ def generate_title(
     input_type: str,
     genre: str | None,
     source_content: str,
+    relationships: str | None = None,
 ) -> str:
     system = load_prompt("title_generator")
+    # `relationships` matters more than its size suggests. source_content is truncated
+    # at 4000 chars, and the story bible's relationship map sits at the END of a
+    # ~14k-char document — so the title writer never reached it and had to guess who
+    # was whose brother. One story shipped as "My Fake Fiance's Brother" when the fake
+    # fiancé WAS the brother; the title named the villain instead of the love interest.
+    rel_block = (
+        f"\n\nQuan he nhan vat (chinh xac — dung suy dien tu ten ho):\n{relationships.strip()}"
+        if relationships and relationships.strip() else ""
+    )
     user_content = (
-        f"Ngon ngu: {language}\nLoai input: {input_type}\nThe loai: {genre or '(tu chon)'}\n\n"
+        f"Ngon ngu: {language}\nLoai input: {input_type}\nThe loai: {genre or '(tu chon)'}"
+        f"{rel_block}\n\n"
         f"Noi dung:\n{source_content[:4000]}"
     )
     # Generous headroom even for a "just give me 2-6 words" task: reasoning
