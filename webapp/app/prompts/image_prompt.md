@@ -24,7 +24,13 @@ Write ONE dense paragraph per image, assembling these components:
    world), less busy so subjects pop.
 5. **Color palette + lighting**: follow the palette + lighting named in ART
    DIRECTION, translated into concrete colours drawn from this story's world.
-   Keep faces readable and the image rich, never muddy.
+   Keep faces readable and the image rich, never muddy. The ART DIRECTION block
+   ends with **Exposure**, **Colour**, **Signature colour** and **People** lines
+   that are NOT optional — obey them even when the story's mood is dark. A grim
+   story still gets a **bright, vividly coloured** poster with grim *content*;
+   carry the mood through expression, weather, wardrobe and setting, never by
+   underexposing the frame or draining the colour. Name the signature hue
+   explicitly in the prompt text.
 6. **Camera**: use the lens named in ART DIRECTION (state the focal length and an
    aperture that fits it), plus "sharp focus on faces, subtle film grain, 8k".
 7. **Title rendering** (see rule).
@@ -60,6 +66,21 @@ world, palette family, the same faces, and the same story dynamic.
   no waxy smooth skin, no beauty-retouched perfection, no shiny artificial sheen.
   Aim for CANDID, grounded, slightly imperfect realism — real film photography with
   natural grain and true-to-life skin, as if shot on set, not a glossy ad.
+- **BRIGHT AND CLEARLY LIT.** Every image must be generously exposed: shadows open
+  and full of detail, no crushed blacks, no dim or murky frame, no heavy vignette,
+  no dark teal-and-orange grade. If in doubt, light it MORE.
+- **VIVID COLOUR — push it.** This is commercial short-drama key art, not a
+  documentary still. Colour is deliberately saturated and glowing, well past
+  naturalistic. Never flat, dull, washed-out or muted. The bold grade applies to
+  the LIGHT, WARDROBE and ENVIRONMENT — the people underneath stay photoreal (real
+  skin texture, real actors), so "vivid" never means illustrated or CGI.
+- **ONE SIGNATURE COLOUR owns the poster.** Pick a single dominant hue for THIS
+  story, drawn from its own world (a neon-lit city → hot magenta; a loom workshop →
+  indigo; a desert court → gold). State it explicitly in the prompt and carry it
+  through the lighting, one key costume, and the environment, so the poster has an
+  instantly recognisable colour identity. **Use the SAME signature hue in all three
+  images**, and render the title in that hue family (see the title rule) so art and
+  typography read as one design.
 - **Characters clearly visible and legible at thumbnail size** — the cast still
   carries the poster; never tiny specks lost in scenery. **Keep every character's
   HEAD and FACE fully inside the frame** with a little margin — no face cropped by
@@ -87,6 +108,13 @@ world, palette family, the same faces, and the same story dynamic.
   curved or wavy, two-line stacked, integrated into the scene — pick a premium
   drama-poster treatment that fits the mood (bold sans/serif, two-tone, gold/white
   accent, subtle glow/shadow, darker backing behind the letters if the art is busy).
+  **The title must be COLOURED, never plain white or grey.** Fill it from the
+  story's SIGNATURE HUE (or its complement) as a saturated colour or gradient, and
+  give it a contrasting outline — white/black keyline, soft glow, or a drop shadow —
+  so it stays legible while clearly belonging to the art. Default white lettering is
+  a failure of this rule.
+  Splitting a two-part title across two colours and two weights (the main phrase
+  bold and large, the rest lighter/scripted beneath) is a strong, on-genre choice.
   **The one hard rule: it must read LEFT-TO-RIGHT and be EASY TO READ at a glance** —
   no vertical/sideways lettering, nothing so warped or low-contrast it's hard to read.
   **Make the title LARGE — it must span most of the image width** (especially on the

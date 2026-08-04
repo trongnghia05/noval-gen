@@ -45,6 +45,19 @@ _SPECS = [
 
 _TIER_ORDER = {"core": 0, "important": 1, "secondary": 2, "minor": 3}
 
+# Appended to every non-cover prompt when the cover is passed in as a reference
+# image. Module-level so a one-off regeneration of a single thumbnail can reuse the
+# exact same wording instead of drifting from it.
+_CONSISTENCY_HINT = (
+    "\n\nIMPORTANT: the attached reference image is ONLY a face guide for keeping "
+    "characters consistent. Use it solely to match the FACES / hair / identity of "
+    "whichever characters appear in THIS image. Do NOT copy the reference's "
+    "composition, layout, or the NUMBER of people — this image has its own subject "
+    "list and framing described above. If this prompt calls for a single-person "
+    "portrait, show ONLY that one person even though the reference has several. "
+    "Any character who does appear must match their reference face."
+)
+
 
 def _relationship_dynamics(session: Session, story_id: int) -> str:
     """The main power dynamics between top characters — who pursues/controls/is
@@ -114,24 +127,32 @@ _LENSES = [
     "135mm telephoto, compressed and intimate",
     "anamorphic wide with horizontal flares and oval bokeh",
 ]
+# Every option is a DAYLIGHT-FORWARD, well-exposed look. Moody-but-murky setups
+# (chiaroscuro holding the frame in shadow, underlighting, bleached flat grades) were
+# removed: they read as dark and stylised rather than photographic, which is the
+# opposite of what these posters want. Contrast still varies — via light DIRECTION and
+# quality, not by taking light away.
 _LIGHTING = [
-    "hard backlight rim-lighting the figures, faces lifted by bounced fill",
-    "chiaroscuro from one hard source, deep shadow holding most of the frame",
-    "diffuse fog light, layered atmospheric haze separating each plane",
-    "cold edge light on one side, warm practical glow on the other",
-    "golden-hour sun raking low across the scene",
-    "overcast soft light, flat and cool, colour doing the work",
-    "light from below or behind a translucent surface, unnatural and unsettling",
+    "hard backlight rim-lighting the figures, faces lifted by strong bounced fill",
+    "bright window light from one side, open shadows, faces clearly modelled",
+    "clear daylight haze separating each plane, luminous and airy",
+    "cool daylight on one side, warm practical glow on the other, both well exposed",
+    "golden-hour sun raking low across the scene, warm and radiant",
+    "bright overcast softbox light, even and clean on every face",
+    "sunlit interior, light spilling across the scene from a large opening",
     "high-key bright light, airy and open",
 ]
+# Commercial short-drama key art is VIVID, not naturalistic — colour is pushed hard
+# and one signature hue owns the poster. Photorealism applies to the PEOPLE (real
+# skin, real actors); the colour grade is deliberately stylised on top of them.
 _PALETTES = [
-    "restrained near-monochrome with one saturated accent colour",
-    "warm-cool split complementary, the two worlds colour-coded against each other",
-    "deep jewel tones, rich and saturated",
-    "desaturated earth and metal with a single luminous highlight",
-    "high-contrast dark ground with brilliant highlights",
-    "pale, washed and bleached, quiet and sparse",
-    "duotone treatment built from the story's two dominant forces",
+    "punchy saturated colour, the signature hue blazing through lights and wardrobe",
+    "warm-cool split complementary, each half strongly colour-graded against the other",
+    "deep jewel tones, maximum richness and saturation, brightly lit",
+    "the signature hue glowing from this era's own practical lights, frame still bright",
+    "sunlit high-chroma colour, everything vivid and glowing",
+    "bold two-tone scheme: the signature hue against one strong contrasting accent",
+    "candy-bright high-key colour, cheerful and heavily saturated",
 ]
 
 
@@ -140,7 +161,30 @@ def _art_direction(seed: int | None = None) -> str:
     VISUAL-style knobs only (dynamic-neutral) — the pair's staging is decided by the
     LLM from the story's power dynamic, not randomised, so it never reverses it."""
     rnd = random.Random(seed)
+    # The NON-NEGOTIABLE block comes FIRST. When it sat at the bottom, a single
+    # evocative palette draw ("neon-lit…") beat it and produced a dark night poster —
+    # and dragged a period story into a modern skyscraper skyline along with it.
     return (
+        "MANDATORY (these four override any menu choice below that conflicts):\n"
+        "- Exposure: a BRIGHT, generously exposed, DAYLIGHT-BRIGHT image. Open shadows "
+        "with visible detail, no crushed blacks, no murky or dim frame, no night scene "
+        "unless the story is unavoidably nocturnal, no heavy vignette, no dark "
+        "teal-orange grade. Faces fully and evenly lit.\n"
+        "- Colour: VIVID, high-saturation commercial poster colour — pushed well past "
+        "naturalistic, glowing and eye-catching, like a streaming short-drama "
+        "thumbnail. Never flat, dull, washed out or muted.\n"
+        "- Signature colour: choose ONE dominant hue for this story from its own world "
+        "and let it OWN the poster — carried by the lighting, a key costume and the "
+        "environment — then render the title in that same hue family so art and "
+        "typography read as one design. Same signature hue in all three images.\n"
+        "- Period integrity: the palette NEVER changes the era. Bright, saturated and "
+        "glowing must be achieved with light sources and materials that already exist "
+        "in this story's world. A pre-modern story gets NO neon signs, no skyscrapers, "
+        "no electric city glow — use lanterns, sunlight, dyed silk, fire, painted wood.\n"
+        "- People: they stay photoreal — real actors, real skin with pores and texture, "
+        "never illustrated, painted or CGI. The bold grade sits on top of a real "
+        "photograph; it does not turn the people into artwork.\n"
+        "\nSTYLE FOR THIS RUN (vary within the mandatory rules above):\n"
         f"- Composition (anchor for the cover): {rnd.choice(_COMPOSITIONS)}\n"
         f"- Lens: {rnd.choice(_LENSES)}\n"
         f"- Lighting: {rnd.choice(_LIGHTING)}\n"
@@ -186,15 +230,7 @@ def generate(session: Session, story: Story, out_dir, meta: NovelMetadataOut | N
     # face, then its raw bytes are fed as a reference into the thumbnails so the
     # SAME people appear consistently (Nano Banana keeps identity from a reference
     # image even when pose/wardrobe/framing changes).
-    _CONSISTENCY = (
-        "\n\nIMPORTANT: the attached reference image is ONLY a face guide for keeping "
-        "characters consistent. Use it solely to match the FACES / hair / identity of "
-        "whichever characters appear in THIS image. Do NOT copy the reference's "
-        "composition, layout, or the NUMBER of people — this image has its own subject "
-        "list and framing described above. If this prompt calls for a single-person "
-        "portrait, show ONLY that one person even though the reference has several. "
-        "Any character who does appear must match their reference face."
-    )
+    _CONSISTENCY = _CONSISTENCY_HINT
     ocr_model = AGENT_MODELS.get("quality_reviewer") or IMAGE_MODEL
     _MAX_ATTEMPTS = 4
     written: list[str] = []
