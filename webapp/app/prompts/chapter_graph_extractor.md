@@ -45,7 +45,7 @@ Ví dụ: nếu `story_language: English` mà chương gốc bằng tiếng Vi�
     {
       "id": "C010",
       "node_type": "character|location|object|faction",
-      "label": "TÊN RIÊNG NGUYÊN GỐC từ chương nguồn (VD 'Kyst', 'Denise') — KHÔNG dùng cụm mô tả ('chồng của X'), KHÔNG đặt tên mới",
+      "label": "TÊN RIÊNG NGUYÊN GỐC, chép đúng như chương nguồn viết — KHÔNG dùng cụm mô tả ('chồng của X'), KHÔNG đặt tên mới",
       "properties": { "...": "...", "gender (BẮT BUỘC nếu node_type=character)": "male|female|nonbinary|unknown — suy từ đại từ/cách gọi trong chương gốc; đây là sự thật cốt truyện, giữ nguyên khi reskin" },
       "chapter_introduced": {chapter_number}
     }

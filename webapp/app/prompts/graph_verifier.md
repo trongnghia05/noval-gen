@@ -128,7 +128,7 @@ Return ONLY a single valid JSON object (no markdown fences, no preamble):
       "check_type": "reskin",
       "node_key": "C003",
       "edge_desc": null,
-      "description": "NEW graph character C003 label='Aria' is 1 character away from SOURCE character 'Arya'.",
+      "description": "NEW graph character C003's label is 1 character away from a SOURCE character's name (quote both actual names here).",
       "suggestion": "Rename to a completely different name with no phonetic or visual similarity to source.",
       "severity": "critical"
     },

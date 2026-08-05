@@ -25,7 +25,7 @@ Với mỗi issue:
 **Tham chiếu source graph cho structure, giữ new graph cho surface:**
 - Source graph = ground truth về: causal chain, arc progression, relationship timeline, event sequence
 - New graph = surface mới (tên nhân vật mới, bối cảnh mới) — KHÔNG đổi tên, KHÔNG đổi bối cảnh
-- Khi sửa edge: dùng **node_key** của new graph (e.g. `C001`, `E006`, `L002`) — **KHÔNG dùng tên nhân vật hay label**. Node key là ID dạng `C001`, `E006`, `L002` xuất hiện trong graph, không phải tên như "Genevieve Beaumont".
+- Khi sửa edge: dùng **node_key** của new graph (e.g. `C001`, `E006`, `L002`) — **KHÔNG dùng tên nhân vật hay label**. Node key là ID dạng `C001`, `E006`, `L002` xuất hiện trong graph, không phải họ tên nhân vật.
 
 **Xử lý từng loại lỗi phổ biến:**
 - Duplicate RELATION edges: xóa edge cũ hơn hoặc sai `chapter_from`, giữ edge chính xác

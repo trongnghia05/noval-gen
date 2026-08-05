@@ -6,7 +6,7 @@ be referred to by ROLE or DESCRIPTION only (e.g. "the protagonist", "the rival
 clan", "the riverside teahouse"). Your job: find every proper name that slipped in.
 
 ## What COUNTS as a proper name to report
-- A person's given name or full name (e.g. "Kaito", "Mei Lin", "Lord Ashworth").
+- A person's given name or full name, with or without a title in front of it.
 - A named place, building, or region invented for the story (e.g. "The Crimson
   Lotus Pavilion", "Obsidian Spire").
 - A named family / clan / house / faction / organization (e.g. "the Mercer Clan",

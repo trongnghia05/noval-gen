@@ -17,7 +17,7 @@ Tôn trọng các chi tiết user đã đưa. Phát triển thêm xung đột v�
 ### REWRITE — trích xuất từ truyện gốc
 - Đọc kỹ truyện gốc để hiểu toàn bộ câu chuyện.
 - **Trích xuất đúng thông tin gốc — KHÔNG đặt tên mới**. CHARACTER / LOCATION / FACTION / OBJECT nodes dùng **tên NGUYÊN GỐC** từ truyện gốc. Việc đặt tên mới sẽ do `new_graph_builder` xử lý sau.
-- **`label` của mỗi CHARACTER PHẢI là TÊN RIÊNG của nhân vật** (VD "Kyst", "Juniper"), KHÔNG dùng cụm mô tả quan hệ ("Chồng của Juniper", "Mẹ của Phineas", "Trợ lý CEO"). Chỉ khi truyện gốc **hoàn toàn không nêu tên** nhân vật đó thì mới dùng mô tả ngắn gọn nhất. Lý do: bước sau chỉ đổi tên dựa trên `label`; nếu label là mô tả thì tên thật (VD "Kyst") sẽ lọt ra nguyên văn trong truyện mới. Nếu một nhân vật vừa có tên vừa hay được gọi bằng vai (VD "Kyst" / "chồng"), luôn lấy TÊN làm label và đưa các cách gọi khác vào `aliases`.
+- **`label` của mỗi CHARACTER PHẢI là TÊN RIÊNG của nhân vật đúng như truyện gốc viết**, KHÔNG dùng cụm mô tả quan hệ ("Chồng của [tên]", "Mẹ của [tên]", "Trợ lý CEO"). Chỉ khi truyện gốc **hoàn toàn không nêu tên** nhân vật đó thì mới dùng mô tả ngắn gọn nhất. Lý do: bước sau chỉ đổi tên dựa trên `label`; nếu label là mô tả thì tên thật sẽ lọt ra nguyên văn trong truyện mới. Nếu một nhân vật vừa có tên vừa hay được gọi bằng vai, luôn lấy TÊN làm label và đưa các cách gọi khác vào `aliases`.
 - **KHÔNG tạo EVENT nodes** — chúng sẽ được trích xuất riêng từng chương bởi chapter_graph_extractor sau bước này.
 - Tập trung vào: CHARACTER nodes (tên riêng, vai trò, trạng thái ban đầu, bí mật, aliases), LOCATION, FACTION, THEME, OBJECT.
 - Ghi rõ `source_chapter_count` = số chương trong truyện gốc (đếm từ heading "Chương X" / "Chapter X").

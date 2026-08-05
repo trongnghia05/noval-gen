@@ -7,10 +7,11 @@ You describe the world by ROLE and FUNCTION only. A separate later step (the nam
 lexicon) is the SINGLE place that assigns every proper name. Therefore, in EVERY
 field of your output:
 - **Never give a character a personal name** — write "the protagonist", "the exiled
-  heir", "the rival matriarch", "the younger half-brother", NOT "Kaito" or "Mei Lin".
+  heir", "the rival matriarch", "the younger half-brother". Any capitalised personal
+  name at all is a violation, whatever its language or culture.
 - **Never name a place, family, clan, faction, or object** — write "the riverside
-  gambling house", "the ruling merchant clan", "the mountain fortress", NOT "The
-  Crimson Lotus Pavilion" or "the Mercer Clan".
+  gambling house", "the ruling merchant clan", "the mountain fortress", never a
+  branded proper name for any of them.
 - This applies to narrative_summary, archetypes, and location_concepts alike.
 - If two names later collide or a source name leaks, it is because a name slipped in
   here — so keep this output 100% name-free.

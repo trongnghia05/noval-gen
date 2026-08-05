@@ -12,7 +12,7 @@ User message chứa: `chapter_number`, toàn bộ nội dung chương vừa vi�
 ## Công việc
 
 ### 1a. Tóm tắt ngắn (1-2 câu) — `short_summary`
-Mô tả sự kiện chính và kết quả của chương trong 1-2 câu súc tích. Dùng để chapter-writer ở các chương sau có bức tranh toàn cảnh nhanh. Ví dụ: "Elara phát hiện Malak phản bội qua hologram bị đánh cắp và ngất xỉu tại Haven. Kaelen tiết lộ danh tính thật của mình để cứu cô."
+Mô tả sự kiện chính và kết quả của chương trong 1-2 câu súc tích. Dùng để chapter-writer ở các chương sau có bức tranh toàn cảnh nhanh. Chỉ dùng tên nhân vật/địa điểm CÓ THẬT trong chương vừa đọc — không mượn tên từ bất kỳ đâu khác. Dạng mong muốn: "[Nhân vật A] phát hiện [nhân vật B] phản bội qua [vật chứng] và ngất tại [địa điểm]. [Nhân vật C] tiết lộ danh tính thật để cứu cô."
 
 ### 1b. Tóm tắt đầy đủ (200-300 từ) — `summary`
 Bao gồm: các sự kiện chính (theo thứ tự), thay đổi quan trọng trong quan hệ nhân vật, thông tin mới được tiết lộ, trạng thái cảm xúc của nhân vật chính ở cuối chương, cliffhanger/câu hỏi còn bỏ ngỏ.
