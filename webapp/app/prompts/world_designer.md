@@ -50,22 +50,53 @@ America**, always. Change the surface *within* that world — never leave it.
   city, or any secondary fantasy world. Those settings compete badly in this market
   and are an automatic failure of this task.
 - **Genre stays sellable in the US market**: contemporary romance and its live
-  sub-genres — billionaire/CEO, mafia, sports, small-town, second-chance,
-  workplace, forbidden family-adjacent, MC/biker, cowboy — plus paranormal romance
-  (werewolf/shifter/vampire) **when the source already carries that element**. Never
-  invent a supernatural layer that the source does not have.
+  sub-genres — billionaire/CEO, mafia, boss/assistant, arranged or contract
+  marriage, second-chance, forbidden family-adjacent, sports — plus paranormal
+  romance (werewolf/shifter/vampire) **when the source already carries that
+  element**. Never invent a supernatural layer that the source does not have.
+  Small-town and cowboy are permitted but weakest here; prefer the high-status
+  sub-genres above unless the source plot really only works rural.
 
 **What you change instead of era and country** — this is where the creative leap
 must land, and it is more than enough to make the rewrite unrecognisable:
-- **Industry and profession**: pro hockey → country music; corporate law → a
-  restaurant group; private security → wildfire smokejumping; fashion house →
-  a NASCAR team; tech startup → a bourbon distillery.
-- **Region and social texture**: old money vs. new money, coastal city vs. rust belt
-  town, elite university vs. trade school, church-town vs. nightlife scene.
+- **Industry and profession** — see the required world below.
+- **Region and social texture**: old money vs. new money, penthouse vs. walk-up,
+  a members-only floor vs. the staff entrance.
 - **Power structure**: what money, status and leverage look like in that industry —
-  the sponsor, the label, the franchise owner, the family board seat.
-- **Stakes and pressures**: a contract year, a custody fight, an inheritance clause,
-  an investigation, a viral scandal.
+  who signs the contract, who can end a career with one call, who owns the building.
+- **Stakes and pressures**: a merger, an inheritance clause, a prenup, an
+  investigation, a leaked photo, a contract with a clause nobody read.
+
+## Pick a GLAMOROUS world with a steep power gap
+
+These are commercial romance covers. The world you choose decides what the cast
+wears and where they stand, which is most of what sells the book — a world of
+uniforms, workshops and daylight trades produces a wholesome poster no styling can
+rescue. So default to a world that is **high-status, high-money and physically
+close**, where the two leads are forced into the same expensive rooms.
+
+Strong choices — pick whichever the source's plot fits best, and vary between
+stories rather than always taking the first:
+- a private-equity or investment empire — the chairman and the assistant who knows
+  every secret
+- a luxury hotel or members-only club, its owner and the staff nobody is meant to notice
+- a crime family running legitimate businesses, and the outsider bound to it
+- a fashion house, magazine or modelling agency
+- a music label, film studio or talent agency
+- a real-estate or resort dynasty
+- a celebrity-facing law or PR firm handling scandals
+- the owner's box of a professional sports franchise
+
+Three things the chosen world must supply:
+1. **A power gap** — one lead can materially decide the other's future.
+2. **Forced proximity in private, expensive spaces** — an office after hours, a
+   penthouse, a suite, a car, a gala, a private jet.
+3. **A wardrobe worth looking at** — tailored suits, evening wear, jewellery.
+   Anything that puts the cast in overalls, scrubs, chef whites or safety gear for
+   most of the book is the wrong world, however good the plot.
+
+Only fall outside this band if the source plot genuinely cannot be carried by any of
+it — and say so in the narrative_summary if you do.
 
 A rewrite of a Boston hockey romance into a Nashville country-music romance is a
 correct, complete creative leap. A rewrite into a Tang-dynasty court is a failure,

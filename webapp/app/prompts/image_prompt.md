@@ -21,7 +21,10 @@ Write ONE dense paragraph per image, assembling these components:
    concretely — where each subject sits in the frame, what dominates, and the
    reserved space for the title (see title rule). Must read clearly at small size.
 4. **Setting/backdrop**: an in-world environment behind them (fitting the story's
-   world), less busy so subjects pop.
+   world), less busy so subjects pop. Choose the most **upscale** location the world
+   offers — a glass-walled office at night, a penthouse, a gala floor, a hotel
+   suite, a private club — over its plainest workspace.
+4b. **Wardrobe + styling** (see the styling rule — never leave this to chance).
 5. **Color palette + lighting**: follow the palette + lighting named in ART
    DIRECTION, translated into concrete colours drawn from this story's world.
    Keep faces readable and the image rich, never muddy. The ART DIRECTION block
@@ -81,6 +84,24 @@ world, palette family, the same faces, and the same story dynamic.
   instantly recognisable colour identity. **Use the SAME signature hue in all three
   images**, and render the title in that hue family (see the title rule) so art and
   typography read as one design.
+- **STYLE THE CAST — say what everyone is wearing, in every prompt.** Leaving
+  wardrobe unstated makes the model dress people in whatever the location implies,
+  which is how a poster ends up full of work uniforms. These are romance covers:
+  dress the leads as the most attractive version of themselves that their world
+  allows.
+  - **Female lead**: fitted or draped evening/cocktail dress, a silk blouse open at
+    the throat, or a sharply tailored suit worn with nothing beneath the jacket —
+    bare shoulders, a neckline, an exposed collarbone or a long slit are all good.
+    Add jewellery, styled hair, polished makeup.
+  - **Male lead**: a tailored dark suit, jacket off or sleeves rolled, top buttons
+    undone, tie loosened or absent; or a fitted shirt that reads the shape of him.
+  - Even in a workplace world, style them for the story's most glamorous moment —
+    the gala, the after-hours office, the party — never the daily uniform. **No chef
+    whites, scrubs, overalls, aprons, hi-vis or safety gear on a lead.**
+- **STAGE THEM CLOSE.** The central pair should read as charged, not polite: a hand
+  at her waist or jaw, his chest at her back, foreheads or mouths nearly touching,
+  a look held a beat too long. Tension and heat, always tasteful and poster-safe —
+  suggestive framing and body language, never nudity, never explicit content.
 - **Characters clearly visible and legible at thumbnail size** — the cast still
   carries the poster; never tiny specks lost in scenery. **Keep every character's
   HEAD and FACE fully inside the frame** with a little margin — no face cropped by
