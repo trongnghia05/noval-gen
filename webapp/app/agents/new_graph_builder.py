@@ -112,7 +112,8 @@ def _rebuild_characters(session: Session, story: Story) -> None:
             continue
         seen_names.add(name_key)
         p = n.properties or {}
-        tier = _tier_for_role(p.get("role", ""))
+        role = p.get("role", "")
+        tier = _tier_for_role(role)
         profile_md = p.get("profile_md") or (
             f"**Role**: {role}\n"
             f"**Gender**: {p.get('gender', '')}\n"
