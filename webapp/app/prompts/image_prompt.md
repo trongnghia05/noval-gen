@@ -86,18 +86,22 @@ world, palette family, the same faces, and the same story dynamic.
   typography read as one design.
 - **STYLE THE CAST — say what everyone is wearing, in every prompt.** Leaving
   wardrobe unstated makes the model dress people in whatever the location implies,
-  which is how a poster ends up full of work uniforms. These are romance covers:
-  dress the leads as the most attractive version of themselves that their world
-  allows.
-  - **Female lead**: fitted or draped evening/cocktail dress, a silk blouse open at
-    the throat, or a sharply tailored suit worn with nothing beneath the jacket —
-    bare shoulders, a neckline, an exposed collarbone or a long slit are all good.
-    Add jewellery, styled hair, polished makeup.
-  - **Male lead**: a tailored dark suit, jacket off or sleeves rolled, top buttons
-    undone, tie loosened or absent; or a fitted shirt that reads the shape of him.
-  - Even in a workplace world, style them for the story's most glamorous moment —
-    the gala, the after-hours office, the party — never the daily uniform. **No chef
-    whites, scrubs, overalls, aprons, hi-vis or safety gear on a lead.**
+  which is how a poster ends up full of work uniforms. ART DIRECTION names a
+  **wardrobe register** for this run: interpret it through THIS story's world, era
+  and class — the same register looks entirely different on a crime family, a
+  fashion house and a resort dynasty. Invent the specific garments yourself; do not
+  reach for a default outfit.
+  - **The bar, whatever the register**: the leads look their most attractive. For the
+    female lead that means the shape of her is visible and some skin is shown —
+    shoulders, arms, back, collarbone, a neckline or a slit. For the male lead, a
+    line that reads his build: jacket off or open, sleeves pushed up, collar undone.
+    Styled hair, polished makeup, jewellery that suits the world.
+  - **Never on a lead**: a buttoned collared work shirt, a fastened blazer, a
+    turtleneck, a bulky sweater or coat that hides the shoulders — and no chef
+    whites, scrubs, overalls, aprons, hi-vis or safety gear. Even in a workplace
+    world, style them for the story's most glamorous hour, never the daily uniform.
+  - **The three images must not repeat one outfit.** Change the garment, the colour
+    or the level of formality between them, staying inside the run's register.
 - **STAGE THEM CLOSE.** The central pair should read as charged, not polite: a hand
   at her waist or jaw, his chest at her back, foreheads or mouths nearly touching,
   a look held a beat too long. Tension and heat, always tasteful and poster-safe —

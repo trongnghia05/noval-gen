@@ -156,6 +156,27 @@ _PALETTES = [
 ]
 
 
+# Wardrobe is drawn per run like every other knob here, and for the same reason: a
+# fixed instruction ("put her in a slip dress") would make every book in the catalogue
+# look like the same shoot. Each entry is a REGISTER of glamour, not a garment list —
+# the prompt designer realises it in whatever this story's own world would wear, so a
+# crime family, a fashion house and a resort dynasty read differently while all
+# clearing the same bar. The bar itself — shoulders, neckline or shape visible, never
+# office or uniform — lives in the prompt, not here.
+_WARDROBE = [
+    "black-tie formal — floor-length gown, tuxedo or dinner jacket, serious jewellery",
+    "silk and satin after midnight — slip dresses, bare shoulders, fabric that catches light",
+    "the night undone — expensive eveningwear worn carelessly, jacket discarded, shirt open",
+    "red-carpet shine — sequins, metallics, a dress built to be photographed",
+    "warm-weather luxe — light fabrics, sun on skin, backless and strapless cuts",
+    "sleek monochrome — one colour head to toe, sharp lines, deep neckline",
+    "soft luxury at rest — cashmere and silk off one shoulder, barefoot, unhurried",
+    "old-money elegance — restrained cuts in fine cloth, one bold slit or open back",
+    "sharp tailoring worn bare — a jacket with nothing under it, sleeves pushed up",
+    "caught in the weather — rain-damp hair, fabric clinging, coat pulled open",
+]
+
+
 def _art_direction(seed: int | None = None) -> str:
     """One randomly-drawn composition / lens / lighting / palette recipe. These are
     VISUAL-style knobs only (dynamic-neutral) — the pair's staging is decided by the
@@ -189,6 +210,8 @@ def _art_direction(seed: int | None = None) -> str:
         f"- Lens: {rnd.choice(_LENSES)}\n"
         f"- Lighting: {rnd.choice(_LIGHTING)}\n"
         f"- Palette direction: {rnd.choice(_PALETTES)}\n"
+        f"- Wardrobe register: {rnd.choice(_WARDROBE)} — realise it in THIS story's "
+        f"world and era, and vary the three images within it\n"
     )
 
 
