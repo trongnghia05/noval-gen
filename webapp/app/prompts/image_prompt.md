@@ -133,13 +133,16 @@ world, palette family, the same faces, and the same story dynamic.
   curved or wavy, two-line stacked, integrated into the scene — pick a premium
   drama-poster treatment that fits the mood (bold sans/serif, two-tone, gold/white
   accent, subtle glow/shadow, darker backing behind the letters if the art is busy).
-  **The title must be COLOURED, never plain white or grey.** Fill it from the
-  story's SIGNATURE HUE (or its complement) as a saturated colour or gradient, and
-  give it a contrasting outline — white/black keyline, soft glow, or a drop shadow —
-  so it stays legible while clearly belonging to the art. Default white lettering is
-  a failure of this rule.
-  Splitting a two-part title across two colours and two weights (the main phrase
-  bold and large, the rest lighter/scripted beneath) is a strong, on-genre choice.
+  **ART DIRECTION names a title treatment for this run — use it.** Realise it in the
+  story's SIGNATURE HUE: a saturated fill or gradient in that hue (or its
+  complement), with a contrasting outline — white/black keyline, soft glow, or a drop
+  shadow — so it stays legible while belonging to the art. **Plain white or grey
+  lettering is a failure of this rule**, and so is falling back on a default sans
+  when a treatment was named.
+  **Design the lettering, don't just set it.** Arcs, curves, swashes, long tails,
+  mixed weights, a script word against upright caps, lines stacked at an offset —
+  this is key art, not a document. Flat centred lines in one plain weight are a
+  wasted cover.
   **The one hard rule: it must read LEFT-TO-RIGHT and be EASY TO READ at a glance** —
   no vertical/sideways lettering, nothing so warped or low-contrast it's hard to read.
   **Make the title LARGE** — the clear second focal point after the faces, never

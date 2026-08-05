@@ -45,6 +45,36 @@ _SPECS = [
 
 _TIER_ORDER = {"core": 0, "important": 1, "secondary": 2, "minor": 3}
 
+_ASPECT_RATIOS = {"16:9": 16 / 9, "4:3": 4 / 3, "1:1": 1.0, "3:4": 3 / 4, "9:16": 9 / 16}
+
+
+def _safe_margin_note(width: int, height: int, aspect: str) -> str:
+    """Tell the model how much side margin to leave, given that we crop afterwards.
+
+    The model renders one of a few fixed aspect ratios, and ImageOps.fit then crops
+    to the exact pixel size — which for the cover means asking for 16:9 (1.778) and
+    keeping 1.618, throwing away 4.5% off EACH side. So a title drawn with the 8%
+    margin the prompt asks for arrives with 3.5%, reading as "touching the edge".
+    That is why cover titles kept looking clipped no matter how the prompt was
+    worded: the geometry ate the margin, not the model.
+
+    Rather than hard-coding a bigger number, derive it, so this stays correct if the
+    output sizes in _SPECS ever change.
+    """
+    target, generated = width / height, _ASPECT_RATIOS.get(aspect, width / height)
+    side_loss = max(0.0, (1 - target / generated) / 2) if generated > target else 0.0
+    required = round((0.08 + side_loss) * 100)
+    return (
+        f"\n\nIMAGE SAFETY MARGIN: this render will be cropped to {width}x{height}, "
+        f"losing {side_loss * 100:.0f}% off each side, so the outer {required}% of the "
+        f"width on the left AND right will not survive. Keep every LETTER of the title "
+        f"inside the central {100 - 2 * required}%. This is a boundary, not a layout: "
+        f"arcs, curves, swashes, long descenders, script tails and stacked or offset "
+        f"lines are all encouraged — design freely, then size and place the whole "
+        f"lettering so it lands inside that boundary. Purely decorative flourishes "
+        f"(a tail, a rule, a swash) may run wider; the readable words may not."
+    )
+
 # Appended to every non-cover prompt when the cover is passed in as a reference
 # image. Module-level so a one-off regeneration of a single thumbnail can reuse the
 # exact same wording instead of drifting from it.
@@ -177,6 +207,33 @@ _WARDROBE = [
 ]
 
 
+# Title treatments, drawn per run for the same reason as wardrobe: left to itself the
+# designer settles on plain white sans every time. Each entry is a treatment, not a
+# font name — the designer realises it in the run's signature colour.
+_TYPOGRAPHY = [
+    "two-tone split: the first phrase heavy upright caps, the rest in large flowing "
+    "italic script beneath, its tail sweeping back under the first line",
+    "calligraphic script across the whole title, generous swashes on the first and "
+    "last letters, the baseline dipping and rising like handwriting",
+    "gently arched lettering following a wide curve, tallest at the centre, letters "
+    "tilting with the arc",
+    "one key word in enormous brushed script laid diagonally over the smaller "
+    "upright rest of the title",
+    "elegant high-contrast serif with long extended swashes and a thin rule that "
+    "curves under the words",
+    "gold foil-effect lettering with soft inner glow and a script flourish trailing "
+    "off the final letter",
+    "art-deco display caps with thin hairlines, the middle word dropped into a "
+    "curved ribbon banner",
+    "soft romantic serif, the first letter oversized and looping, the rest tucked "
+    "into its curve",
+    "bold condensed caps for the punchy words, delicate handwritten script for the "
+    "connecting words, mixed on the same line",
+    "wave-set lettering: the words rise and fall along a gentle S-curve, each line "
+    "offset from the last",
+]
+
+
 def _art_direction(seed: int | None = None) -> str:
     """One randomly-drawn composition / lens / lighting / palette recipe. These are
     VISUAL-style knobs only (dynamic-neutral) — the pair's staging is decided by the
@@ -195,9 +252,12 @@ def _art_direction(seed: int | None = None) -> str:
         "naturalistic, glowing and eye-catching, like a streaming short-drama "
         "thumbnail. Never flat, dull, washed out or muted.\n"
         "- Signature colour: choose ONE dominant hue for this story from its own world "
-        "and let it OWN the poster — carried by the lighting, a key costume and the "
-        "environment — then render the title in that same hue family so art and "
-        "typography read as one design. Same signature hue in all three images.\n"
+        "and let it OWN the poster. Name the hue explicitly in the prompt, then put it "
+        "in ALL of: the lighting or the air itself, a key costume, the environment, "
+        "AND the title lettering. A viewer must be able to name the poster's colour in "
+        "one word at a glance — if the result reads as neutral, grey, navy-and-beige "
+        "or generally 'natural', the hue was too weak. Same signature hue in all three "
+        "images.\n"
         "- Period integrity: the palette NEVER changes the era. Bright, saturated and "
         "glowing must be achieved with light sources and materials that already exist "
         "in this story's world. A pre-modern story gets NO neon signs, no skyscrapers, "
@@ -212,6 +272,8 @@ def _art_direction(seed: int | None = None) -> str:
         f"- Palette direction: {rnd.choice(_PALETTES)}\n"
         f"- Wardrobe register: {rnd.choice(_WARDROBE)} — realise it in THIS story's "
         f"world and era, and vary the three images within it\n"
+        f"- Title treatment: {rnd.choice(_TYPOGRAPHY)} — coloured from the signature "
+        f"hue, same treatment across all three images\n"
     )
 
 
@@ -264,7 +326,7 @@ def generate(session: Session, story: Story, out_dir, meta: NovelMetadataOut | N
             continue
         is_cover = attr == "cover"
         refs = None if (is_cover or not cover_ref) else [cover_ref]
-        full_prompt = prompt if is_cover else prompt + _CONSISTENCY
+        full_prompt = (prompt if is_cover else prompt + _CONSISTENCY) + _safe_margin_note(w, h, aspect)
 
         best_raw: bytes | None = None  # keep a usable image even if none verify
         verified_raw: bytes | None = None
