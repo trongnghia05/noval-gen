@@ -244,8 +244,8 @@ _TYPOGRAPHY = [
     "upright rest of the title",
     "elegant high-contrast serif with long extended swashes and a thin rule that "
     "curves under the words",
-    "gold foil-effect lettering with soft inner glow and a script flourish trailing "
-    "off the final letter",
+    "gold foil-effect lettering with a soft inner glow, the very last letter drawn "
+    "with a long curling tail that sweeps back beneath the words",
     "art-deco display caps with thin hairlines, the middle word dropped into a "
     "curved ribbon banner",
     "soft romantic serif, the first letter oversized and looping, the rest tucked "

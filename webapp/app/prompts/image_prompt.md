@@ -158,6 +158,9 @@ world, palette family, the same faces, and the same story dynamic.
     cut off, never hidden behind a subject or covering a face. Render ONLY the title
     (an optional short tagline) — no other words, gibberish, credits, logos or
     watermarks.
+  - **The title appears EXACTLY ONCE.** No word of it is repeated, echoed in a second
+    typeface, or drawn again as decoration. A flourish is a stroke on a letter, never
+    another copy of a word.
 - Write the prompt text in **English** (best rendering); the rendered TITLE keeps
   the original title text exactly.
 - Poster-safe: no gore, no explicit content.

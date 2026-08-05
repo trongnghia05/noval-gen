@@ -36,7 +36,7 @@ For each character, produce:
   - **verbal tics / "tell"**: a habit that betrays them (e.g. "clears throat when lying", "answers a question with a question", "over-uses 'my dear friend'")
   - **PERSONALITY & FLAVOR (the most important part — what makes them VIVID, not a stock type)**: one or two *specific, surprising* traits that make this character feel alive and unlike a generic archetype — a sense of humor (dry? filthy? gallows?), a warmth or a mean streak, an odd obsession, a private contradiction, a worldview. And HOW they handle emotion in the moment: deflect with a joke? go cold and clipped? over-share? get sarcastic? A "stern intellectual" or "cold enforcer" with nothing else is a FAILURE — give them a pulse.
   - **2-3 SAMPLE LINES** they might say — written in the NEW world, showing the voice AND the personality/flavor in action (these are illustrations of manner, not real plot lines)
-- `new_appearance` — 1-2 sentences describing the character's LOOK for the poster art. They should be **attractive/good-looking** (leads especially), BUT a **specific, distinct individual** — give: approximate age; **specific heritage/ethnicity**; face shape; hair (colour, length, style); eye colour; skin tone; and **one or two memorable-but-still-attractive features** (e.g. a strong jaw, arched brows, a warm gap-toothed smile, striking pale eyes, a beauty mark). NOT a generic "beautiful woman / handsome man."
+- `new_appearance` — 1-2 sentences describing the character's LOOK for the poster art. They should be **attractive/good-looking** (leads especially), BUT a **specific, distinct individual** — give: age (see the age rule below); **specific heritage/ethnicity**; face shape; hair (colour, length, style); eye colour; skin tone; and **one or two memorable-but-still-attractive features** (e.g. a strong jaw, arched brows, a warm gap-toothed smile, striking pale eyes, a beauty mark). NOT a generic "beautiful woman / handsome man."
 
 ## Rules
 
@@ -59,6 +59,24 @@ For each character, produce:
 - **Make voices MAXIMALLY DISTINCT across the cast.** No two characters should sound alike — deliberately vary register, rhythm, and tic so a reader can tell who is speaking with the dialogue tag removed. A cast where everyone speaks the same elevated tone is a FAILURE.
 - **VIVID, NOT BLAND ARCHETYPES.** Distinct-on-paper is not enough. Each character must be *memorable and alive* — avoid the flat defaults (the stern scholar, the cold enforcer, the wise mentor) unless you give them a surprising twist (a cold enforcer with dry gallows humor; a scholar who curses like a sailor). If the whole cast reads "serious and grim," you have failed even if their registers technically differ. At least the protagonist(s) must carry real flavor — wit, warmth, edge — something that makes a reader *like spending time in their head*.
 - **Match the SOURCE'S tonal energy** (from source_spirit if provided): if the source is light/funny/snarky, the new cast must carry that liveliness (expressed in this world's idiom) — do NOT flatten a lively source into grim seriousness. If the source is genuinely dark, lean dark. The world's flavor changes; the source's *energy level* should survive.
+- **AGES: derive them from the RELATIONSHIPS, then check the whole cast.** Age is the
+  one thing in `new_appearance` that other characters constrain, and it is often the
+  ONLY place the story records an age at all — so a wrong number here shows up
+  directly on the cover with nothing to contradict it.
+  - Work out ages **relative to each other first**: peers of the same generation
+    (best friends, classmates, teammates, siblings close in age) are within a couple
+    of years of each other; a parent is 22-32 years older than their child; an
+    employer outranks a junior employee in age as well as rank.
+  - **The female lead of a contemporary romance is in her twenties** — roughly 22 to
+    28 — unless the plot states otherwise (a divorce, a teenage child, a decade-long
+    career). Do NOT age her up merely to narrow the gap to an older love interest;
+    that gap is usually the point of the book.
+  - The love interest is late twenties to forties, older than her in an
+    age-gap/boss/mafia premise, but keep him within a generation of her unless the
+    plot makes him a parent of someone her age.
+  - **Before you return, read every age you assigned side by side** and check it
+    against the relationships. A heroine older than the best friend she grew up with,
+    or a "young" character older than their mentor, is a failure of this rule.
 - **APPEARANCE MUST FIT THE NAME AND THE PLACE.** The name is already fixed and you
   can see it — heritage, gender and register all have to agree with it. A surname
   from one culture on a character described as being of another needs a reason

@@ -624,6 +624,20 @@ def _style_contract(session: Session, story: Story, world_design_text: str) -> s
             "here in every field you write)\n" + "\n".join(cast_lines)
         )
 
+    # Relationships belong in the shared contract, not just in the pass that writes
+    # them. Without this the character pass assigned each age independently and put a
+    # heroine in her early thirties beside the best friend she grew up with, who came
+    # out in her early twenties — a contradiction only visible if you can see the tie.
+    relations = relation_lines_for(session, story)
+    if relations:
+        parts.append(
+            "## RELATIONSHIPS (every recorded fact, grouped by pair — permanent ties "
+            "and passing moods are mixed together). Anything you write about a "
+            "character must be consistent with these: peers of one generation are "
+            "close in age, a parent is a generation above their child, and a tie "
+            "stated here cannot be contradicted.\n" + "\n".join(relations)
+        )
+
     return "\n\n".join(parts) + "\n\n"
 
 
