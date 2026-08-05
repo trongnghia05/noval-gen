@@ -63,8 +63,15 @@ def _safe_margin_note(width: int, height: int, aspect: str) -> str:
     """
     target, generated = width / height, _ASPECT_RATIOS.get(aspect, width / height)
     side_loss = max(0.0, (1 - target / generated) / 2) if generated > target else 0.0
+    top_loss = max(0.0, (1 - generated / target) / 2) if generated < target else 0.0
     required = round((0.08 + side_loss) * 100)
+    head_required = round((0.04 + top_loss) * 100)
     return (
+        f"\n\nHEADROOM: leave at least {head_required}% of the image height empty above "
+        f"the tallest head. Every subject's whole head — crown, hair and all — stays "
+        f"inside the frame; a scalp or forehead touching or crossing the top edge is a "
+        f"failed image, however good the rest is. On a tight portrait, pull the camera "
+        f"back rather than cropping the top of the head."
         f"\n\nIMAGE SAFETY MARGIN: this render will be cropped to {width}x{height}, "
         f"losing {side_loss * 100:.0f}% off each side, so the outer {required}% of the "
         f"width on the left AND right will not survive. Keep every LETTER of the title "
