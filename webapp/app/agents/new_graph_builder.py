@@ -582,6 +582,52 @@ def _apply_lexicon_substitution(
 
 # ── Phase 2: Per-group LLM enrichment ─────────────────────────────────────────
 
+def _style_contract(session: Session, story: Story, world_design_text: str) -> str:
+    """The shared style anchor every Phase 2 enrichment call receives.
+
+    Phase 2 is five separate LLM calls, and each one used to see a different slice of
+    the world: only the character pass got the source's tonal energy, and the relation
+    pass was handed `world_design_text` and never used it — so it described
+    relationships without knowing the era, region or genre they sat in. The result was
+    a graph enriched in several unrelated voices, which chapter_writer then had to
+    reconcile.
+
+    The cast block is what keeps names, gender and heritage coherent. Names are minted
+    in Phase 1b, appearance in Phase 2, and nothing connected the two — which is how a
+    lead ended up with a French surname and an unexplained East Asian heritage. Every
+    call now sees both at once.
+    """
+    parts = [f"## WORLD DESIGN\n{world_design_text}"]
+
+    if story.source_spirit:
+        parts.append(
+            "## TONAL ENERGY (match the ENERGY LEVEL — lively/funny vs grim — in this "
+            f"world's idiom; do NOT copy source names or wording)\n{story.source_spirit}"
+        )
+
+    cast_lines = []
+    for n in (session.query(StoryGraphNode)
+              .filter_by(story_id=story.id, graph_type="new", node_type="character")
+              .order_by(StoryGraphNode.node_key)):
+        p = n.properties or {}
+        bits = [f"[{n.node_key}] {n.label}"]
+        for key, prefix in (("role", "role"), ("gender", "gender")):
+            if p.get(key):
+                bits.append(f"{prefix}:{p[key]}")
+        if p.get("appearance"):
+            bits.append(f"looks:{p['appearance'][:120]}")
+        cast_lines.append(" | ".join(bits))
+    if cast_lines:
+        parts.append(
+            "## CAST (names are FIXED — use these exact labels; a character's heritage, "
+            "gender and register must stay consistent with the name and looks shown "
+            "here in every field you write)\n" + "\n".join(cast_lines)
+        )
+
+    return "\n\n".join(parts) + "\n\n"
+
+
+
 # Per-enricher TASK BRIEF handed to the unified verifier so it checks against THIS
 # enricher's actual goals/rules, not a generic list.
 _ENRICH_BRIEFS = {
@@ -785,15 +831,9 @@ def _enrich_characters(
 
     lexicon_block = "\n".join(f"  {k}: \"{v}\"" for k, v in sorted(lexicon.items()))
     system = load_prompt("graph_character_enricher")
-    spirit_block = (
-        f"## SOURCE TONE (match its ENERGY LEVEL — lively/funny vs grim — in this world's idiom)\n"
-        f"{story.source_spirit}\n\n"
-        if story.source_spirit else ""
-    )
     user_content = (
         f"language: {story.language}\n\n"
-        f"## WORLD DESIGN\n{world_design_text}\n\n"
-        f"{spirit_block}"
+        f"{_style_contract(session, story, world_design_text)}"
         f"## NAME LEXICON\n{lexicon_block}\n\n"
         f"## CHARACTERS\n" + "\n".join(char_lines)
     )
@@ -877,7 +917,7 @@ def _enrich_events(
     system = load_prompt("graph_event_enricher")
     user_content = (
         f"language: {story.language}\n\n"
-        f"## WORLD DESIGN\n{world_design_text}\n\n"
+        f"{_style_contract(session, story, world_design_text)}"
         f"## CHARACTER LABEL MAP\n{char_map_block}\n\n"
         f"## EVENTS\n" + "\n".join(event_lines)
     )
@@ -939,7 +979,7 @@ def _enrich_arc_changes(
     system = load_prompt("graph_arc_enricher")
     user_content = (
         f"language: {story.language}\n\n"
-        f"## WORLD DESIGN\n{world_design_text}\n\n"
+        f"{_style_contract(session, story, world_design_text)}"
         f"## CHARACTER LABEL MAP\n{char_map_block}\n\n"
         f"## ARC_CHANGES\n" + "\n".join(arc_lines)
     )
@@ -1023,6 +1063,7 @@ def _enrich_relations(
         system = load_prompt("graph_relation_enricher")
         user_content = (
             f"language: {story.language}\n\n"
+            f"{_style_contract(session, story, world_design_text)}"
             f"## CHARACTER PROFILES\n{char_profiles}\n\n"
             f"## RELATIONS\n" + "\n".join(rel_lines)
         )
@@ -1094,7 +1135,7 @@ def _enrich_causes(
     system = load_prompt("graph_causes_enricher")
     user_content = (
         f"language: {story.language}\n\n"
-        f"## WORLD DESIGN\n{world_design_text}\n\n"
+        f"{_style_contract(session, story, world_design_text)}"
         f"## EVENT LABEL MAP\n{event_map_block}\n\n"
         f"## CAUSES\n" + "\n".join(cause_lines)
     )
