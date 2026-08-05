@@ -17,6 +17,12 @@ one POWER TITLE and one TWIST**.
 
 ## Pick ONE of these three moulds
 
+Choose a single mould, then fill **that one shape completely**. Do not take a word
+from one shape and a word from another — a title assembled from two moulds comes out
+ungrammatical, because the pieces were never meant to sit in the same sentence.
+Before you answer, read your title back as a plain English sentence and check it
+means what you intend.
+
 Each mould is given as a **shape to fill**, followed by published titles that show
 the shape working. The published titles are illustrations of the PATTERN — see the
 anti-copy rule below.
@@ -124,9 +130,21 @@ So every command-mould title needs either **"Me" plus a vocative** (`Break Me,
 Boss`) or a **first-person subject** (`I Divorced…`, `I Rejected…`). If neither
 fits, use mould 2 or 3 instead.
 
-Also avoid limp job-titles as the power word: *Executive*, *Manager*, *Employee*,
-*Colleague* carry no charge. Reach for the rank that implies power over the
-heroine — the owner, the boss, the heir, the captain, the frontman, the closer.
+Two ways this mould gets broken, both fatal:
+
+- **"Me", never "My".** `Claim Me, <rank>` is her offering herself to him. `Claim My
+  <rank>` orders somebody else to take a man she owns — it removes her from her own
+  title and inverts who holds the power. If the word after the verb is not `Me`, the
+  mould is not being used.
+- **The word after the comma is the MAN she is speaking to**, named by his rank. It
+  is never her own job, rank or role — a heroine cannot be the one addressed and the
+  one speaking. Check it: does the title read as *her* saying this *to him*? If the
+  vocative is the protagonist's own profession, the title is broken.
+
+The rank must carry power over her — the owner, the boss, the heir, the don, the
+captain, the frontman. A neutral job title (*Executive*, *Manager*, *Architect*,
+*Colleague*, *Employee*) has no charge and, worse, is usually her own occupation
+rather than his.
 
 ## Hard rules
 

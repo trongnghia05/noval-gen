@@ -49,8 +49,50 @@ def generate_title(
     # Generous headroom even for a "just give me 2-6 words" task: reasoning
     # models spend part of max_tokens on invisible chain-of-thought before
     # the visible answer, so a tight budget here starves the real output.
-    response = provider.generate(system=system, user_content=user_content, model=model, max_tokens=500)
-    return _clean_title(response.text)
+    title = ""
+    for attempt in range(2):
+        response = provider.generate(system=system, user_content=user_content,
+                                     model=model, max_tokens=500)
+        title = _clean_title(response.text)
+        problem = _title_problem(title)
+        if not problem:
+            return title
+        logger.warning("title attempt %d rejected (%s): %r", attempt + 1, problem, title)
+        user_content += (
+            f"\n\nLan truoc ban tra ve: \"{title}\" — BI TU CHOI vi: {problem}\n"
+            f"Hay viet lai mot tieu de khac, sua dung loi nay."
+        )
+    # Never block a run over a title; a flawed one is fixable later, a crash is not.
+    logger.warning("title still flawed after retries, accepting: %r", title)
+    return title
+
+
+# Imperative openers from the command mould. "Claim My …" is the specific way that
+# mould breaks: it drops the heroine out of her own title and hands the power to
+# whoever is being addressed.
+_COMMAND_VERBS = ("claim", "break", "ruin", "own", "tame", "wreck", "crave", "keep",
+                  "breed", "take", "reject")
+
+
+def _title_problem(title: str) -> str | None:
+    """Return why a title is unusable, or None if it passes.
+
+    A code-side gate because prompt rules alone kept being ignored: one story shipped
+    as "Claim My Magnate, Architect", which mixes two moulds, swaps `Me` for `My` so
+    the heroine is no longer the one speaking, and fills the vocative with her OWN
+    profession. Each of those was already forbidden in the prompt.
+    """
+    words = title.split()
+    if not 2 <= len(words) <= 8:
+        return f"do dai {len(words)} tu, phai trong khoang 3-6 tu"
+    if words[0].lower().strip(",") in _COMMAND_VERBS and words[1].lower() in ("my", "the", "his", "her"):
+        return ("dung khuon menh lenh nhung sau dong tu phai la 'Me' (nhan vat nu "
+                "moi gia loi), khong phai 'My/The/His/Her'")
+    if title.count("'s") + title.count("’s") >= 2:
+        return "co hai so huu cach lien tiep, doc rat luc cuc"
+    if ":" in title:
+        return "co dau hai cham / tieu de phu"
+    return None
 
 
 def _clean_title(raw: str) -> str:
