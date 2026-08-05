@@ -9,6 +9,7 @@ is never blocked. Images land next to novel.md in the host-mounted output folder
 
 import io
 import logging
+import os
 import random
 import re
 
@@ -34,13 +35,28 @@ def _title_ok(title: str, ocr_text: str) -> bool:
     t = _norm(title)
     return bool(t) and t in _norm(ocr_text)
 
-# (filename, width, height, aspect-ratio, attr, crop-centering)
+# Saved image format. WebP is a fraction of PNG's size at visually identical quality
+# for photographic key art, which adds up when every story ships three images. Set
+# IMAGE_FORMAT=png if something downstream cannot read WebP.
+_FORMAT = (os.getenv("IMAGE_FORMAT") or "webp").strip().lower()
+_SAVE_ARGS = {
+    # method=6 is the slowest/best WebP encoder setting; a few hundred ms per image is
+    # nothing next to the generation call that produced it.
+    "webp": {"format": "WEBP", "quality": 92, "method": 6},
+    "png": {"format": "PNG"},
+}
+if _FORMAT not in _SAVE_ARGS:
+    logger.warning("IMAGE_FORMAT=%r not supported, falling back to webp", _FORMAT)
+    _FORMAT = "webp"
+
+# (stem, width, height, aspect-ratio, attr, crop-centering) — the extension comes from
+# _FORMAT so switching format needs no change here.
 # The model now outputs each aspect ratio natively (image_config), so cropping to
 # the exact pixel size is minimal and symmetric — faces and title both survive.
 _SPECS = [
-    ("cover.png",      686, 424, "16:9", "cover",  (0.5, 0.5)),
-    ("thumbnail1.png", 327, 462, "3:4",  "thumb1", (0.5, 0.5)),
-    ("thumbnail2.png", 498, 642, "3:4",  "thumb2", (0.5, 0.5)),
+    ("cover",      686, 424, "16:9", "cover",  (0.5, 0.5)),
+    ("thumbnail1", 327, 462, "3:4",  "thumb1", (0.5, 0.5)),
+    ("thumbnail2", 498, 642, "3:4",  "thumb2", (0.5, 0.5)),
 ]
 
 _TIER_ORDER = {"core": 0, "important": 1, "secondary": 2, "minor": 3}
@@ -327,7 +343,8 @@ def generate(session: Session, story: Story, out_dir, meta: NovelMetadataOut | N
     _MAX_ATTEMPTS = 4
     written: list[str] = []
     cover_ref: bytes | None = None
-    for filename, w, h, aspect, attr, centering in _SPECS:
+    for stem, w, h, aspect, attr, centering in _SPECS:
+        filename = f"{stem}.{_FORMAT}"
         prompt = getattr(prompts, attr, "") or ""
         if not prompt:
             continue
@@ -374,7 +391,12 @@ def generate(session: Session, story: Story, out_dir, meta: NovelMetadataOut | N
             continue
         img = Image.open(io.BytesIO(chosen)).convert("RGB")
         img = ImageOps.fit(img, (w, h), method=Image.LANCZOS, centering=centering)
-        img.save(out_dir / filename, format="PNG")
+        img.save(out_dir / filename, **_SAVE_ARGS[_FORMAT])
+        # Drop the same image in any other format left over from an earlier run, so a
+        # folder never ends up with both cover.png and cover.webp.
+        for other in _SAVE_ARGS:
+            if other != _FORMAT:
+                (out_dir / f"{stem}.{other}").unlink(missing_ok=True)
         if is_cover:
             cover_ref = chosen  # reference for thumbnail character consistency
         written.append(filename)
