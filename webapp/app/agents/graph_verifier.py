@@ -13,6 +13,11 @@
    no EVENT nodes added, no CAUSES/ARC_CHANGE from enrichment nodes. Critical →
    remove the offending enrichment node/edge directly.
 
+4. CAST ROLES (always): every character carries a role from the allowed set, and
+   the cast has exactly one protagonist. Critical → deterministic Python repair
+   from graph connectivity — a role is a property assignment, not prose, so the
+   surface rewriter cannot fix it.
+
 Max 10 iterations. Sets story.new_graph_verified = True when done or exhausted.
 """
 
@@ -28,7 +33,12 @@ from ..llm_json import generate_structured
 from ..prompts.loader import load_prompt
 from ..schemas import GraphVerifierOutput
 from . import graph_surface_rewriter
-from .new_graph_builder import _character_source_labels, substitute_labels
+from .new_graph_builder import (
+    _VALID_ROLES,
+    _character_source_labels,
+    _tier_for_role,
+    substitute_labels,
+)
 
 MAX_ITERATIONS = 10
 # Cap on how many near-verbatim nodes/edges get an LLM content-rewrite per
@@ -67,6 +77,94 @@ def _apply_reskin_substitution(session: Session, story: Story) -> None:
         name_labels=_character_source_labels(session, story.id),
     )
     logger.info("[%s] reskin substitution: %d label pairs applied", story.slug, count)
+
+
+def _repair_cast_roles(session: Session, story: Story) -> list[str]:
+    """Force the cast into a usable shape: valid roles, exactly one protagonist.
+
+    Deterministic rather than another LLM call, because this must converge — and
+    because connectivity is a better protagonist signal than anything a model can
+    re-derive here: the lead is in more RELATION edges than anyone else, by a wide
+    margin. Returns a list of the changes made, for the log.
+
+    Runs after the character enricher has already assigned roles, so in the normal
+    case it finds nothing to do; it exists for when the enricher returns a role
+    outside the allowed set, or none at all.
+    """
+    nodes = (
+        session.query(StoryGraphNode)
+        .filter_by(story_id=story.id, graph_type="new", node_type="character")
+        .all()
+    )
+    if not nodes:
+        return []
+
+    degree: dict[str, int] = defaultdict(int)
+    for e in session.query(StoryGraphEdge).filter_by(
+            story_id=story.id, graph_type="new", edge_type="RELATION"):
+        degree[e.source_key] += 1
+        degree[e.target_key] += 1
+
+    changes: list[str] = []
+
+    def set_role(node, role, why):
+        props = dict(node.properties or {})
+        old = props.get("role", "")
+        if old == role:
+            return
+        props["role"] = role
+        node.properties = props
+        changes.append(f"{node.label}: {old or '(none)'} -> {role} ({why})")
+
+    mean_degree = (sum(degree.get(n.node_key, 0) for n in nodes) / len(nodes)) or 0
+
+    # 1. Bring every role into the allowed set. A role that is merely worded oddly
+    #    ("male_lead", "minor_antagonist") still carries intent, so it maps by tier.
+    #    An EMPTY role carries none, and must not be guessed as `minor`: extraction
+    #    drops the key on leads as readily as on bit-players, and writing `minor`
+    #    onto the protagonist is worse than leaving it blank. Connectivity decides
+    #    those instead.
+    for n in nodes:
+        role = ((n.properties or {}).get("role") or "").strip().lower()
+        if role in _VALID_ROLES:
+            continue
+        if role:
+            tier = _tier_for_role(role)
+            set_role(n, {"core": "protagonist", "important": "supporting"}.get(tier, "minor"),
+                     f"invalid role {role!r}")
+        else:
+            deg = degree.get(n.node_key, 0)
+            set_role(n, "supporting" if deg >= mean_degree else "minor",
+                     f"no role, {deg} relations vs cast mean {mean_degree:.1f}")
+
+    # 2. Exactly one protagonist, and it is the character the graph revolves around.
+    #    Degree separates the leads sharply — in a real cast the top character had 57
+    #    relations, the next 46, the fourth only 7 — so the most-connected character
+    #    takes the part. Another character already marked protagonist becomes the
+    #    love_interest rather than being demoted out of the leads: in a romance that
+    #    is what a second lead actually is, and it keeps them in the `core` tier.
+    winner = max(nodes, key=lambda n: degree.get(n.node_key, 0))
+    for n in nodes:
+        if n is not winner and (n.properties or {}).get("role") == "protagonist":
+            set_role(n, "love_interest", "second lead, only one protagonist allowed")
+    set_role(winner, "protagonist", f"most connected, {degree.get(winner.node_key, 0)} relations")
+
+    # 3. A cast with nobody opposing the lead reads as no conflict at all, and leaves
+    #    the antagonist sitting in a lower tier than the plot gives them. When the
+    #    role is missing entirely, the best-connected remaining character is the
+    #    opposing force — third place, after the lead and the love interest.
+    if not any((n.properties or {}).get("role") == "antagonist" for n in nodes):
+        rest = [n for n in nodes
+                if (n.properties or {}).get("role") not in ("protagonist", "love_interest")]
+        if rest:
+            foe = max(rest, key=lambda n: degree.get(n.node_key, 0))
+            if degree.get(foe.node_key, 0) > 0:
+                set_role(foe, "antagonist",
+                         f"no antagonist in cast, {degree.get(foe.node_key, 0)} relations")
+
+    if changes:
+        session.flush()
+    return changes
 
 
 def _remove_enrichment_nodes(session: Session, story_id: int, node_keys: list[str]) -> None:
@@ -236,6 +334,14 @@ def run(session: Session, story: Story) -> None:
                 logger.info("[%s] graph_verifier: removing %d invalid enrichment nodes: %s",
                             story.slug, len(bad_keys), bad_keys)
                 _remove_enrichment_nodes(session, story.id, bad_keys)
+
+    # Cast roles are repaired unconditionally, not only when the model flags them:
+    # the check is cheap, deterministic, and a graph with no protagonist silently
+    # mis-tiers the whole cast downstream (cover art, per-chapter context, naming).
+    role_changes = _repair_cast_roles(session, story)
+    if role_changes:
+        logger.warning("[%s] graph_verifier: cast roles repaired — %s",
+                       story.slug, "; ".join(role_changes))
 
     story.new_graph_verified = True
     logger.info("[%s] graph_verifier: done — new_graph_verified=True", story.slug)

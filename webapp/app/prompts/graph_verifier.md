@@ -80,6 +80,26 @@ Check that Phase 3 additions don't violate constraints:
 
 ---
 
+## AXIS 4 — CAST ROLES (always) — `check_type: "cast_role"`
+
+Every character node carries a `role`. Check the cast as a whole:
+
+- **Exactly one `protagonist`.** None at all, or several, is critical — the roles
+  decide which characters reach the cover art and the per-chapter writing context,
+  so a cast with no lead quietly demotes the people the book is about.
+- **Every role is one of** `protagonist`, `antagonist`, `love_interest`,
+  `supporting`, `minor`. A blank role, or an invented variant like `male_lead` or
+  `minor_antagonist`, is critical — name the node and the offending value.
+- **The role matches what the graph shows.** A character in many RELATION edges,
+  present across most of the story, marked `minor` is critical. Someone appearing in
+  a single chapter marked `protagonist` is likewise critical.
+- **A romance needs a `love_interest`;** an opposing force should be `antagonist`.
+  Missing either is minor unless the story clearly has one.
+
+Report the correct role in `suggestion` (e.g. "should be `antagonist`").
+
+---
+
 ## Severity guidelines
 
 **CRITICAL** — triggers automatic repair:
@@ -104,6 +124,8 @@ Your output just lists issues. The orchestrator routes:
 - `narrative_logic` CRITICAL → `graph_surface_rewriter` (targeted fix of specific node/edge text)
 - `reskin` CRITICAL → deterministic Python name substitution (leaked source names → new names)
 - `enrichment` CRITICAL → enrichment node/edge removed
+- `cast_role` → deterministic Python repair (invalid roles remapped; the
+  best-connected character made protagonist when the cast has none or several)
 
 ---
 

@@ -578,6 +578,17 @@ class GraphSurfaceRepairOutput(BaseModel):
 
 class CharacterSurfaceOut(BaseModel):
     node_key: str
+    # Cast role in the NEW story. Assigned here because this is the only step that
+    # sees the whole cast at once; before it existed, role was merely inherited from
+    # whatever the source extraction happened to record, so a new graph could end up
+    # with nobody marked protagonist at all. Downstream this drives character tier
+    # (who reaches the cover art and the per-chapter context) and tells the name
+    # lexicon which character deserves a memorable name.
+    new_role: str = Field(
+        default="",
+        description="EXACTLY ONE OF: protagonist | antagonist | love_interest | "
+                    "supporting | minor. No other value, no compound labels.",
+    )
     # Gender for the NEW world, chosen to be self-consistent: it must match the new
     # name's gender signal, the character's role/relationships in the new plot, and
     # every pronoun used in arc/background/voice/appearance. male|female|nonbinary.
@@ -669,7 +680,7 @@ class GraphEnrichVerifyOutput(BaseModel):
 # ── graph_verifier ─────────────────────────────────────────────────────────────
 
 class GraphVerifyIssueOut(BaseModel):
-    check_type: Literal["narrative_logic", "reskin", "enrichment"] = "narrative_logic"
+    check_type: Literal["narrative_logic", "reskin", "enrichment", "cast_role"] = "narrative_logic"
     node_key: str | None = None       # which node has the issue (None if general)
     edge_desc: str | None = None      # describe the edge (e.g. "C001→C002 CAUSES Ch.5")
     description: str

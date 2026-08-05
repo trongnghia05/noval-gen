@@ -191,7 +191,10 @@ def format_story_graph(session: Session, story_id: int, chapter_limit: int | Non
             arc = p.get("arc_stage", "")
             wants = p.get("wants", "")
             fears = p.get("fears", "")
-            role = p.get("role", "")
+            # Spell out a missing role instead of omitting it: an empty string used to
+            # be filtered away, leaving the graph verifier with nothing to notice and a
+            # role-less protagonist looking exactly like a correctly-tagged one.
+            role = p.get("role") or "role: MISSING"
             detail = " | ".join(filter(None, [role, f"wants: {wants}" if wants else "", f"fears: {fears}" if fears else "", f"arc: {arc}" if arc else ""]))
             ch = f" [Ch.{n.chapter_introduced}]" if n.chapter_introduced else ""
             lines.append(f"  {n.node_key}{ch} {n.label}: {detail}")

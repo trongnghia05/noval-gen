@@ -40,7 +40,22 @@ For each character, produce:
 
 ## Rules
 
-- Preserve the CHARACTER ROLE (protagonist/antagonist/supporting) and the emotional arc DIRECTION (e.g. betrayed→empowered, deceiver→exposed) — only change the surface expression to fit the new world
+- **ASSIGN `new_role` TO EVERY CHARACTER — the cast has no roles until you set them.**
+  You are the only step that sees the whole cast at once, so nothing downstream can
+  work out who the leads are if you leave this blank. The `role:` shown in the input
+  comes from the source extraction and is often wrong or missing entirely — treat it
+  as a hint, never as the answer, and decide from the WORLD DESIGN's protagonist and
+  antagonist archetypes plus each character's own arc and relationships.
+  - Use **exactly one** of `protagonist`, `antagonist`, `love_interest`,
+    `supporting`, `minor`. Not `male_lead`, not `minor_antagonist`, not a blank.
+  - **Exactly one `protagonist`** — the character whose want drives the plot and
+    through whose eyes most of the story is told.
+  - Give at least one `antagonist` (the opposing force) and, in a romance, exactly
+    one `love_interest`. If the same person is both the obstacle and the romance,
+    mark them `love_interest` — the story is theirs as much as the lead's.
+  - `supporting` is for characters who recur and affect the plot; `minor` for the
+    rest. Do not mark half the cast `supporting`.
+- Preserve the emotional arc DIRECTION (e.g. betrayed→empowered, deceiver→exposed) — only change the surface expression to fit the new world
 - **Make voices MAXIMALLY DISTINCT across the cast.** No two characters should sound alike — deliberately vary register, rhythm, and tic so a reader can tell who is speaking with the dialogue tag removed. A cast where everyone speaks the same elevated tone is a FAILURE.
 - **VIVID, NOT BLAND ARCHETYPES.** Distinct-on-paper is not enough. Each character must be *memorable and alive* — avoid the flat defaults (the stern scholar, the cold enforcer, the wise mentor) unless you give them a surprising twist (a cold enforcer with dry gallows humor; a scholar who curses like a sailor). If the whole cast reads "serious and grim," you have failed even if their registers technically differ. At least the protagonist(s) must carry real flavor — wit, warmth, edge — something that makes a reader *like spending time in their head*.
 - **Match the SOURCE'S tonal energy** (from source_spirit if provided): if the source is light/funny/snarky, the new cast must carry that liveliness (expressed in this world's idiom) — do NOT flatten a lively source into grim seriousness. If the source is genuinely dark, lean dark. The world's flavor changes; the source's *energy level* should survive.
@@ -58,6 +73,7 @@ For each character, produce:
   "characters": [
     {
       "node_key": "C001",
+      "new_role": "protagonist | antagonist | love_interest | supporting | minor — exactly one, no other wording",
       "new_gender": "male | female | nonbinary — consistent with the new name, plot role, and all pronouns below",
       "new_arc_stage": "...",
       "new_wants": "...",

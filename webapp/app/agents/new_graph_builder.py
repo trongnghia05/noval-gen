@@ -49,6 +49,44 @@ from ..schemas import (
 
 logger = logging.getLogger(__name__)
 
+# The cast roles the new graph is allowed to use. Anything else is rejected on the way
+# in, so downstream code can rely on the value rather than pattern-matching prose.
+_VALID_ROLES = {"protagonist", "antagonist", "love_interest", "supporting", "minor"}
+
+_ROLE_TIERS = {
+    "protagonist":   "core",
+    "love_interest": "core",
+    "antagonist":    "important",
+    "supporting":    "important",
+    "minor":         "secondary",
+}
+
+
+def _tier_for_role(role: str) -> str:
+    """Character tier from cast role, tolerant of a role that isn't in _VALID_ROLES.
+
+    Exact matching used to be the rule, and every value outside a hard-coded tuple
+    fell through to the bottom tier in silence — so `male_lead` and `minor_antagonist`
+    both landed as background characters, as did anyone the extraction gave no role at
+    all. Tier drives who reaches the cover art and the per-chapter context, so getting
+    this wrong quietly demotes the leads. Substring matching keeps such variants near
+    the right tier; order matters, since `minor_antagonist` must read as minor.
+    """
+    r = (role or "").strip().lower()
+    if r in _ROLE_TIERS:
+        return _ROLE_TIERS[r]
+    if not r:
+        return "secondary"
+    if "minor" in r:
+        return "secondary"
+    if "protagonist" in r or "lead" in r or "heroine" in r or "hero" in r:
+        return "core"
+    if "love" in r or "romantic" in r:
+        return "core"
+    if "antagonist" in r or "villain" in r or "rival" in r or "supporting" in r:
+        return "important"
+    return "secondary"
+
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -74,11 +112,7 @@ def _rebuild_characters(session: Session, story: Story) -> None:
             continue
         seen_names.add(name_key)
         p = n.properties or {}
-        role = p.get("role", "minor")
-        tier = (
-            "core" if role == "protagonist"
-            else ("important" if role in ("antagonist", "supporting") else "secondary")
-        )
+        tier = _tier_for_role(p.get("role", ""))
         profile_md = p.get("profile_md") or (
             f"**Role**: {role}\n"
             f"**Gender**: {p.get('gender', '')}\n"
@@ -788,9 +822,23 @@ def _enrich_characters(
         if surf.new_appearance:     props["appearance"]     = surf.new_appearance
         if surf.new_gender and surf.new_gender.strip().lower() in ("male", "female", "nonbinary"):
             props["gender"] = surf.new_gender.strip().lower()
+        if surf.new_role and surf.new_role.strip().lower() in _VALID_ROLES:
+            props["role"] = surf.new_role.strip().lower()
         node.properties = props
         applied += 1
     session.flush()
+
+    # The source graph is not a reliable source of roles — extraction drops the key
+    # often enough that a protagonist can arrive with no role at all — so the new
+    # graph must stand on its own here. Log rather than raise: a bad cast shape is
+    # worth seeing in the logs, but not worth killing a run over.
+    roles = [(n.properties or {}).get("role", "") for n in nodes]
+    leads = roles.count("protagonist")
+    if leads != 1:
+        logger.warning("[%s] Phase 2a: %d protagonists among %d characters (want exactly 1) — "
+                       "roles=%s", story.slug, leads, len(nodes), sorted(set(roles)))
+    if not any(r in ("antagonist", "love_interest") for r in roles):
+        logger.warning("[%s] Phase 2a: no antagonist or love_interest in the cast", story.slug)
     logger.info("[%s] Phase 2a: enriched %d characters%s", story.slug, applied,
                 f" (targeted {len(only_keys)})" if only_keys else "")
 
