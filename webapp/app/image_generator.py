@@ -250,8 +250,8 @@ _TYPOGRAPHY = [
     "curved ribbon banner",
     "soft romantic serif, the first letter oversized and looping, the rest tucked "
     "into its curve",
-    "bold condensed caps for the punchy words, delicate handwritten script for the "
-    "connecting words, mixed on the same line",
+    "the title split across two styles — the strongest word in bold condensed caps, "
+    "the remaining words in delicate handwritten script, each word appearing once",
     "wave-set lettering: the words rise and fall along a gentle S-curve, each line "
     "offset from the last",
 ]
