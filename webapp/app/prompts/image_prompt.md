@@ -63,8 +63,17 @@ world, palette family, the same faces, and the same story dynamic.
 
 ## Rules — IMPORTANT
 - **PHOTOREALISTIC LIVE-ACTION, real actors.** True skin texture WITH VISIBLE PORES,
-  fine lines and natural blemishes, real hair with stray strands, catchlights in the
-  eyes, natural cinematic light. Looks like a real photograph of real people.
+  real hair with stray strands, catchlights in the eyes, natural cinematic light.
+  Looks like a real photograph of real people.
+- **RENDER EACH CHARACTER AT THE AGE GIVEN — the young leads especially.** State the
+  age in the prompt for every person you describe. Left alone the model ages faces
+  up by five to ten years, so a lead written as twenty-four arrives looking
+  thirty-five; push the other way. A character in their late teens or twenties has
+  **smooth, firm, luminous skin, a full youthful face, bright clear eyes, and NO
+  forehead lines, NO creases beside the eyes or mouth, NO hollowed cheeks or jowls**.
+  Pores and real texture stay — that is what keeps it photographic — but visible
+  ageing does not. Save lines, grey and weathering for the characters actually
+  written as middle-aged or older, where they belong and help tell them apart.
 - **NOT glossy or over-polished.** Avoid the plastic/airbrushed/CGI-render look:
   no waxy smooth skin, no beauty-retouched perfection, no shiny artificial sheen.
   Aim for CANDID, grounded, slightly imperfect realism — real film photography with
@@ -180,16 +189,34 @@ world, palette family, the same faces, and the same story dynamic.
   never just the central couple. Arrange them by the ART DIRECTION composition
   (layered, montage, grouped — not necessarily a row of faces), but the several main
   characters must all be present and recognisable.
+  **The character listed as `protagonist` is the largest and closest figure on the
+  cover, front and centre**, with the love interest beside her. Everyone else sits
+  further back and smaller. Name her explicitly as the foreground subject in the
+  prompt — left unsaid, a striking supporting character takes the front and the book
+  ends up advertising the wrong person.
 - **thumb1** — a SINGLE-PERSON portrait of the protagonist ALONE (at most one faint
   secondary figure softly behind). **NOT an ensemble** — this must look clearly
   different from the cover (which has many characters). Her face dominates the frame,
   but frame it as a head-and-shoulders or waist-up shot with **clear space above her
   hair** — not a crop that slices the top of her head off. State the headroom in the
   prompt.
-- **thumb2** — the central pair / key relationship, staged to embody the STORY
-  DIRECTION dynamic (see that section) — who pursues/controls/is captive to whom.
-  **Do NOT default to two people simply facing each other**, and never reverse the
-  dynamic. Still a portrait, faces/figures clear.
+- **thumb2** — the central pair, and the **hottest image of the three**. This is what
+  sells a romance, so make it charged rather than polite.
+  - Realise the **intimacy staging named in ART DIRECTION**, set in this story's own
+    world. **Do NOT default to two people simply facing each other** — they are in
+    contact: hands on skin, bodies touching, faces close enough that the next second
+    is a kiss.
+  - It must still embody the STORY DIRECTION dynamic — who pursues, controls or is
+    captive to whom — and never reverse it. A possessive lead holds and closes in; a
+    resisting heroine is caught between wanting and refusing, never simply compliant.
+  - Show skin within the run's wardrobe register: bare shoulders, a bare back, a
+    fallen strap, a long slit. Warm low-key intimate light, deep shadow, a sheen on
+    the skin.
+  - **Poster-safe boundary**: suggestive and sensual, held one breath before the
+    kiss. Both fully clothed — no nudity, no underwear, no exposed breasts, nothing
+    explicit. Past that line the image comes back safety-filtered, which is a lost
+    image rather than a hotter one.
+  - Faces and figures stay clear and legible.
 
 ## Output — JSON schema: ImagePromptSetOut
 Each value is one dense paragraph following the FORMULA. The skeleton below marks
@@ -198,9 +225,9 @@ DIRECTION.** Do not copy any composition, focal length or palette wording from t
 skeleton; those slots exist precisely so each run differs.
 ```json
 {
-  "cover": "photorealistic cinematic <genre> movie poster key art. <characters, each described concretely, expressions, heads fully in frame, faces legible>. <WHAT EACH LEAD IS WEARING — specific garments realising the ART DIRECTION wardrobe register; the female lead's neckline/shoulders/shape stated explicitly>. <THE COMPOSITION FROM ART DIRECTION, realised concretely — who sits where, what dominates>. <in-world backdrop>. <palette + lighting from ART DIRECTION, in this story's concrete colours; never muddy>. Shot on a full-frame camera, <FOCAL LENGTH FROM ART DIRECTION> at <fitting aperture>, sharp focus on faces, subtle film grain, 8k. The COMPLETE title \"<TITLE>\" in the ART DIRECTION title treatment, rendered left-to-right and easy to read (never vertical), large and fully legible, every letter present and inside the safety margin stated at the end of this request — no letter touching or running past any edge, no word clipped, not covering any face; only the title text. photorealistic live-action, real actors, not 3D render, not CGI, not cartoon, not anime, not illustration, not painting, not glossy, not airbrushed, not plastic skin, no high neckline, no turtleneck, no mock neck, no buttoned-up collar, no shapeless or covered-up clothing, no cropped head, no top of head cut off, no forehead touching the top edge, no extra text, no watermark, no logo",
-  "thumb1": "photorealistic cinematic <genre> poster of <protagonist, described identically to the cover, face legible>. <HER OUTFIT — a DIFFERENT garment from the cover but the same register; this is a close portrait so the neckline, shoulders and jewellery carry it: name them explicitly and keep the cut flattering — never a high, covered or shapeless neckline>. <a composition and subject scale DIFFERENT from the cover's>. <in-world backdrop>. <same palette family, lighting from a different angle>. Shot on <a focal length DIFFERENT from the cover's> at <fitting aperture>, sharp focus on the face, film grain, 8k. Title \"<TITLE>\" in the ART DIRECTION title treatment, complete and every letter inside the safety margin stated at the end of this request — nothing clipped at an edge. photorealistic live-action, real actor, not 3D render, not CGI, not cartoon, not anime, not illustration, not painting, not glossy, not airbrushed, not plastic skin, no high neckline, no turtleneck, no mock neck, no buttoned-up collar, no shapeless or covered-up clothing, no cropped head, no top of head cut off, no forehead touching the top edge, no extra text, no watermark, no logo",
-  "thumb2": "photorealistic cinematic <genre> poster of <the central pair, described identically to the cover, staged to embody the STORY DIRECTION dynamic — who pursues/controls/is captive to whom; not simply facing each other, never reversed>. <what BOTH are wearing — a third outfit, distinct from the cover's and thumb1's, same register>. <a composition DIFFERENT from both the cover and thumb1>. <in-world backdrop>. <same palette family, its own lighting angle>. Shot on <a third focal length> at <fitting aperture>, sharp focus on faces, film grain, 8k. Title \"<TITLE>\" in the ART DIRECTION title treatment, complete and every letter inside the safety margin stated at the end of this request — nothing clipped at an edge. photorealistic live-action, real actors, not 3D render, not CGI, not cartoon, not anime, not illustration, not painting, not glossy, not airbrushed, not plastic skin, no high neckline, no turtleneck, no mock neck, no buttoned-up collar, no shapeless or covered-up clothing, no cropped head, no top of head cut off, no forehead touching the top edge, no extra text, no watermark, no logo"
+  "cover": "photorealistic cinematic <genre> movie poster key art. <characters, each described concretely, expressions, heads fully in frame, faces legible>. <WHAT EACH LEAD IS WEARING — specific garments realising the ART DIRECTION wardrobe register; the female lead's neckline/shoulders/shape stated explicitly>. <THE COMPOSITION FROM ART DIRECTION, realised concretely — who sits where, what dominates>. <in-world backdrop>. <palette + lighting from ART DIRECTION, in this story's concrete colours; never muddy>. Shot on a full-frame camera, <FOCAL LENGTH FROM ART DIRECTION> at <fitting aperture>, sharp focus on faces, subtle film grain, 8k. The COMPLETE title \"<TITLE>\" in the ART DIRECTION title treatment, rendered left-to-right and easy to read (never vertical), large and fully legible, every letter present and inside the safety margin stated at the end of this request — no letter touching or running past any edge, no word clipped, not covering any face; only the title text. photorealistic live-action, real actors, not 3D render, not CGI, not cartoon, not anime, not illustration, not painting, not glossy, not airbrushed, not plastic skin, no high neckline, no turtleneck, no mock neck, no buttoned-up collar, no shapeless or covered-up clothing, no cropped head, no top of head cut off, no forehead touching the top edge, the young leads not aged up, no wrinkles or forehead lines or crow's feet or nasolabial folds on the young leads, no middle-aged or matronly look on the female lead, no extra text, no watermark, no logo",
+  "thumb1": "photorealistic cinematic <genre> poster of <protagonist, described identically to the cover, face legible>. <HER OUTFIT — a DIFFERENT garment from the cover but the same register; this is a close portrait so the neckline, shoulders and jewellery carry it: name them explicitly and keep the cut flattering — never a high, covered or shapeless neckline>. <a composition and subject scale DIFFERENT from the cover's>. <in-world backdrop>. <same palette family, lighting from a different angle>. Shot on <a focal length DIFFERENT from the cover's> at <fitting aperture>, sharp focus on the face, film grain, 8k. Title \"<TITLE>\" in the ART DIRECTION title treatment, complete and every letter inside the safety margin stated at the end of this request — nothing clipped at an edge. photorealistic live-action, real actor, not 3D render, not CGI, not cartoon, not anime, not illustration, not painting, not glossy, not airbrushed, not plastic skin, no high neckline, no turtleneck, no mock neck, no buttoned-up collar, no shapeless or covered-up clothing, no cropped head, no top of head cut off, no forehead touching the top edge, the young leads not aged up, no wrinkles or forehead lines or crow's feet or nasolabial folds on the young leads, no middle-aged or matronly look on the female lead, no extra text, no watermark, no logo",
+  "thumb2": "photorealistic cinematic <genre> poster of <the central pair, described identically to the cover, in the ART DIRECTION intimacy staging — bodies in contact, hands on skin, faces a breath apart — while still embodying the STORY DIRECTION dynamic of who pursues/controls/is captive to whom; never reversed, never simply facing each other>. <what BOTH are wearing — a third outfit, distinct from the cover's and thumb1's, same register>. <a composition DIFFERENT from both the cover and thumb1>. <in-world backdrop>. <same palette family, its own lighting angle>. Shot on <a third focal length> at <fitting aperture>, sharp focus on faces, film grain, 8k. Title \"<TITLE>\" in the ART DIRECTION title treatment, complete and every letter inside the safety margin stated at the end of this request — nothing clipped at an edge. photorealistic live-action, real actors, not 3D render, not CGI, not cartoon, not anime, not illustration, not painting, not glossy, not airbrushed, not plastic skin, no high neckline, no turtleneck, no mock neck, no buttoned-up collar, no shapeless or covered-up clothing, no cropped head, no top of head cut off, no forehead touching the top edge, the young leads not aged up, no wrinkles or forehead lines or crow's feet or nasolabial folds on the young leads, no middle-aged or matronly look on the female lead, no extra text, no watermark, no logo"
 }
 ```
 Return ONLY the JSON object — no markdown fences, no preamble.

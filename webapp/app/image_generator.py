@@ -257,6 +257,29 @@ _TYPOGRAPHY = [
 ]
 
 
+# Staging for the couple shot, drawn per run. A single fixed instruction would make
+# every book in the catalogue the same embrace; these are ten different ways for two
+# people to be a breath apart. Heat here comes from contact, weight and proximity —
+# never from removing clothes, which only returns safety-filtered images.
+_INTIMACY = [
+    "his hand at her jaw or throat, tilting her face up, their mouths a breath apart",
+    "taken from behind — his chest against her back, his mouth at her ear, both his "
+    "hands spread across her waist while she leans into him",
+    "she is backed against a wall or door, his forearm braced above her head, his body "
+    "closing the last inch",
+    "her fists knotted in his shirt, dragging him down to her; his hands framing her face",
+    "she is sitting on a desk or counter, he stands between her knees, her legs "
+    "bracketing him",
+    "mid-undress: his jacket sliding off her bare shoulders, one strap already fallen",
+    "dancing far too close — one of his hands splayed on her bare back, foreheads "
+    "touching, eyes shut",
+    "she was walking away and he has caught her wrist and pulled her back into him",
+    "both caught in rain, clothes soaked and clinging, gripping each other like the "
+    "argument just ended",
+    "she is draped back across his lap or a couch arm, looking up at him as he leans over",
+]
+
+
 def _art_direction(seed: int | None = None) -> str:
     """One randomly-drawn composition / lens / lighting / palette recipe. These are
     VISUAL-style knobs only (dynamic-neutral) — the pair's staging is decided by the
@@ -297,6 +320,8 @@ def _art_direction(seed: int | None = None) -> str:
         f"world and era, and vary the three images within it\n"
         f"- Title treatment: {rnd.choice(_TYPOGRAPHY)} — coloured from the signature "
         f"hue, same treatment across all three images\n"
+        f"- Intimacy staging (thumb2 only): {rnd.choice(_INTIMACY)} — stage the couple "
+        f"shot this way, in this story's world\n"
     )
 
 
