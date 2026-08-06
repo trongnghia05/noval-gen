@@ -67,13 +67,21 @@ For each character, produce:
     (best friends, classmates, teammates, siblings close in age) are within a couple
     of years of each other; a parent is 22-32 years older than their child; an
     employer outranks a junior employee in age as well as rank.
-  - **The female lead of a contemporary romance is in her twenties** — roughly 22 to
-    28 — unless the plot states otherwise (a divorce, a teenage child, a decade-long
-    career). Do NOT age her up merely to narrow the gap to an older love interest;
-    that gap is usually the point of the book.
+  - **The female lead is 18 to 20** — young adult, at the very start of her adult
+    life. Do NOT age her up merely to narrow the gap to an older love interest; that
+    gap is usually the point of the book.
+    - Give her a **situation that fits that age**: a student, an intern, a trainee, an
+      apprentice, a first job, someone newly arrived. If the world design hands her a
+      role that takes years to reach — a senior partner, a head chef, an established
+      architect — describe her as the junior version of it (assistant, apprentice,
+      first-year) so the age and the job agree.
+    - Only go older when the plot itself demands it and would break otherwise: she is
+      divorced, has a school-age child, or the story turns on a career she has
+      already spent years building. State that reason in her `background`.
   - The love interest is late twenties to forties, older than her in an
     age-gap/boss/mafia premise, but keep him within a generation of her unless the
-    plot makes him a parent of someone her age.
+    plot makes him a parent of someone her age. With a lead at the young end of the
+    band, pick the young end of his range too, so the pair still reads as a couple.
   - **Before you return, read every age you assigned side by side** and check it
     against the relationships. A heroine older than the best friend she grew up with,
     or a "young" character older than their mentor, is a failure of this rule.
