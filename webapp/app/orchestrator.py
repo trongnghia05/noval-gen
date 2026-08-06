@@ -416,6 +416,9 @@ def run_write_chapter_step(session: Session, story: Story) -> dict:
     }
 
 
+_CAST_TIER_ORDER = {"core": 0, "important": 1, "secondary": 2, "minor": 3}
+
+
 def _length_type(word_count: int) -> str:
     """Standard length category from word count."""
     if word_count < 7500:
@@ -427,17 +430,43 @@ def _length_type(word_count: int) -> str:
     return "Novel"
 
 
-def _generate_novel_metadata(story: Story) -> NovelMetadataOut | None:
-    """LLM front-matter (author / tags / logline / blurb) for the export header.
+def _main_cast(session: Session, story_id: int) -> list[tuple[str, str]]:
+    """(name, role) for the characters worth listing, most important first.
+
+    `minor` is dropped on purpose: a finished story carries 17-24 characters and
+    around half are walk-ons with a single edge, so listing everyone would bury the
+    four or five people the book is actually about.
+    """
+    rows = (
+        session.query(Character)
+        .filter_by(story_id=story_id)
+        .all()
+    )
+    out = []
+    for c in sorted(rows, key=lambda c: _CAST_TIER_ORDER.get(c.tier or "minor", 9)):
+        role = ""
+        m = re.search(r"\*\*Role\*\*:\s*(.+)", c.profile_md or "")
+        if m:
+            role = m.group(1).strip()
+        if role and role != "minor":
+            out.append((c.name, role))
+    return out
+
+
+def _generate_novel_metadata(story: Story, cast: list[tuple[str, str]] | None = None) -> NovelMetadataOut | None:
+    """LLM front-matter (author / tags / logline / blurb / cast blurbs) for the export.
 
     Best-effort: on any failure the export still proceeds without the block."""
     try:
         system = load_prompt("novel_metadata")
+        cast_block = "\n".join(f"- {name} | {role}" for name, role in (cast or [])) or "(none)"
         user_content = (
             f"language: {story.language}\n"
             f"title: {story.title}\n"
             f"genre: {story.genre or '(derive from the story)'}\n"
             f"word_count: {story.current_words or 0}\n\n"
+            f"## cast (write one `characters` entry for each, names and roles copied exactly)\n"
+            f"{cast_block}\n\n"
             f"## story-bible\n{story.story_bible or ''}\n\n"
             f"## plot-outline\n{story.plot_outline or ''}\n"
         )
@@ -474,10 +503,10 @@ def _frontmatter_labels(language: str) -> dict:
     if _is_vietnamese(language):
         return {"author": "Tác giả", "genre": "Thể loại", "length": "Độ dài",
                 "plot": "Cốt truyện", "summary": "Tóm tắt", "toc": "Mục lục",
-                "chapters": "chương", "words": "từ"}
+                "chapters": "chương", "words": "từ", "characters": "Nhân vật"}
     return {"author": "Author", "genre": "Genre", "length": "Length",
             "plot": "Plot", "summary": "Summary", "toc": "Table of Contents",
-            "chapters": "chapters", "words": "words"}
+            "chapters": "chapters", "words": "words", "characters": "Characters"}
 
 
 def _clean_chapter_title(title: str) -> str:
@@ -516,7 +545,7 @@ def _compile_manuscript_to_file(session: Session, story: Story) -> Path:
     # leaks Vietnamese label words.
     lbl = _frontmatter_labels(story.language)
     words = story.current_words or 0
-    meta_info = _generate_novel_metadata(story)
+    meta_info = _generate_novel_metadata(story, _main_cast(session, story.id))
     header_lines = [f"# {story.title}", ""]
     summ_lines = [story.title]
     if meta_info:
@@ -551,8 +580,13 @@ def _compile_manuscript_to_file(session: Session, story: Story) -> Path:
         meta_parts += [f"{len(chapters)} {lbl['chapters']}", f"{words:,} {lbl['words']}"]
         header_lines.append(f"*{' · '.join(meta_parts)}*")
         summ_lines += ["", " · ".join(meta_parts)]
-    # summarize.txt also carries the table of contents.
+    # summarize.txt also carries the table of contents, then the cast last — it is a
+    # reference block rather than part of the pitch, so it sits below everything else.
     summ_lines += ["", "", lbl['toc'], "", toc]
+    if meta_info and meta_info.characters:
+        summ_lines += ["", "", lbl['characters'], ""]
+        for c in meta_info.characters:
+            summ_lines += [f"{c.name} — {c.role}", f"  {c.blurb}", ""]
     header = "\n".join(header_lines)
     manuscript = f"{header}\n\n---\n\n## {lbl['toc']}\n\n{toc}\n\n---\n\n{chapters_text}\n"
     summarize_text = "\n".join(summ_lines) + "\n"

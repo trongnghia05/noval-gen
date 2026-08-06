@@ -168,11 +168,19 @@ class CharacterDeveloperOutput(BaseModel):
 
 # ── novel metadata (front matter for the exported file) ─────────────────────────
 
+class CharacterBlurbOut(BaseModel):
+    """One cast entry for the end of summarize.txt."""
+    name: str              # copied exactly from the cast list given in the prompt
+    role: str              # protagonist | love_interest | antagonist | supporting
+    blurb: str             # 2-3 sentences: what this character DOES in the plot
+
+
 class NovelMetadataOut(BaseModel):
     author: str            # a fitting pen name (invented), in the story's language/culture
     tags: list[str] = []   # 3-6 genre/theme tags, e.g. ["Dark Fantasy", "Gothic Romance"]
     logline: str           # cốt truyện — 1-2 sentence premise/hook
     summary: str           # back-cover blurb, 120-180 words, no ending spoilers
+    characters: list[CharacterBlurbOut] = []   # main cast, minor walk-ons excluded
 
 
 class ImagePromptSetOut(BaseModel):
