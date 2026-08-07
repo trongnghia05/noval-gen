@@ -58,6 +58,7 @@ AGENT_MODELS = {
     "graph_enrich_verifier":    os.getenv("MODEL_GRAPH_ENRICH_VERIFIER",    _DEFAULT_MODEL),
     "novel_metadata":         os.getenv("MODEL_NOVEL_METADATA",          _DEFAULT_MODEL),
     "image_prompt":           os.getenv("MODEL_IMAGE_PROMPT",            _DEFAULT_MODEL),
+    "image_prompt_verifier":  os.getenv("MODEL_IMAGE_PROMPT_VERIFIER",   _DEFAULT_MODEL),
 }
 
 # Text-to-image model for cover / thumbnail generation. Uses a Gemini image model

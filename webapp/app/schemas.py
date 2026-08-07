@@ -183,6 +183,20 @@ class NovelMetadataOut(BaseModel):
     characters: list[CharacterBlurbOut] = []   # main cast, minor walk-ons excluded
 
 
+class ImagePromptIssueOut(BaseModel):
+    """One fault found in a drafted poster prompt, phrased so it can be fixed."""
+    image: str          # cover | thumb1 | thumb2 | all
+    check: str          # era | protagonist | age | dynamic | title | wardrobe |
+                        # variety | colour | cast — which rule was broken
+    description: str    # what the prompt currently says that is wrong — quote it
+    fix: str            # the concrete correction to make
+
+
+class ImagePromptVerifyOut(BaseModel):
+    issues: list[ImagePromptIssueOut] = []
+    verdict_note: str = ""
+
+
 class ImagePromptSetOut(BaseModel):
     """Three text-to-image prompts (English) for the poster art. Each describes a
     cinematic, photorealistic drama-poster composition in the STORY'S world, with

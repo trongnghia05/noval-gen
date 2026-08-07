@@ -224,8 +224,10 @@ world, palette family, the same faces, and the same story dynamic.
     captive to whom — and never reverse it. A possessive lead holds and closes in; a
     resisting heroine is caught between wanting and refusing, never simply compliant.
   - Show skin within the run's wardrobe register: bare shoulders, a bare back, a
-    fallen strap, a long slit. Warm low-key intimate light, deep shadow, a sheen on
-    the skin.
+    fallen strap, a long slit. Warm intimate light with a sheen on the skin — but it
+    still obeys the MANDATORY exposure rule: **bright and generously exposed**, heat
+    carried by the closeness and the glow, never by darkness. No dim room, no deep
+    shadow, no low-key murk.
   - **Poster-safe boundary**: suggestive and sensual, held one breath before the
     kiss. Both fully clothed — no nudity, no underwear, no exposed breasts, nothing
     explicit. Past that line the image comes back safety-filtered, which is a lost

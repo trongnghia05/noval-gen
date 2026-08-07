@@ -20,7 +20,7 @@ from .config import AGENT_MODELS, IMAGE_MODEL, PROVIDER
 from .db.models import Character, Story
 from .llm_json import generate_structured
 from .prompts.loader import load_prompt
-from .schemas import ImagePromptSetOut, NovelMetadataOut
+from .schemas import ImagePromptSetOut, ImagePromptVerifyOut, NovelMetadataOut
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +60,11 @@ _SPECS = [
 ]
 
 _TIER_ORDER = {"core": 0, "important": 1, "secondary": 2, "minor": 3}
+
+# Redraft attempts before accepting whatever the prompt writer last produced. Five is
+# generous — the loop also stops early the moment the same fault set repeats, which is
+# the real signal that further attempts are wasted.
+_MAX_PROMPT_VERIFY = 5
 
 _ASPECT_RATIOS = {"16:9": 16 / 9, "4:3": 4 / 3, "1:1": 1.0, "3:4": 3 / 4, "9:16": 9 / 16}
 
@@ -336,6 +341,45 @@ def _art_direction(seed: int | None = None) -> str:
     )
 
 
+def _world_block(story: Story) -> str:
+    """Era, setting and premise for the prompt designer.
+
+    This used to be `story_bible[:3000]`, which was the wrong half of the wrong file:
+    the bible is a plot summary whose opening is a run of relationship statements
+    ("A is married to B, C is the cousin of D"), so the window closed before any
+    physical setting appeared — on one story it contained zero words describing a
+    place. Worse, those relationships are already supplied above under STORY
+    DIRECTION, so the space was being spent twice on the same facts.
+
+    The world bible is the file that actually describes the world, and the era lives
+    on the bible's first line, so both are needed — taking either alone loses the
+    other. Neither is truncated: this text is read by the prompt designer, which
+    distils it into a short paragraph, and never reaches the image model itself.
+    The bible contributes only its prose; everything from its first `## ` heading on
+    is the per-chapter plot map and the relationship table, neither of which tells a
+    poster anything.
+    """
+    bible = story.story_bible or ""
+    era = ""
+    m = re.search(r"^ERA:[ \t]*(.+)$", bible, re.MULTILINE)
+    if m:
+        era = m.group(1).strip()
+
+    cut = bible.find("\n## ")
+    premise = (bible[:cut] if cut > 0 else bible).strip()
+    if m:  # the ERA line is reported separately; don't repeat it in the premise
+        premise = premise.replace(m.group(0), "", 1).strip()
+
+    parts = []
+    if era:
+        parts.append(f"## ERA — every image must belong to this period\n{era}")
+    if story.world_bible:
+        parts.append(f"## WORLD (setting, places, atmosphere)\n{story.world_bible.strip()}")
+    if premise:
+        parts.append(f"## PREMISE & TONE\n{premise}")
+    return "\n\n".join(parts) + "\n\n" if parts else ""
+
+
 def _build_prompts(session: Session, story: Story, meta: NovelMetadataOut | None) -> ImagePromptSetOut:
     tags = ", ".join(meta.tags) if (meta and meta.tags) else (story.genre or "")
     system = load_prompt("image_prompt")
@@ -343,6 +387,7 @@ def _build_prompts(session: Session, story: Story, meta: NovelMetadataOut | None
     logger.info("[%s] art direction for this run:\n%s", story.slug, art_direction)
     logline = (meta.logline if meta and meta.logline else "")
     dynamics = _relationship_dynamics(session, story.id)
+    cast = _character_lines(session, story.id)
     user_content = (
         f"title (render EXACTLY this text on each image): {story.title}\n"
         f"tags: {tags}\n\n"
@@ -352,14 +397,105 @@ def _build_prompts(session: Session, story: Story, meta: NovelMetadataOut | None
         f"main relationships:\n{dynamics or '(derive from characters below)'}\n\n"
         f"## ART DIRECTION (visual style for this run — composition/lens/lighting/palette; "
         f"vary the three images from each other around them)\n{art_direction}\n"
-        f"## world (setting / genre / tone)\n{(story.story_bible or story.world_bible or '')[:3000]}\n\n"
-        f"## MAIN CHARACTERS\n{_character_lines(session, story.id)}\n"
+        f"{_world_block(story)}"
+        f"## MAIN CHARACTERS\n{cast}\n"
     )
-    return generate_structured(
-        PROVIDER, system=system, user_content=user_content,
-        model=AGENT_MODELS.get("image_prompt", AGENT_MODELS["quality_reviewer"]),
-        schema=ImagePromptSetOut, max_tokens=2048, thinking=False,
+
+    def draft(feedback: str = "") -> ImagePromptSetOut:
+        return generate_structured(
+            PROVIDER, system=system, user_content=user_content + feedback,
+            model=AGENT_MODELS.get("image_prompt", AGENT_MODELS["quality_reviewer"]),
+            schema=ImagePromptSetOut, max_tokens=2048, thinking=False,
+        )
+
+    prompts = draft()
+    facts = (
+        f"## FACTS\n{_world_block(story)}"
+        f"## POWER DYNAMIC\n{dynamics or '(none recorded)'}\n\n"
+        f"## CAST\n{cast}\n\n"
+        f"{_CASTING_AGE_NOTE}\n"
+        f"## ART DIRECTION DRAWN FOR THIS RUN\n{art_direction}\n"
+        f"## TITLE (exact)\n{story.title}\n"
     )
+    return _verify_prompts(story, prompts, facts, draft)
+
+
+# The cast list carries the character's age *in the novel*; the poster deliberately
+# casts the female lead younger (see image_prompt.md). Without saying so here, the
+# verifier reads the two as a contradiction and demands a "fix" every single round —
+# it fought this for three attempts on a real run before converging.
+_CASTING_AGE_NOTE = (
+    "## CASTING NOTE — this is policy, not an error\n"
+    "The poster casts the FEMALE LEAD as a young woman of 18 to 20 (or the youngest "
+    "the plot allows, if the story makes that impossible). This deliberately overrides "
+    "whatever age the cast list gives her: a prompt saying she is 19 while the cast "
+    "says late twenties is CORRECT. Everyone else is rendered at the age they are "
+    "written as.\n"
+)
+
+
+def _verify_prompts(story: Story, prompts: ImagePromptSetOut, facts: str,
+                    draft) -> ImagePromptSetOut:
+    """Check the drafted prompts against the story's facts, and redraft on faults.
+
+    Verifying text before generating is far cheaper than the alternative: every fault
+    caught here — a modern tuxedo in a period story, a supporting character taking the
+    cover, a title drawn twice — otherwise costs three image generations and is only
+    noticed by eye afterwards.
+
+    The redraft goes back to the same writer with the faults quoted, rather than to a
+    patcher: the graph verifier taught that a targeted correction converges where a
+    blind rebuild oscillates, and naming the fault is what makes this targeted.
+
+    Never fatal. A verifier error, or prompts that will not converge, fall through to
+    whatever the writer last produced — a flawed poster beats no poster.
+    """
+    previous: str | None = None
+    for attempt in range(_MAX_PROMPT_VERIFY):
+        try:
+            report = generate_structured(
+                PROVIDER, system=load_prompt("image_prompt_verifier"),
+                user_content=(f"{facts}\n## DRAFTED PROMPTS\n"
+                              f"cover:\n{prompts.cover}\n\nthumb1:\n{prompts.thumb1}\n\n"
+                              f"thumb2:\n{prompts.thumb2}\n"),
+                model=AGENT_MODELS.get("image_prompt_verifier",
+                                       AGENT_MODELS["quality_reviewer"]),
+                schema=ImagePromptVerifyOut, max_tokens=4096, thinking=False,
+            )
+        except Exception as exc:
+            logger.warning("[%s] image prompt verify failed, using prompts as-is: %s",
+                           story.slug, exc)
+            return prompts
+
+        if not report.issues:
+            logger.info("[%s] image prompts verified clean (attempt %d)",
+                        story.slug, attempt + 1)
+            return prompts
+
+        signature = " | ".join(sorted(f"{i.image}:{i.check}" for i in report.issues))
+        for i in report.issues:
+            logger.info("[%s]   [%s/%s] %s", story.slug, i.image, i.check,
+                        i.description[:160])
+        if signature == previous:
+            logger.warning("[%s] image prompts not converging (%s) — accepting",
+                           story.slug, signature)
+            return prompts
+        previous = signature
+
+        feedback = "\n\n## FIX THESE FAULTS IN YOUR PREVIOUS DRAFT\n" + "\n".join(
+            f"- [{i.image} / {i.check}] {i.description}\n  FIX: {i.fix}"
+            for i in report.issues
+        ) + "\nReturn the corrected JSON for all three images, changing only what is named here."
+        try:
+            prompts = draft(feedback)
+        except Exception as exc:
+            logger.warning("[%s] redraft failed, keeping previous prompts: %s",
+                           story.slug, exc)
+            return prompts
+
+    logger.warning("[%s] image prompts still flagged after %d attempts — accepting",
+                   story.slug, _MAX_PROMPT_VERIFY)
+    return prompts
 
 
 def generate(session: Session, story: Story, out_dir, meta: NovelMetadataOut | None = None) -> list[str]:
