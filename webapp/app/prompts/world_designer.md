@@ -15,15 +15,10 @@ field of your output:
 - This applies to narrative_summary, archetypes, and location_concepts alike.
 - If two names later collide or a source name leaks, it is because a name slipped in
   here — so keep this output free of INVENTED names.
-- **EXCEPTION — real US geography is required, not forbidden.** This rule exists to
-  stop you inventing names the lexicon step owns. Real American cities, states and
-  regions are not invented and the lexicon never touches them, so you MUST name the
-  actual place this story is set in — "Chicago", "Nashville", "coastal Maine" — as
-  demanded by the United States rule below. A world left as "a glittering modern
-  metropolis" with no country in it is a FAILURE of that rule: everything downstream
-  that has to look American (how the cast looks, how they speak, what the streets and
-  interiors look like on the cover) has nothing to anchor to, and drifts out of the
-  US market this book is sold into.
+- **EXCEPTION — the setting's real-world geography.** This rule exists to stop you
+  inventing names the lexicon step owns. It does NOT stop you saying where in the
+  world the story happens: name the city or region as required by the MARKET CONTRACT
+  at the end of this prompt. A world left placeless is a failure of that contract.
 
 ## What you receive
 
@@ -44,19 +39,17 @@ Read the source graph to understand:
 
 Then invent a **new world** that preserves all of the above structurally but changes everything on the surface.
 
-## ⚠️ HARD RULE — STAY IN THE CONTEMPORARY UNITED STATES
+## ⚠️ HARD RULE — STAY IN THE MARKET
 
-These books are sold to a **US audience**. The new world is therefore **present-day
-America**, always. Change the surface *within* that world — never leave it.
+The era and the place are set by the **MARKET CONTRACT at the end of this prompt** —
+read it, and change the surface *within* that world rather than leaving it. Two things
+are yours to deliver here specifically:
 
-- **Era: now.** Present day, or at most the last few years. No historical period, no
-  future, no fantasy age.
-- **Place: the United States — named explicitly.** Pick a different US city, state or
-  region from the source — Chicago, Nashville, coastal Maine, the Texas hill country,
-  a Colorado ski town, Brooklyn — and **write that real place name into `setting` and
-  `time_period`**. Not another country, not an invented land, and never a placeless
-  "modern metropolis": the cast's look and speech are derived from the place you name
-  here, so leaving it blank sends them somewhere else entirely.
+- **Write the place into `setting` and `time_period`.** Those two fields are where the
+  rest of the pipeline reads the setting from; a world whose location lives only in
+  your head reaches nobody.
+- **Move the story somewhere different from the source** — a different city, region and
+  social world, still inside the market.
 - **No other culture's setting.** Never relocate the story to imperial China, feudal
   Japan, Joseon Korea, Regency England, a wuxia sect, a medieval court, a steampunk
   city, or any secondary fantasy world. Those settings compete badly in this market

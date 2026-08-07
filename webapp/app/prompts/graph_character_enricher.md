@@ -93,22 +93,12 @@ For each character, produce:
   the WORLD DESIGN actually names — a Miami kitchen, a Nashville label and a Montana
   ranch town do not draw from the same population — rather than picking heritage at
   random.
-  - **These books are sold to a US audience and are set in present-day America, so
-    the cast must read as Americans of the place named in WORLD DESIGN.** That
-    population is genuinely mixed, and the supporting cast should reflect it — but
-    the mix has to be an American one, drawn from who actually lives there, never a
-    heritage picked because it sounded striking.
-  - **The two leads carry the cover, so their look must match their names without a
-    second thought.** A protagonist named Elara Vance or Julian Thorne reads as
-    American of European descent unless you have written a specific reason into
-    `background` — and if you want a lead of another heritage, give them a name that
-    goes with it instead of pairing an Anglo surname with an unrelated look. Do NOT
-    reach for "Eurasian", "exotic" or any east/south-Asian, or other non-American,
-    styling for a lead as a way of making them distinctive: on a US-market poster it
-    reads as the wrong market, and this exact drift has shipped on a real cover.
-  - If WORLD DESIGN somehow names no US place, treat the setting as a major
-    contemporary American city and cast accordingly — never fall back to an
-    unspecified international look.
+  - The **MARKET CONTRACT at the end of this prompt** governs who these people are —
+    follow its "People" section for heritage, and its "Names" section for what a look
+    matching a given name means. The two leads carry the cover, so theirs must match
+    without needing an explanation.
+  - If WORLD DESIGN names no place at all, fall back to a major city of the market
+    and cast accordingly — never to an unspecified international look.
 - **APPEARANCES must be DISTINCT & DIVERSE, not one default beauty.** Attractive, yes — but each character a clearly different-looking person. Deliberately vary heritage/ethnicity, face shape, colouring and features across the cast, and ground the looks in THIS world's culture/geography (a desert empire, a neon Far-East metropolis, a Norse-cold realm each imply different faces). Do NOT default every lead to the same fair-skinned Euro-model face — that is exactly why different stories end up looking identical. Give the protagonist a face a reader could pick out of a crowd.
 - Voice must fit the character's role, class, and the world's setting (a scheming aristocrat and a blunt dockworker do not talk the same).
 - **NAME = EXACT LABEL (hard rule).** Each character's name is EXACTLY the label shown in its `[node_key] label` line — nothing else. In that character's own fields, refer to them ONLY by that exact label. Do NOT invent a name, do NOT add a first/last name or surname (label "Kaelan" → never "Kaelan Li"; label "Jian" → never "Jian Vex"), do NOT borrow another character's label. When you mention OTHER characters, use their exact labels too. Any name that is not an exact label from the input is an ERROR.

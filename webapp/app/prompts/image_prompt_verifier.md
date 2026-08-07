@@ -124,20 +124,19 @@ here can be found by asking only: is a hue named, and is it the same one three t
 
 ### 7. `region`
 
-The people on the poster must look like people of the place the story is set in. These
-books are sold to a US audience and are set in present-day America, so the cast reads
-as American — a genuinely mixed population, but an American one.
+The people on the poster must look like people of the place the story is set in, as
+defined by the MARKET CONTRACT at the end of this prompt.
 
 Flag it when a prompt gives a character a look that belongs to another part of the
-world with nothing in the FACTS behind it: an "east Asian", "Eurasian", "exotic" or
-otherwise non-American styling invented at the image stage, or a look that plainly
-contradicts the character's name.
+world with nothing in the FACTS behind it — a styling invented at the image stage that
+does not belong to the market — or a look that plainly contradicts the character's
+name.
 
 Do NOT flag:
-- an appearance the FACTS cast list already states. If the profile says a character is
-  of Afro-Caribbean or Eurasian heritage, the prompt following it is correct — that
-  decision was made when the character was written, and is not the image's to reverse.
-- a mixed supporting cast. Americans are not one look, and flagging that would be both
+- an appearance the FACTS cast list already states. If the profile gives a character a
+  particular heritage, the prompt following it is correct — that decision was made when
+  the character was written, and is not the image's to reverse.
+- a mixed supporting cast. No country is one look, and flagging that would be both
   wrong and unfixable.
 
 ## How to write an issue

@@ -21,8 +21,8 @@ User message contains:
 5. **No phonetic or visual similarity to source labels** — respelling a source name (swapping a vowel, changing `-th` to `-t`, adding or dropping a letter) is forbidden. Make a real creative leap.
 6. **No translations** — invent a genuinely new name, don't translate the source one.
 7. **Characters** (when not already named by the world design per rule 0): invent full names (first + last where culturally appropriate); consider the character's role (protagonist gets a memorable name, antagonist a subtly ominous one). **The new name MUST match the character's `gender` shown in the node list** — a `female` source character gets a clearly-feminine new name, a `male` one a clearly-masculine name (avoid ambiguous/unisex names so downstream pronouns stay consistent). Gender is fixed by the source plot and must NOT change in the reskin.
-8. **Locations** (when not already named): invent place names that evoke the new world's geography and atmosphere
-9. **Factions / objects** (when not already named): invent names that reflect the new world's terminology and culture
+8. **Locations** (when not already named): invent place names that evoke the new world's geography and atmosphere — and that **sound like they belong in the market's own country**, per the "Names" section of the MARKET CONTRACT at the end of this prompt. You are the only step that names places, so nothing downstream can rescue a location that belongs to the wrong part of the world.
+9. **Factions / objects** (when not already named): invent names that reflect the new world's terminology and culture, under the same MARKET CONTRACT rule as locations — a company, a bar, a school or a venue is named the way that country names such things.
 10. **Preserve families / clans.** Look at the SOURCE names: when several source characters share a family name (English puts it last, e.g. `<Given1> <Family>` / `<Given2> <Family>`; other languages such as Vietnamese put it first, e.g. `<Family> <Given1>` / `<Family> <Given2>`), they are ONE family. Give every member of that family the **same NEW surname** and **distinct given names**, so the family bond survives the rename: three source siblings sharing one surname become three new names sharing one new surname. Judge real families by shared surname + role/relationship; characters who merely share a common GIVEN name are not necessarily related, so do not force them onto a shared surname.
 11. **"Unique" means no two characters have an IDENTICAL full name.** Two characters legitimately sharing a surname (rule 10) is REQUIRED, not a collision. Only a fully identical name — the same given name AND the same surname on two different characters — is forbidden.
 12. **The worked example below shows FORMAT ONLY.** Its values are `<placeholders>`
@@ -30,12 +30,9 @@ User message contains:
     expected. Every name in your output must be invented fresh from THIS story's
     world design — a name taken from instructions rather than from the story would
     give every book in the catalogue the same cast.
-13. **Vary the naming register between stories.** American names have wide range —
-    old-money surnames-as-first-names (Sutton, Beckett), plain working-class names
-    (Dana Kowalski, Ray Alvarez), Southern (Wyatt, Maybelle), urban-ethnic (Marisol
-    Ortega, Deshawn Carter), preppy East Coast (Whitney Ellis). Pick the register
-    that fits this story's region and social class, and do not default to the same
-    one every time.
+13. **Vary the naming register between stories.** The MARKET CONTRACT lists the
+    registers available for people's names; pick the one that fits this story's region
+    and social class, and do not default to the same one every time.
 
 ## Output — JSON schema: NameLexiconOutput
 
