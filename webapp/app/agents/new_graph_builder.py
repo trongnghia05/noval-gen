@@ -1729,6 +1729,20 @@ def _rewrite_story_bible(
     )
     prose = response.text.strip()
 
+    # Stamp the era on the very first line. world_design carries `time_period`, but it
+    # was only ever used to WRITE this prose and the prose has no reason to repeat it —
+    # so across eight finished stories not one bible mentioned its own era anywhere.
+    # Everything downstream then had to guess: chapter_writer drifted into "the healer's
+    # parchment" for a pregnancy test in a modern corporate story, and the poster art
+    # dressed a 19th-century cast in modern tuxedos. It goes FIRST because
+    # image_generator only reads the opening 3000 characters.
+    era = (world_design.time_period if world_design else "").strip()
+    if not era:
+        m = re.search(r"^ERA:[ \t]*(.+)$", story.story_bible or "", re.MULTILINE)
+        era = m.group(1).strip() if m else ""
+    if era:
+        prose = f"ERA: {era}\n\n{prose}"
+
     # ── Append required structured sections (planning_verifier checks these) ──
 
     # "Bản đồ cốt truyện gốc (theo chương)": one bullet per event node, ordered

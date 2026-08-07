@@ -17,7 +17,11 @@ User message chứa: `language`, số chương vừa viết (`chapter_number`), 
 - **Mốc truyện & thời gian**: không mâu thuẫn với timeline, địa lý, hoặc thông tin đã tiết lộ trước đó trong 3 chương gần nhất.
 - **Tiến độ plot**: không lặp lại/quên các plot thread đang mở đã ghi nhận.
 - **Lặp chương (QUAN TRỌNG)**: so với nội dung 3 chương gần nhất, chương này có **lặp lại cùng một beat/sự kiện/nhận thức** mà một chương trước đã thực hiện không? (VD chương trước đã "nhân vật chính nhận ra bị thao túng và quyết tâm chữa lành", chương này lại kể đúng điều đó lần nữa mà không tiến thêm). Nếu chương KHÔNG để lại thay đổi trạng thái MỚI so với chương liền trước — chỉ diễn lại cùng cảm xúc/nhận thức — → flag **critical** (mô tả rõ nó trùng chương nào và thiếu tiến triển gì).
-- **World consistency** (dựa trên `world.md`): không có vật thể/công nghệ/thuật ngữ thuộc thế giới khác xuất hiện (anachronism). Ví dụ: truyện fantasy mà xuất hiện "điện thoại", "xe hơi"; hoặc truyện hiện đại mà dùng thuật ngữ ma thuật không được định nghĩa.
+- **World consistency** (dựa trên dòng `ERA:` ở đầu `story-bible.md`, và `world.md`): mọi vật thể, công nghệ, nghề nghiệp, phương tiện, cách liên lạc trong chương phải tồn tại được ở thời đại của truyện. Sai **cả hai chiều** đều phải báo:
+  - Truyện tiền hiện đại mà có "điện thoại", "xe hơi", "máy ảnh", "đồng hồ đeo tay", "bóng đèn".
+  - Truyện **hiện đại** mà có "cuộn giấy da (parchment)", "thầy lang (healer)", "thư niêm phong sáp", "cỗ xe ngựa" — kết quả xét nghiệm ở phòng khám hiện đại là tờ giấy in, không phải "giấy da của thầy lang".
+  - Kiểm cả **ẩn dụ và văn phong**, không chỉ đồ vật.
+  - Hoặc truyện hiện đại dùng thuật ngữ ma thuật không được định nghĩa.
 - **Blueprint compliance** (nếu có blueprint): chương có thực hiện đủ các scene trong blueprint không? Hook ở cuối chương có khớp blueprint không? Nếu thiếu scene quan trọng hoặc hook bị bỏ qua hoàn toàn → flag critical.
 
 ## Đầu ra

@@ -56,6 +56,20 @@ Tính 3 phần theo tỷ lệ trên `words_per_chapter` (W) — KHÔNG dùng s�
 
 ## Tiêu chuẩn viết
 
+- **MỌI CHI TIẾT PHẢI THUỘC ĐÚNG THỜI ĐẠI CỦA TRUYỆN.** Dòng `ERA:` ở đầu
+  `story-bible.md` cho biết thời đại; nếu không có thì suy từ `world.md`. Trước khi
+  viết một đồ vật, công nghệ, nghề nghiệp, phương tiện đi lại hay cách liên lạc, tự
+  hỏi: **thứ này có tồn tại ở thời đại đó không?**
+  - Thế kỷ 10 không có điện thoại, đồng hồ đeo tay, xe hơi, ảnh chụp, súng lục.
+  - Truyện **đương đại** thì ngược lại: không có "cuộn giấy da", "thầy lang", "thư
+    niêm phong sáp", "cỗ xe ngựa" — kết quả xét nghiệm là tờ giấy in ra từ phòng
+    khám, tin nhắn là tin nhắn điện thoại, người chữa bệnh là bác sĩ.
+  - Lỗi này hay xảy ra ở **ẩn dụ và từ trang trọng**, không chỉ ở đồ vật: đừng viết
+    "như một hiệp sĩ tuyên thệ" trong truyện văn phòng, hay "nhấn nút" trong truyện
+    trung cổ.
+  - Nếu cần một vật mà thời đại chưa có, hãy tìm thứ tương đương **cùng thời** thay
+    vì mượn từ thời khác.
+
 ### Điểm nhìn (POV) — BẮT BUỘC theo nguồn (QUAN TRỌNG NHẤT)
 - **REWRITE:** đọc mục **POV** trong "Tinh thần truyện gốc" (source_spirit) và viết ĐÚNG NGÔI KỂ đó. Nếu nguồn ghi **ngôi thứ NHẤT** ('tôi/I') thì chương của bạn PHẢI viết ngôi thứ nhất — **TUYỆT ĐỐI không tự đổi sang ngôi ba**. Chỉ viết ngôi ba khi source_spirit ghi rõ ngôi ba. Đây là lỗi hay gặp nhất: nguồn ngôi-1 lấp lánh bị viết lại thành ngôi-3 đều đều, làm mất hồn truyện.
 - **Nguyên tắc chung (áp cho MỌI chương):** mỗi ĐOẠN chỉ MỘT POV — bạn ở TRONG ĐẦU đúng một nhân vật, chỉ thấy/nghĩ điều họ thấy/nghĩ, **KHÔNG nhảy sang đầu người khác trong cùng đoạn** (không head-hopping).

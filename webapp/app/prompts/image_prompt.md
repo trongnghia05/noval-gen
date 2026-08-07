@@ -65,15 +65,19 @@ world, palette family, the same faces, and the same story dynamic.
 - **PHOTOREALISTIC LIVE-ACTION, real actors.** True skin texture WITH VISIBLE PORES,
   real hair with stray strands, catchlights in the eyes, natural cinematic light.
   Looks like a real photograph of real people.
-- **RENDER EACH CHARACTER AT THE AGE GIVEN — the young leads especially.** State the
-  age in the prompt for every person you describe. Left alone the model ages faces
-  up by five to ten years, so a lead written as twenty-four arrives looking
-  thirty-five; push the other way. A character in their late teens or twenties has
-  **smooth, firm, luminous skin, a full youthful face, bright clear eyes, and NO
-  forehead lines, NO creases beside the eyes or mouth, NO hollowed cheeks or jowls**.
-  Pores and real texture stay — that is what keeps it photographic — but visible
-  ageing does not. Save lines, grey and weathering for the characters actually
-  written as middle-aged or older, where they belong and help tell them apart.
+- **THE FEMALE LEAD IS THE MOST BEAUTIFUL PERSON ON THE POSTER, AND THE YOUNGEST —
+  render her as a young woman of 18 to 20.** Do not build her feature by feature;
+  just make her that. Radiantly pretty, alluring, and unmistakably at the very start
+  of her adult life. Say her age as a number in the prompt, because a range gets
+  averaged upward. Every other character is styled around her — none more striking.
+  - Only go older if the plot makes 18-20 impossible (she is married with a career,
+    a divorcee, a mother of school-age children). Even then, render her at the
+    youngest the story allows.
+  - **Left alone the model ages faces up by five to ten years**, so push the other
+    way: a lead written at twenty must not arrive looking thirty.
+- **Age everyone else at what they are written as.** Lines, grey and weathering
+  belong to the characters actually written middle-aged or older, where they help
+  tell the cast apart — not on the young leads.
 - **NOT glossy or over-polished.** Avoid the plastic/airbrushed/CGI-render look:
   no waxy smooth skin, no beauty-retouched perfection, no shiny artificial sheen.
   Aim for CANDID, grounded, slightly imperfect realism — real film photography with
