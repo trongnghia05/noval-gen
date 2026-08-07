@@ -9,12 +9,21 @@ field of your output:
 - **Never give a character a personal name** — write "the protagonist", "the exiled
   heir", "the rival matriarch", "the younger half-brother". Any capitalised personal
   name at all is a violation, whatever its language or culture.
-- **Never name a place, family, clan, faction, or object** — write "the riverside
-  gambling house", "the ruling merchant clan", "the mountain fortress", never a
-  branded proper name for any of them.
+- **Never invent a name for a family, clan, faction, company, venue or object** —
+  write "the riverside gambling house", "the ruling merchant clan", "the mountain
+  fortress", never a branded proper name for any of them.
 - This applies to narrative_summary, archetypes, and location_concepts alike.
 - If two names later collide or a source name leaks, it is because a name slipped in
-  here — so keep this output 100% name-free.
+  here — so keep this output free of INVENTED names.
+- **EXCEPTION — real US geography is required, not forbidden.** This rule exists to
+  stop you inventing names the lexicon step owns. Real American cities, states and
+  regions are not invented and the lexicon never touches them, so you MUST name the
+  actual place this story is set in — "Chicago", "Nashville", "coastal Maine" — as
+  demanded by the United States rule below. A world left as "a glittering modern
+  metropolis" with no country in it is a FAILURE of that rule: everything downstream
+  that has to look American (how the cast looks, how they speak, what the streets and
+  interiors look like on the cover) has nothing to anchor to, and drifts out of the
+  US market this book is sold into.
 
 ## What you receive
 
@@ -42,9 +51,12 @@ America**, always. Change the surface *within* that world — never leave it.
 
 - **Era: now.** Present day, or at most the last few years. No historical period, no
   future, no fantasy age.
-- **Place: the United States.** A different US city, state or region from the source
-  — Chicago, Nashville, coastal Maine, the Texas hill country, a Colorado ski town,
-  Brooklyn. Not another country, not an invented land.
+- **Place: the United States — named explicitly.** Pick a different US city, state or
+  region from the source — Chicago, Nashville, coastal Maine, the Texas hill country,
+  a Colorado ski town, Brooklyn — and **write that real place name into `setting` and
+  `time_period`**. Not another country, not an invented land, and never a placeless
+  "modern metropolis": the cast's look and speech are derived from the place you name
+  here, so leaving it blank sends them somewhere else entirely.
 - **No other culture's setting.** Never relocate the story to imperial China, feudal
   Japan, Joseon Korea, Regency England, a wuxia sect, a medieval court, a steampunk
   city, or any secondary fantasy world. Those settings compete badly in this market

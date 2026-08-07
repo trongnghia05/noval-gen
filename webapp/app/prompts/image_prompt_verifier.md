@@ -17,21 +17,22 @@ The FACTS are the truth. Where a prompt disagrees with them, the prompt is wrong
 
 ## What to check
 
-There are exactly **six** checks. Report a fault only when it fits one of them. If
-something looks off but fits none of the six, it is not a fault you report — there is
+There are exactly **seven** checks. Report a fault only when it fits one of them. If
+something looks off but fits none of the seven, it is not a fault you report — there is
 no `lighting`, `composition`, `wardrobe` or `style` check, and inventing one causes a
 needless regeneration of all three images.
 
 **The ART DIRECTION is not something you enforce.** It is included so you know what
 style was asked for, not as a rulebook to audit against. Its lines about exposure,
 brightness, palette strength, composition and wardrobe register have no check here, so
-a prompt that departs from them is not reporting-worthy. Only the six checks below are.
+a prompt that departs from them is not reporting-worthy. Only the seven checks below
+are.
 
 **`issues` is a fault list, not an audit report.** A check that PASSES produces no
 entry at all. Never write an entry saying something is correct, present, consistent or
 appropriate — every entry you return is a defect the writer will be told to change, so
 a "passing" entry makes them break something that was already right. Three sound
-prompts return `"issues": []`, not eighteen confirmations.
+prompts return `"issues": []`, not twenty-one confirmations.
 
 ### 1. `era`
 
@@ -121,11 +122,29 @@ that is yours to judge. A gown, a suit or a background in some other colour alon
 the signature hue is normal poster design and must not be flagged. Every real fault
 here can be found by asking only: is a hue named, and is it the same one three times?
 
+### 7. `region`
+
+The people on the poster must look like people of the place the story is set in. These
+books are sold to a US audience and are set in present-day America, so the cast reads
+as American — a genuinely mixed population, but an American one.
+
+Flag it when a prompt gives a character a look that belongs to another part of the
+world with nothing in the FACTS behind it: an "east Asian", "Eurasian", "exotic" or
+otherwise non-American styling invented at the image stage, or a look that plainly
+contradicts the character's name.
+
+Do NOT flag:
+- an appearance the FACTS cast list already states. If the profile says a character is
+  of Afro-Caribbean or Eurasian heritage, the prompt following it is correct — that
+  decision was made when the character was written, and is not the image's to reverse.
+- a mixed supporting cast. Americans are not one look, and flagging that would be both
+  wrong and unfixable.
+
 ## How to write an issue
 
 - `image`: `cover`, `thumb1`, `thumb2`, or `all` if the same fault is in every one.
-- `check`: one of `era`, `cast`, `leads`, `story`, `title`, `colour` — **these six and
-  no others**.
+- `check`: one of `era`, `cast`, `leads`, `story`, `title`, `colour`, `region` —
+  **these seven and no others**.
 - `description`: **quote the offending words from the prompt** and say why they are
   wrong. "thumb2 dresses him in 'a modern navy tuxedo with a bow tie', but the era is
   19th-century" — not "the clothes are wrong".
