@@ -309,21 +309,28 @@ def _art_direction(seed: int | None = None) -> str:
         "one word at a glance — if the result reads as neutral, grey, navy-and-beige "
         "or generally 'natural', the hue was too weak. Same signature hue in all three "
         "images.\n"
+        # Every example here is conditional on the era, never absolute. An earlier
+        # version listed the pre-modern case as if it were universal ("no skyscrapers…
+        # not a hotel suite, an office tower") — which, once stories became
+        # present-day American, told the writer that the story's OWN world was
+        # forbidden, and gave the verifier a rule to fault it with every round.
         "- Period integrity: NOTHING below may drag the story out of its own era — not "
         "the palette, not the wardrobe, not the setting. Read the era from the world "
-        "description and hold every image to it.\n"
+        "description and hold every image to it. The era can be any period, so the "
+        "examples below apply only to the era that matches this story.\n"
         "  · Palette and light: brightness and saturation come from sources that "
-        "already exist in this world. A pre-modern story gets NO neon, no skyscrapers, "
-        "no electric city glow — lanterns, sunlight, dyed silk, fire, painted wood.\n"
+        "already exist in THIS world. If the story is pre-modern, that means lanterns, "
+        "sunlight, fire, dyed silk and painted wood, with no neon or electric glow; if "
+        "it is present-day, city light, neon and glass are all fair game.\n"
         "  · Wardrobe: the register named below is a LEVEL OF DRESS, not a set of "
-        "garments. Translate it into what this era actually wore. In a 19th-century "
-        "world 'black-tie' means tailcoats, waistcoats and cravats, and corseted ball "
-        "gowns with structured skirts — never a modern tuxedo or a satin slip dress. "
-        "Allure there comes from bare shoulders, a low back, a cinched waist and fine "
-        "fabric, NOT from modern cuts.\n"
+        "garments. Translate it into what this era actually wore. 'Black-tie' in a "
+        "19th-century world means tailcoats, waistcoats, cravats and corseted ball "
+        "gowns — never a modern tuxedo or a satin slip dress; in a present-day story "
+        "the modern tuxedo and slip dress are exactly right. Allure comes from what "
+        "that era's own clothes can do: bare shoulders, a low back, a cinched waist.\n"
         "  · Setting: every prop, room and view belongs to the era — a drawing room, "
-        "an atelier, a carriage, a gaslit street, not a hotel suite, an office tower "
-        "or a modern bedroom.\n"
+        "an atelier or a gaslit street for a period story; an office tower, a penthouse "
+        "or a hotel suite for a present-day one. Wrong century, not wrong century.\n"
         "- People: they stay photoreal — real actors, real skin with pores and texture, "
         "never illustrated, painted or CGI. The bold grade sits on top of a real "
         "photograph; it does not turn the people into artwork.\n"
@@ -398,7 +405,11 @@ def _build_prompts(session: Session, story: Story, meta: NovelMetadataOut | None
         f"## ART DIRECTION (visual style for this run — composition/lens/lighting/palette; "
         f"vary the three images from each other around them)\n{art_direction}\n"
         f"{_world_block(story)}"
-        f"## MAIN CHARACTERS\n{cast}\n"
+        f"## MAIN CHARACTERS\n{cast}\n\n"
+        # The cast lines carry each character's age in the novel, and the writer copies
+        # the lead's verbatim ("in her late twenties") unless told otherwise right
+        # here — costing three verify rounds on every single run to undo.
+        f"{_CASTING_AGE_NOTE}"
     )
 
     def draft(feedback: str = "") -> ImagePromptSetOut:
@@ -426,11 +437,13 @@ def _build_prompts(session: Session, story: Story, meta: NovelMetadataOut | None
 # it fought this for three attempts on a real run before converging.
 _CASTING_AGE_NOTE = (
     "## CASTING NOTE — this is policy, not an error\n"
-    "The poster casts the FEMALE LEAD as a young woman of 18 to 20 (or the youngest "
-    "the plot allows, if the story makes that impossible). This deliberately overrides "
-    "whatever age the cast list gives her: a prompt saying she is 19 while the cast "
-    "says late twenties is CORRECT. Everyone else is rendered at the age they are "
-    "written as.\n"
+    "The poster casts the FEMALE LEAD as a young woman of **18 to 20**, stated as a "
+    "specific number. This deliberately overrides whatever age the cast list gives "
+    "her: a prompt saying she is 19 while the cast says late twenties is CORRECT and "
+    "must not be reported as a fault. There is no plot that changes this — being "
+    "married, a mother or an executive does not make her older here. Any number from "
+    "18 to 20 is acceptable and final; only a missing number, or one outside that "
+    "range, is wrong. Everyone else is rendered at the age they are written as.\n"
 )
 
 
