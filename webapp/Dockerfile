@@ -10,10 +10,12 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app ./app
+COPY alembic.ini ./alembic.ini
+COPY migrations ./migrations
 
-# SQLite file lives here — mount a volume on this path to persist data
-# across container restarts (see docker-compose.yml).
-ENV DATABASE_URL=sqlite:////data/novelgen.db
+# DATABASE_URL is provided by docker-compose (Postgres). The SQLite fallback in
+# app/config.py only applies to bare `uvicorn` runs outside compose.
+# /data still holds the CSV knowledge graphs (see docker-compose.yml).
 RUN mkdir -p /data
 
 EXPOSE 8000

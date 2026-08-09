@@ -39,6 +39,7 @@ class Story(Base):
     phase = Column(String, default="PLANNING")  # PLANNING | WRITING | COMPLETE
     last_checkpoint_chapter = Column(Integer, default=0)  # last chapter continuity_editor/smart_planner actually ran for
     is_running = Column(Boolean, default=False)  # True while a graph.run_story_to_completion() background run is active
+    stop_requested = Column(Boolean, default=False)  # set by POST /stop; the graph loop checks it between steps and halts cleanly
     planning_verified = Column(Boolean, default=False)  # True once planning_verifier has gated the 4 planning artifacts before WRITING
     new_graph_built = Column(Boolean, default=False)    # True once new_graph_builder has built graph_type="new" nodes/edges
     new_graph_verified = Column(Boolean, default=False)  # True once graph_verifier has checked the new graph

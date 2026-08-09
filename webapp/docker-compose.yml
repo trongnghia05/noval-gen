@@ -1,21 +1,63 @@
 services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=novel
+      - POSTGRES_PASSWORD=novel
+      - POSTGRES_DB=novelgen
+    volumes:
+      # Postgres data — a named volume, not a host bind mount: you inspect it
+      # over SQL (psql / a DB client), not by browsing files, and bind-mounting
+      # a PG data dir on Windows hits permission/locale problems.
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U novel -d novelgen"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   api:
     build: .
+    # Run migrations to head, then start the server. Alembic owns the schema now
+    # (no more create_all at startup), so the DB is always at the latest revision.
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
     ports:
       - "8001:8000"
     env_file:
       - .env
     environment:
+      # Postgres connection (psycopg3 driver). Overrides any DATABASE_URL in .env.
+      - DATABASE_URL=postgresql+psycopg://novel:novel@db:5432/novelgen
       # Finished novels are written here; bind-mounted to the host (./output)
       # so completed stories land in a folder you can open and copy.
       - OUTPUT_DIR=/output
+    depends_on:
+      db:
+        condition: service_healthy
     volumes:
-      - novelgen-data:/data
+      # Host-visible data dir: CSV knowledge graphs live at
+      # webapp/data/graphs/<story_id>/. (The SQLite DB is gone — Postgres now —
+      # but the graph CSVs still land here so you can inspect them directly.)
+      - ./data:/data
       # Host-visible export dir: webapp/output/<story-slug>/novel.md
       - ./output:/output
       # Service-account JSON for Vertex AI (repo-root auth/, read-only).
       # GOOGLE_APPLICATION_CREDENTIALS in .env points at a file under /auth.
       - ../auth:/auth:ro
 
+  playground:
+    build: ./playground
+    ports:
+      - "8501:8501"
+    environment:
+      # Reach the API over the compose network (not the host port mapping).
+      - API_BASE=http://api:8000/api
+      # Cover art is read straight off disk; mount the same output dir.
+      - OUTPUT_DIR=/output
+    depends_on:
+      - api
+    volumes:
+      - ./output:/output:ro
+
 volumes:
-  novelgen-data:
+  pgdata:
