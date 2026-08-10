@@ -45,13 +45,18 @@ power dynamic). **Every image — all three — must reflect that dynamic and NE
 reverse it.** Read who pursues, controls, protects, threatens, or is captive to whom,
 and stage the characters so the picture *tells that truth*:
 - If a man pursues/dominates the woman, the composition must read that way (he
-  advances/looms/claims; she resists/is cornered/holds her ground) — not the reverse.
+  advances, claims, closes the distance; she resists or holds her ground) — not the
+  reverse.
 - If the protagonist is a captive breaking free, show that power gap, not equality.
 - The central relationship shot (thumb2) especially must embody the dynamic — decide
-  its staging (looming, cornering, back-to-back, pursued-and-fleeing, one kneeling,
-  guarded embrace, tense distance, through a doorway…) FROM the dynamic, so it varies
-  between stories but is always correct for THIS one. Do not default to "two people
-  simply facing each other."
+  its staging FROM the dynamic, so it varies between stories but is always correct for
+  THIS one. Do not default to "two people simply facing each other."
+- **The staging comes from the ART DIRECTION intimacy line, and from nowhere else.**
+  Realise the one you were handed, whatever it is. Any pose described anywhere else in
+  these instructions — including in a rule about what would be *wrong* — is an example
+  being discussed, never a pose to draw. Reaching past your assigned staging for the
+  one romance posters always use is what has made this catalogue's couple shots look
+  identical to each other.
 
 ## Vary the three images from EACH OTHER
 The cover and the two thumbnails must not look like three crops of one idea.

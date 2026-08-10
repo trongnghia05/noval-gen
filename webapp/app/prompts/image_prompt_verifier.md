@@ -94,7 +94,10 @@ that request can be satisfied endlessly and the loop will never finish.
 
 The prompt must match this story. Two things to catch:
 - **A reversed power dynamic.** If the FACTS say he pursues and she resists, a prompt
-  showing her advancing on him and pinning him to the wall is a fault.
+  that puts her in the advancing, controlling position is a fault. (Describe the fault
+  in your own words. Do not reuse a staging phrase from these instructions: the prompt
+  writer reads your text and will draw whatever pose you name, even one you named as
+  wrong.)
 - **A setting that is not this story's.** The places shown should be places this world
   actually contains.
 

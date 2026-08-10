@@ -23,8 +23,8 @@ illustrator knows what people wear, what they travel in, and what a room looks l
 ## 2. `dynamics`
 
 The power relationships between the main cast, **with a direction**. This is what stops
-the poster staging the pair backwards — showing her pinning him to the wall when the
-story is the reverse.
+the poster staging the pair backwards — putting the one who is pursued in the
+pursuer's place.
 
 For each important pair (2-4 entries, the leads first):
 - `source` — the one who acts, pursues, controls, owes or threatens

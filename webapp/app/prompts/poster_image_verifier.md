@@ -86,7 +86,10 @@ a protagonist and his estranged **sister** were drafted wrapped around each othe
 evening wear, and it shipped.
 
 Also flag a **reversed dynamic**: if the FACTS say he pursues and she resists, a prompt
-showing her advancing on him and pinning him to the wall is a fault.
+that puts her in the advancing, controlling position is a fault. Describe it in your
+own words — do not reuse a staging phrase from these instructions, because the prompt
+writer reads your text and will draw whatever pose you name, even one you named as
+wrong.
 
 Do NOT flag a non-romantic pair staged as confrontation, protection, grief or shared
 danger, however close and tense — that is exactly right.

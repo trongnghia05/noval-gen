@@ -271,8 +271,17 @@ _INTIMACY = [
     "his hand at her jaw or throat, tilting her face up, their mouths a breath apart",
     "taken from behind — his chest against her back, his mouth at her ear, both his "
     "hands spread across her waist while she leans into him",
-    "she is backed against a wall or door, his forearm braced above her head, his body "
+    "he has her backed up with nowhere to go, one arm braced past her head, his body "
     "closing the last inch",
+    "a table or desk between them, both leaning across it, faces closer than the "
+    "furniture should allow",
+    "one seated and one standing over them, a hand on the chair back, the height "
+    "difference doing the work",
+    "on a staircase — she is a step above, so she looks down at him for once, and "
+    "neither will move first",
+    "back to back, shoulders touching, facing opposite ways as if surrounded",
+    "he is holding something she wants just out of reach, and she has come in close "
+    "to take it",
     "her fists knotted in his shirt, dragging him down to her; his hands framing her face",
     "she is sitting on a desk or counter, he stands between her knees, her legs "
     "bracketing him",
