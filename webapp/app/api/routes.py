@@ -1,13 +1,16 @@
+import io
 import logging
 import shutil
+import zipfile
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel
 
 from .. import csv_graph, graph, length_calc, orchestrator
 from ..config import AGENT_MODELS, OUTPUT_BASE, PROVIDER
 from ..db.models import (
+    AppSetting,
     Chapter,
     ChapterSummary,
     ChapterVerifyLog,
@@ -41,9 +44,40 @@ class CreateStoryRequest(BaseModel):
     language: str
     input_type: str  # IDEA | PREMISE | REWRITE
     genre: str | None = None
+    source_title: str | None = None  # REWRITE: title of the original story being rewritten
     content: str
     desired_chapters: int | None = None
     desired_words: int | None = None
+
+
+class SettingRequest(BaseModel):
+    value: str = ""
+
+
+_SETTING_KEYS = {"cms_upload_url"}
+
+
+@router.get("/settings/{key}")
+def get_setting(key: str):
+    if key not in _SETTING_KEYS:
+        raise HTTPException(404, "setting not found")
+    with SessionLocal() as session:
+        setting = session.get(AppSetting, key)
+        return {"key": key, "value": setting.value if setting else ""}
+
+
+@router.put("/settings/{key}")
+def put_setting(key: str, req: SettingRequest):
+    if key not in _SETTING_KEYS:
+        raise HTTPException(404, "setting not found")
+    with SessionLocal() as session:
+        setting = session.get(AppSetting, key)
+        if setting is None:
+            setting = AppSetting(key=key)
+            session.add(setting)
+        setting.value = req.value.strip()
+        session.commit()
+        return {"key": key, "value": setting.value}
 
 
 @router.post("/stories")
@@ -77,6 +111,7 @@ def create_story(req: CreateStoryRequest):
             language=req.language,
             input_type=req.input_type,
             genre=req.genre,
+            source_title=(req.source_title or None) if req.input_type == "REWRITE" else None,
             source_content=req.content,
             total_chapters=total_chapters,
             target_words=target_words,
@@ -184,11 +219,110 @@ def delete_story(story_id: int):
     return {"status": "deleted", "story_id": story_id}
 
 
+class RegenImagesRequest(BaseModel):
+    which: str = "all"  # all | cover | thumbnail1 | thumbnail2
+
+
+def _story_output_dir(story: Story):
+    """This story's export dir, resolved via the same ownership marker the compiler
+    uses so a slug collision can't point at another story's folder."""
+    folder = story.slug or f"story-{story.id}"
+    for cand in (OUTPUT_BASE / folder, OUTPUT_BASE / f"{folder}-{story.id}"):
+        if (cand / f".story-{story.id}").exists():
+            return cand
+    return OUTPUT_BASE / folder
+
+
+def _story_image_dir(story: Story):
+    return _story_output_dir(story) / "image"
+
+
+@router.get("/stories/{story_id}/download-zip")
+def download_zip(story_id: int):
+    """Download the story as a .zip: one flat `ch-NNN.txt` per chapter (the same
+    naming the compiler writes to the export dir) plus `full.md` and
+    `summarize.txt`. Files are taken from the export dir when present, else built
+    from the DB."""
+    with SessionLocal() as session:
+        story = session.get(Story, story_id)
+        if not story:
+            raise HTTPException(404, "story not found")
+        chapters = (
+            session.query(Chapter)
+            .filter_by(story_id=story_id, status="done")
+            .order_by(Chapter.number)
+            .all()
+        )
+        if not chapters:
+            raise HTTPException(409, "no completed chapters to download yet")
+        slug = story.slug
+        out_dir = _story_output_dir(story)
+
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+            for c in chapters:
+                fname = f"ch-{c.number:03d}.txt"
+                disk = out_dir / fname
+                if disk.exists():  # exact file the compiler already wrote
+                    z.writestr(fname, disk.read_text(encoding="utf-8", errors="ignore"))
+                else:  # not compiled yet — build the same shape from the DB
+                    heading = f"Chapter {c.number}: {c.title or ''}".rstrip(": ").strip()
+                    z.writestr(fname, f"{heading}\n\n{c.content or ''}\n")
+
+            full = out_dir / "full.md"
+            if full.exists():
+                z.writestr("full.md", full.read_text(encoding="utf-8", errors="ignore"))
+            else:  # not compiled yet — assemble a minimal full.md from the DB
+                parts = [f"# {story.title}\n"]
+                for c in chapters:
+                    parts.append(f"# Chapter {c.number}: {c.title or ''}\n\n{c.content or ''}")
+                z.writestr("full.md", "\n\n---\n\n".join(parts) + "\n")
+
+            summ = out_dir / "summarize.txt"
+            if summ.exists():
+                z.writestr("summarize.txt", summ.read_text(encoding="utf-8", errors="ignore"))
+
+    return Response(
+        buf.getvalue(),
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{slug}.zip"'},
+    )
+
+
+@router.post("/stories/{story_id}/regenerate-images")
+def regenerate_images(story_id: int, req: RegenImagesRequest):
+    """Re-run poster art: `which` = all | cover | thumbnail1 | thumbnail2.
+    Regenerating a thumbnail reuses the existing cover as the identity reference.
+    Synchronous — runs in FastAPI's threadpool; can take a minute or two."""
+    valid = {"all", "cover", "thumbnail1", "thumbnail2"}
+    if req.which not in valid:
+        raise HTTPException(400, f"which must be one of {sorted(valid)}")
+    with SessionLocal() as session:
+        story = session.get(Story, story_id)
+        if not story:
+            raise HTTPException(404, "story not found")
+        if story.phase != "COMPLETE":
+            raise HTTPException(409, "images are only (re)generated once the story is COMPLETE")
+        image_dir = _story_image_dir(story)
+        image_dir.mkdir(parents=True, exist_ok=True)
+        from .. import image_generator
+        try:
+            written = image_generator.generate(session, story, image_dir, only=req.which)
+        except Exception as exc:  # noqa: BLE001 — surface any gen failure to the client
+            logger.exception("[%s] regenerate-images failed", story.slug)
+            raise HTTPException(500, f"image generation failed: {exc}")
+    return {"which": req.which, "written": written}
+
+
 @router.get("/stories")
 def list_stories():
     with SessionLocal() as session:
         stories = session.query(Story).order_by(Story.created_at.desc()).all()
-        return [{"id": s.id, "title": s.title, "slug": s.slug, "phase": s.phase} for s in stories]
+        return [
+            {"id": s.id, "title": s.title, "slug": s.slug, "phase": s.phase,
+             "input_type": s.input_type, "source_title": s.source_title}
+            for s in stories
+        ]
 
 
 @router.get("/stories/{story_id}")

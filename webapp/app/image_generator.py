@@ -12,6 +12,7 @@ import logging
 import os
 import random
 import re
+from pathlib import Path
 
 from PIL import Image, ImageOps
 from sqlalchemy.orm import Session
@@ -511,8 +512,30 @@ def _verify_prompts(story: Story, prompts: ImagePromptSetOut, facts: str,
     return prompts
 
 
-def generate(session: Session, story: Story, out_dir, meta: NovelMetadataOut | None = None) -> list[str]:
-    """Generate cover + 2 thumbnails into out_dir. Best-effort; returns filenames written."""
+_ALL_STEMS = ("cover", "thumbnail1", "thumbnail2")
+
+
+def _existing_image_bytes(out_dir, stem: str) -> bytes | None:
+    """Raw bytes of an already-saved image (any supported extension), or None."""
+    for ext in ("webp", "png", "jpg", "jpeg"):
+        p = Path(out_dir) / f"{stem}.{ext}"
+        if p.exists():
+            return p.read_bytes()
+    return None
+
+
+def generate(session: Session, story: Story, out_dir,
+             meta: NovelMetadataOut | None = None, only: str | None = None) -> list[str]:
+    """Generate cover + 2 thumbnails into out_dir. Best-effort; returns filenames written.
+
+    only: None/"all" regenerates every image; or one of "cover"/"thumbnail1"/
+    "thumbnail2" to regenerate just that one. When a thumbnail is regenerated
+    without the cover, the existing cover on disk is loaded as the identity
+    reference so the same faces carry over.
+    """
+    targets = set(_ALL_STEMS) if (not only or only == "all") else {only}
+    if not targets <= set(_ALL_STEMS):
+        raise ValueError(f"unknown image target {only!r}")
     try:
         prompts = _build_prompts(session, story, meta)
     except Exception as exc:
@@ -528,7 +551,16 @@ def generate(session: Session, story: Story, out_dir, meta: NovelMetadataOut | N
     _MAX_ATTEMPTS = 4
     written: list[str] = []
     cover_ref: bytes | None = None
+    # Regenerating only a thumbnail: reuse the existing cover as the identity
+    # reference so the same faces carry over (the cover isn't being redrawn).
+    if "cover" not in targets:
+        cover_ref = _existing_image_bytes(out_dir, "cover")
+        if cover_ref is None:
+            logger.warning("[%s] regenerate %s: no existing cover to use as reference",
+                           story.slug, targets)
     for stem, w, h, aspect, attr, centering in _SPECS:
+        if stem not in targets:
+            continue
         filename = f"{stem}.{_FORMAT}"
         prompt = getattr(prompts, attr, "") or ""
         if not prompt:

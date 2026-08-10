@@ -29,6 +29,7 @@ class Story(Base):
     language = Column(String, nullable=False)
     input_type = Column(String, nullable=False)  # IDEA | PREMISE | REWRITE
     genre = Column(String)
+    source_title = Column(String)  # REWRITE only: title of the ORIGINAL story (story.title is the new, reskinned one)
     source_content = Column(Text)  # raw user input, kept for reference
 
     total_chapters = Column(Integer, nullable=False)
@@ -55,6 +56,14 @@ class Story(Base):
     source_spirit = Column(Text)             # REWRITE only: overall tone + excerpts, passed to chapter_writer
 
     created_at = Column(DateTime, default=_utcnow)
+    updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
+
+
+class AppSetting(Base):
+    __tablename__ = "app_settings"
+
+    key = Column(String, primary_key=True)
+    value = Column(Text)
     updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
 
 
