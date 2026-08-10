@@ -1169,7 +1169,19 @@ def view_detail():
             unsafe_allow_html=True,
         )
     else:
+        # Fill the tabs in the order st.tabs() declared them. Streamlit assigns each
+        # `with` block to a tab by the order the blocks RUN, not by which variable
+        # names it — so filling tab_full first put the manuscript under the "Tóm tắt"
+        # label and pushed every tab's content one place along.
         tab_sum, tab_full, tab_ch = st.tabs(["📝 Tóm tắt", "📄 Toàn bộ", "📑 Theo chương"])
+        with tab_sum:
+            summ = output_text(d["slug"], "summarize.txt")
+            if summ and summ.strip():
+                st.markdown(f"<div class='manuscript'>{_html.escape(summ)}</div>", unsafe_allow_html=True)
+            elif d["phase"] == "COMPLETE":
+                st.caption("Không tìm thấy summarize.txt (output chưa mount hoặc bước tổng hợp lỗi).")
+            else:
+                st.caption("Tóm tắt được tạo khi truyện hoàn thành (bước tổng hợp cuối).")
         with tab_full:
             try:
                 man = api_get(f"/stories/{sid}/manuscript")
@@ -1189,15 +1201,11 @@ def view_detail():
                 st.markdown(f"<div class='manuscript'>{ch.get('content') or ''}</div>", unsafe_allow_html=True)
             except Exception as e:
                 st.caption(f"Không tải được chương: {e}")
-        with tab_sum:
-            summ = output_text(d["slug"], "summarize.txt")
-            if summ and summ.strip():
-                st.markdown(f"<div class='manuscript'>{_html.escape(summ)}</div>", unsafe_allow_html=True)
-            elif d["phase"] == "COMPLETE":
-                st.caption("Không tìm thấy summarize.txt (output chưa mount hoặc bước tổng hợp lỗi).")
-            else:
-                st.caption("Tóm tắt được tạo khi truyện hoàn thành (bước tổng hợp cuối).")
 
+    # Poll by sleeping, then rerunning. Do NOT replace this with an
+    # `@st.fragment(run_every=n)` that calls `st.rerun()`: a fragment's body executes
+    # immediately on the call as well as on the timer, so the rerun fires instantly and
+    # the app spins in a tight loop hammering the API several times a second.
     if stop_requested:
         time.sleep(3)
         st.rerun()
@@ -1255,13 +1263,19 @@ def view_settings():
 
 
 PAGE = st.session_state.page
-if PAGE == "create":
-    view_create()
-elif PAGE == "launching":
-    view_launching()
-elif PAGE == "detail":
-    view_detail()
-elif PAGE == "settings":
-    view_settings()
-else:
-    view_library()
+_VIEWS = {
+    "create": view_create,
+    "launching": view_launching,
+    "detail": view_detail,
+    "settings": view_settings,
+    "library": view_library,
+}
+
+# Each page renders inside a container KEYED BY THE PAGE NAME. Without the key,
+# Streamlit matches elements between runs by their position in the tree, and since
+# every page here is built from the same st.columns/st.markdown shapes it kept the
+# previous page's nodes alive instead of replacing them — which is why the library's
+# table was still on screen after opening a story. A different key makes the old
+# container a different element, so it is discarded outright.
+with st.container(key=f"page_{PAGE}"):
+    _VIEWS.get(PAGE, view_library)()
