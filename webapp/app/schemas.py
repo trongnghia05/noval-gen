@@ -292,56 +292,32 @@ class ChapterSummaryOutput(BaseModel):
 # ── chapter_blueprinter ────────────────────────────────────────────────────────
 
 class SceneOut(BaseModel):
-    goal: str              # what the POV character wants in this scene
-    conflict: str          # what blocks them
-    outcome: str           # do they get it? (success | failure | partial)
-    disaster: str          # new problem that emerges from this scene
-    characters: list[str] = []  # node keys (C001...) or names — who appears in this scene
-    location: str = ""          # location label or node key from graph LOCATED_AT
-    # ── dialogue plan (new-world; derived from the new graph, never source) ──
-    speaking_characters: list[str] = []  # new-world names who actually SPEAK in this scene
-    dialogue_nuance: str = ""   # sắc thái: tone/mood of the exchange (e.g. "cold, clipped confrontation")
-    dialogue_intent: str = ""   # hướng đến: what the dialogue must accomplish this scene
+    goal: str = Field(description="điều nhân vật POV muốn trong cảnh này")
+    conflict: str = Field(description="điều cản trở họ")
+    outcome: str = Field(description="họ có đạt được không? (success | failure | partial)")
+    disaster: str = Field(description="vấn đề mới nảy sinh từ cảnh này")
+    characters: list[str] = Field(default=[], description="node keys (C001…) hoặc tên — ai xuất hiện trong cảnh")
+    location: str = Field("", description="nhãn địa điểm hoặc node key từ LOCATED_AT")
+    speaking_characters: list[str] = Field(default=[], description="tên thế giới mới thực sự NÓI trong cảnh")
+    dialogue_nuance: str = Field("", description='sắc thái: tone/mood của trao đổi, VD "cold, clipped confrontation"')
+    dialogue_intent: str = Field("", description="hướng đến: thoại phải đạt được gì trong cảnh này")
 
 
 class ChapterBlueprintOutput(BaseModel):
-    purpose: str               # one sentence: why does this chapter exist?
-    act_position: str          # Act 1 | Act 2a | Act 2b | Act 3
-    # The chapter's structural function — setup | escalation | revelation |
-    # setback | turning_point | confrontation | aftermath | resolution. Used to
-    # avoid stringing together several chapters of the same kind.
-    beat_type: str = ""
-    # The concrete STATE CHANGE this chapter must produce: what is materially
-    # different in the world by the last line vs. the first (a relationship shifts,
-    # a secret is exposed, a plan advances, someone decides/acts). A chapter that
-    # only re-explores an already-established feeling without a new delta is "empty".
-    state_delta: str = ""
-    emotional_arc_start: str   # reader's emotion at chapter open
-    emotional_arc_end: str     # reader's emotion at chapter close
-    # For a source that uses alternating multi-POV (per source_spirit's POV
-    # section): which character "holds" this chapter's point of view. The writer
-    # renders the whole chapter inside this character's head, in the source's
-    # grammatical person. Empty = single-POV / let the writer follow source_spirit.
-    pov_character: str = ""
-    # Populated ONLY when the source chapter narrates from more than one POV
-    # (a mid-chapter switch). Full set of POV-holder names — order not significant,
-    # the writer places the switch where the narrative flows. Empty for the common
-    # single-POV chapter, in which case pov_character alone applies.
-    pov_characters: list[str] = []
-    scenes: list[SceneOut]
-    hook: str                  # exact nature of the final hook/cliffhanger
-    foreshadowing_to_plant: str | None = None  # seed to drop (for future payoff)
-    characters_featured: list[str]  # character CSV ids who appear in this chapter
-    # heavy | balanced | sparse — how dialogue-driven this chapter should be.
-    # A solitary-introspection chapter is legitimately "sparse"; the verifier
-    # checks dialogue against THIS target, not a global constant.
-    dialogue_intensity: str = "balanced"
-    # Short canonical tags (<=5 words each) for the recurring dramatic beats /
-    # motifs this chapter uses, e.g. "possessive-claim", "rescue-from-thug". The
-    # blueprinter MUST reuse an existing tag verbatim when the motif recurs (so a
-    # cumulative count is meaningful) and only mint a new tag for a genuinely new
-    # motif. A tag at its cap must be dropped or escalated, not repeated flat.
-    motifs_used: list[str] = []
+    purpose: str = Field(description="một câu: vì sao chương này tồn tại?")
+    act_position: str = Field(description="Act 1 | Act 2a | Act 2b | Act 3")
+    beat_type: str = Field("", description="chức năng cấu trúc: setup | escalation | revelation | setback | turning_point | confrontation | aftermath | resolution — tránh nhiều chương cùng loại")
+    state_delta: str = Field("", description="THAY ĐỔI TRẠNG THÁI cụ thể chương phải tạo: cái gì khác biệt thực chất ở dòng cuối vs đầu (quan hệ dịch, bí mật lộ, kế hoạch tiến, ai đó quyết/hành động). Chỉ khơi lại cảm xúc cũ mà không có delta mới = chương 'rỗng'")
+    emotional_arc_start: str = Field(description="cảm xúc người đọc lúc mở chương")
+    emotional_arc_end: str = Field(description="cảm xúc người đọc lúc đóng chương")
+    pov_character: str = Field("", description="đa-POV luân phiên: nhân vật 'giữ' POV chương này (viết cả chương trong đầu họ, đúng ngôi của nguồn). Rỗng = single-POV / theo source_spirit")
+    pov_characters: list[str] = Field(default=[], description="CHỈ điền khi chương gốc kể từ >1 POV (đổi giữa chương): tập tên các POV-holder. Rỗng cho chương single-POV thường")
+    scenes: list[SceneOut] = Field(description="danh sách cảnh của chương")
+    hook: str = Field(description="bản chất chính xác của hook/cliffhanger cuối")
+    foreshadowing_to_plant: str | None = Field(None, description="hạt cần gieo (để trả về sau)")
+    characters_featured: list[str] = Field(description="character CSV ids xuất hiện trong chương")
+    dialogue_intensity: str = Field("balanced", description="heavy | balanced | sparse — chương thoại-dẫn tới đâu. Chương độc thoại-nội tâm là 'sparse' hợp lệ")
+    motifs_used: list[str] = Field(default=[], description="tag canonical ngắn (≤5 từ) cho các motif/beat lặp, VD 'possessive-claim'. PHẢI dùng lại tag cũ nguyên văn khi motif tái diễn; chỉ đặt tag mới cho motif thật sự mới")
 
 
 # ── continuity_editor ─────────────────────────────────────────────────────────

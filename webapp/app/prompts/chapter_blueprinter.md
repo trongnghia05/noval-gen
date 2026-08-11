@@ -96,35 +96,8 @@ Liệt kê các character CSV id của nhân vật thực sự xuất hiện tro
 
 Trả về **DUY NHẤT một object JSON** hợp lệ, đúng schema:
 
-```json
-{
-  "purpose": "Một câu mô tả chính xác mục đích chương",
-  "act_position": "Act 1 | Act 2a | Act 2b | Act 3",
-  "beat_type": "setup | escalation | revelation | setback | turning_point | confrontation | aftermath | resolution",
-  "state_delta": "Trạng thái truyện KHÁC gì khi hết chương so với đầu chương (thay đổi cụ thể, không phải cảm xúc lặp lại)",
-  "emotional_arc_start": "Độc giả đang cảm thấy...",
-  "emotional_arc_end": "Khi đóng chương, độc giả sẽ cảm thấy...",
-  "pov_character": "tên nhân vật giữ điểm nhìn CHÍNH của chương; '' nếu không áp dụng",
-  "pov_characters": ["chỉ điền khi chương đổi POV giữa chừng: liệt kê TẤT CẢ nhân vật giữ POV; [] nếu chương chỉ 1 POV"],
-  "motifs_used": ["tag-ngắn-khớp-ledger-nếu-trùng", "..."],
-  "scenes": [
-    {
-      "goal": "Nhân vật X muốn làm gì cụ thể",
-      "conflict": "Điều gì cản trở",
-      "outcome": "success | failure | partial",
-      "disaster": "Vấn đề mới nảy sinh",
-      "characters": ["<node_key hoặc tên nhân vật thực tế từ graph>", "..."],
-      "location": "<tên địa điểm thực tế từ graph LOCATED_AT>",
-      "speaking_characters": ["<tên MỚI của nhân vật có thoại trong scene này>", "..."],
-      "dialogue_nuance": "tông/sắc thái đoạn thoại",
-      "dialogue_intent": "đoạn thoại phải đạt được gì"
-    }
-  ],
-  "hook": "Mô tả chính xác hook cuối chương",
-  "foreshadowing_to_plant": "Mô tả seed cần gieo, hoặc null nếu không cần",
-  "characters_featured": ["<node_key hoặc tên của từng nhân vật xuất hiện trong chương>", "..."],
-  "dialogue_intensity": "heavy | balanced | sparse"
-}
+```
+{{schema:ChapterBlueprintOutput}}
 ```
 
 ## Nguyên tắc
