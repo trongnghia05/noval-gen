@@ -135,8 +135,13 @@ def _world_bible(bible: dict) -> str:
 
 
 def import_novel(session: Session, novel_json: Path, out_root: Path,
-                 only: str | None = None) -> list[Path]:
-    """Import one novel and generate its poster art. Returns the files written."""
+                 only: str | None = None, notes: str = "",
+                 seed: int | None = None) -> list[Path]:
+    """Import one novel and generate its poster art. Returns the files written.
+
+    `notes` and `seed` pass straight through to the image generator — free-text
+    steering for this run, and a fixed art-direction draw for repeatability.
+    """
     novel, bible = read_novel(novel_json)
     novel_id = novel_json.stem
     genre_dir = novel_json.parent.name
@@ -205,8 +210,8 @@ def import_novel(session: Session, novel_json: Path, out_root: Path,
     staging.mkdir(exist_ok=True)
     try:
         with _import_prompts():
-            written = image_generator.generate(session, story, staging,
-                                               meta=meta, only=only)
+            written = image_generator.generate(session, story, staging, meta=meta,
+                                               only=only, notes=notes, seed=seed)
         results = []
         for name in written:
             stem = Path(name).stem

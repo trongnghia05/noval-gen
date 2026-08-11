@@ -221,6 +221,13 @@ def delete_story(story_id: int):
 
 class RegenImagesRequest(BaseModel):
     which: str = "all"  # all | cover | thumbnail1 | thumbnail2
+    # Free-text steering for this run — "warmer, put her in red", or per-image with a
+    # "cover:" / "thumb1:" / "thumb2:" prefix. Overrides the randomly drawn art
+    # direction; never the story's era, its cast, or the title rules.
+    notes: str = ""
+    # Fixes the art-direction draw so a run can be repeated. Omit and the menus are
+    # drawn fresh, which is why two runs of the same story look different.
+    seed: int | None = None
 
 
 def _story_output_dir(story: Story):
@@ -240,9 +247,9 @@ def _story_image_dir(story: Story):
 @router.get("/stories/{story_id}/download-zip")
 def download_zip(story_id: int):
     """Download the story as a .zip: one flat `ch-NNN.txt` per chapter (the same
-    naming the compiler writes to the export dir) plus `full.md` and
-    `summarize.txt`. Files are taken from the export dir when present, else built
-    from the DB."""
+    naming the compiler writes to the export dir), plus `full.md`, `summarize.txt`
+    and the poster art under `image/`. Files are taken from the export dir when
+    present, else built from the DB."""
     with SessionLocal() as session:
         story = session.get(Story, story_id)
         if not story:
@@ -282,6 +289,13 @@ def download_zip(story_id: int):
             if summ.exists():
                 z.writestr("summarize.txt", summ.read_text(encoding="utf-8", errors="ignore"))
 
+            # Poster art, kept at the same path it has on disk so the zip unpacks
+            # into the layout the export dir already uses. Written as bytes, not
+            # text — these are WebP/PNG.
+            for img in sorted((out_dir / "image").glob("*")):
+                if img.is_file():
+                    z.writestr(f"image/{img.name}", img.read_bytes())
+
     return Response(
         buf.getvalue(),
         media_type="application/zip",
@@ -293,6 +307,7 @@ def download_zip(story_id: int):
 def regenerate_images(story_id: int, req: RegenImagesRequest):
     """Re-run poster art: `which` = all | cover | thumbnail1 | thumbnail2.
     Regenerating a thumbnail reuses the existing cover as the identity reference.
+    `notes` steers this run in free text; `seed` makes the art direction repeatable.
     Synchronous — runs in FastAPI's threadpool; can take a minute or two."""
     valid = {"all", "cover", "thumbnail1", "thumbnail2"}
     if req.which not in valid:
@@ -307,7 +322,10 @@ def regenerate_images(story_id: int, req: RegenImagesRequest):
         image_dir.mkdir(parents=True, exist_ok=True)
         from .. import image_generator
         try:
-            written = image_generator.generate(session, story, image_dir, only=req.which)
+            written = image_generator.generate(
+                session, story, image_dir, only=req.which,
+                notes=req.notes, seed=req.seed,
+            )
         except Exception as exc:  # noqa: BLE001 — surface any gen failure to the client
             logger.exception("[%s] regenerate-images failed", story.slug)
             raise HTTPException(500, f"image generation failed: {exc}")

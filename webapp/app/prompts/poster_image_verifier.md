@@ -35,6 +35,12 @@ that** is correct, not faulty.
 **A CASTING NOTE in the FACTS proposing a young age for the female lead does not apply
 to this book** — it belongs to the generation pipeline. Ages come from the cast list.
 
+**USER DIRECTION, if present, is a deliberate request and outranks the ART DIRECTION.**
+A prompt that follows it is correct even where it contradicts the drawn style — never
+report that as a fault. The six checks below still apply: a request that would break
+the book's era, drop the protagonist from the cover foreground, invent a cast member,
+stage a non-couple as lovers, or damage the title still gets flagged.
+
 **`issues` is a fault list, not an audit report.** A check that PASSES produces no
 entry at all. Never write an entry saying something is correct, present or consistent
 — every entry you return is a defect the writer will be told to change, so a "passing"

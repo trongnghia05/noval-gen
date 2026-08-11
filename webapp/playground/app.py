@@ -100,10 +100,23 @@ def output_text(slug: str, name: str) -> str | None:
     return None
 
 
-def cached_story_zip(story_id: int, chapters_done: int) -> bytes | None:
+def _image_stamp(slug: str) -> int:
+    """Newest mtime among the story's poster files, or 0 if it has none.
+
+    The zip now carries image/ as well as the prose, so the chapter count alone is
+    no longer enough to key the cache: regenerating the art leaves the count
+    unchanged and would keep serving a zip with the old covers in it.
+    """
+    d = OUTPUT_DIR / slug / "image"
+    if not d.is_dir():
+        return 0
+    return max((int(p.stat().st_mtime) for p in d.glob("*") if p.is_file()), default=0)
+
+
+def cached_story_zip(story_id: int, chapters_done: int, slug: str = "") -> bytes | None:
     if chapters_done <= 0:
         return None
-    zkey = f"zip_{story_id}_{chapters_done}"
+    zkey = f"zip_{story_id}_{chapters_done}_{_image_stamp(slug) if slug else 0}"
     if zkey not in st.session_state:
         try:
             r = requests.get(f"{_base()}/stories/{story_id}/download-zip", timeout=180)
@@ -902,7 +915,7 @@ def view_library():
 
     for s, run_state, done, total_ch, words, target, pct_row in rows:
         src = _html.escape(s.get("source_title") or "—") if s.get("input_type") == "REWRITE" else "—"
-        zip_data = cached_story_zip(s["id"], done)
+        zip_data = cached_story_zip(s["id"], done, s["slug"])
         c = st.columns([2.15, .85, .9, 1.05, .72, .95, .72, 3.0], gap="medium")
         c[0].markdown(f"<div class='row-cell story-cell'><div class='table-title truncate'>{_html.escape(s['title'])}</div></div>", unsafe_allow_html=True)
         c[1].markdown(f"<div class='row-cell'><div class='lib-src source-cell truncate'>{src}</div></div>", unsafe_allow_html=True)
@@ -1026,7 +1039,7 @@ def view_detail():
                 unsafe_allow_html=True,
             )
 
-        zip_data = cached_story_zip(sid, done)
+        zip_data = cached_story_zip(sid, done, d["slug"])
 
         st.markdown("<div class='action-rule'></div>", unsafe_allow_html=True)
         if running and stop_requested:
@@ -1117,11 +1130,36 @@ def view_detail():
                 st.session_state["show_regen"] = not st.session_state.get("show_regen", False)
 
             if st.session_state.get("show_regen"):
+                notes = st.text_area(
+                    "Yêu cầu riêng cho lần tạo này",
+                    key="regen_notes",
+                    height=90,
+                    placeholder="VD: tông vàng ấm, bối cảnh ngoài trời\n"
+                                "thumb2: đứng xa nhau hơn, đừng chạm vào nhau",
+                    help="Ghi đè phần phong cách bốc ngẫu nhiên (màu, bố cục, trang phục, "
+                         "tư thế). Không ghi đè được thời đại, nhân vật chính ở tiền cảnh "
+                         "bìa, tên nhân vật hay quy tắc chữ tiêu đề. "
+                         "Mở đầu dòng bằng cover: / thumb1: / thumb2: để chỉ áp cho ảnh đó.",
+                )
+                sc = st.columns([1, 1])
+                use_seed = sc[0].checkbox(
+                    "Cố định phong cách", key="regen_use_seed",
+                    help="Dùng cùng một seed thì bộ màu / bố cục / ống kính lặp lại y hệt "
+                         "giữa các lần tạo. Bỏ trống thì mỗi lần một kiểu.",
+                )
+                seed = sc[1].number_input(
+                    "Seed", min_value=0, max_value=10**9, value=12345, step=1,
+                    key="regen_seed", disabled=not use_seed, label_visibility="collapsed",
+                )
+
                 def _regen(which: str, label: str):
+                    body = {"which": which, "notes": st.session_state.get("regen_notes", "")}
+                    if st.session_state.get("regen_use_seed"):
+                        body["seed"] = int(st.session_state.get("regen_seed") or 0)
                     try:
                         with st.spinner(f"Đang tạo lại {label}… (có thể mất 1–2 phút)"):
                             api_post(f"/stories/{sid}/regenerate-images",
-                                     json={"which": which}, timeout=600)
+                                     json=body, timeout=600)
                         st.toast(f"Đã tạo lại {label}.")
                         st.rerun()
                     except requests.HTTPError as e:

@@ -28,6 +28,12 @@ brightness, palette strength, composition and wardrobe register have no check he
 a prompt that departs from them is not reporting-worthy. Only the seven checks below
 are.
 
+**USER DIRECTION, if present, is a deliberate request and outranks the ART DIRECTION.**
+A prompt that follows it is correct even where it contradicts the drawn style — never
+report that as a fault. The seven checks below still apply: a user asking for something
+that would break the story's era, put someone other than the protagonist in the cover
+foreground, use a name not in the cast, or damage the title still gets flagged.
+
 **`issues` is a fault list, not an audit report.** A check that PASSES produces no
 entry at all. Never write an entry saying something is correct, present, consistent or
 appropriate — every entry you return is a defect the writer will be told to change, so

@@ -397,11 +397,37 @@ def _world_block(story: Story) -> str:
     return "\n\n".join(parts) + "\n\n" if parts else ""
 
 
-def _build_prompts(session: Session, story: Story, meta: NovelMetadataOut | None) -> ImagePromptSetOut:
+def _user_direction(notes: str) -> str:
+    """The caller's own instructions for this run, and what they may override.
+
+    Both the prompt writer and the verifier get this block. Giving it to only one of
+    them is what makes the verify loop oscillate: the writer follows the request, the
+    verifier has never heard of it and reports the result as a fault, every round.
+    """
+    notes = (notes or "").strip()
+    if not notes:
+        return ""
+    return (
+        "## USER DIRECTION — what the person requesting these images asked for\n"
+        f"{notes}\n\n"
+        "This OVERRIDES the ART DIRECTION menu above wherever the two disagree: the "
+        "menu was drawn at random, this was asked for deliberately. It does NOT "
+        "override the story's own era, the protagonist holding the cover foreground, "
+        "the cast's names, the title being complete and drawn once inside the safe "
+        "area, or the poster-safe limits — those hold regardless.\n"
+        "A line beginning `cover:`, `thumb1:` or `thumb2:` applies to that image only; "
+        "anything else applies to all three.\n\n"
+    )
+
+
+def _build_prompts(session: Session, story: Story, meta: NovelMetadataOut | None,
+                   notes: str = "", seed: int | None = None) -> ImagePromptSetOut:
     tags = ", ".join(meta.tags) if (meta and meta.tags) else (story.genre or "")
     system = load_prompt("image_prompt")
-    art_direction = _art_direction()
+    art_direction = _art_direction(seed)
     logger.info("[%s] art direction for this run:\n%s", story.slug, art_direction)
+    if notes:
+        logger.info("[%s] user direction: %s", story.slug, notes.strip()[:300])
     logline = (meta.logline if meta and meta.logline else "")
     dynamics = _relationship_dynamics(session, story.id)
     cast = _character_lines(session, story.id)
@@ -419,7 +445,8 @@ def _build_prompts(session: Session, story: Story, meta: NovelMetadataOut | None
         # The cast lines carry each character's age in the novel, and the writer copies
         # the lead's verbatim ("in her late twenties") unless told otherwise right
         # here — costing three verify rounds on every single run to undo.
-        f"{_CASTING_AGE_NOTE}"
+        f"{_CASTING_AGE_NOTE}\n"
+        f"{_user_direction(notes)}"
     )
 
     def draft(feedback: str = "") -> ImagePromptSetOut:
@@ -436,6 +463,7 @@ def _build_prompts(session: Session, story: Story, meta: NovelMetadataOut | None
         f"## CAST\n{cast}\n\n"
         f"{_CASTING_AGE_NOTE}\n"
         f"## ART DIRECTION DRAWN FOR THIS RUN\n{art_direction}\n"
+        f"{_user_direction(notes)}"
         f"## TITLE (exact)\n{story.title}\n"
     )
     return _verify_prompts(story, prompts, facts, draft)
@@ -534,19 +562,26 @@ def _existing_image_bytes(out_dir, stem: str) -> bytes | None:
 
 
 def generate(session: Session, story: Story, out_dir,
-             meta: NovelMetadataOut | None = None, only: str | None = None) -> list[str]:
+             meta: NovelMetadataOut | None = None, only: str | None = None,
+             notes: str = "", seed: int | None = None) -> list[str]:
     """Generate cover + 2 thumbnails into out_dir. Best-effort; returns filenames written.
 
     only: None/"all" regenerates every image; or one of "cover"/"thumbnail1"/
     "thumbnail2" to regenerate just that one. When a thumbnail is regenerated
     without the cover, the existing cover on disk is loaded as the identity
     reference so the same faces carry over.
+
+    notes: free-text steering for this run ("warmer, put her in red", "thumb2:
+    less contact"). Overrides the randomly drawn art direction, never the story's
+    era, the cast, or the title rules.
+    seed: fixes the art-direction draw, so a run can be reproduced. Left None the
+    menus are drawn fresh and two runs of the same story look different.
     """
     targets = set(_ALL_STEMS) if (not only or only == "all") else {only}
     if not targets <= set(_ALL_STEMS):
         raise ValueError(f"unknown image target {only!r}")
     try:
-        prompts = _build_prompts(session, story, meta)
+        prompts = _build_prompts(session, story, meta, notes=notes, seed=seed)
     except Exception as exc:
         logger.warning("[%s] image prompt design failed, skipping images: %s", story.slug, exc)
         return []
