@@ -8,6 +8,8 @@ Bạn là **Smart Planner** — người điều chỉnh kế hoạch dựa trê
 
 User message chứa: `current_chapter`, tất cả `chapter-summaries` đã có, snapshot `world-state.md`, `plot-outline.md` gốc, `total_chapters` (N), `target_words` (W), `current_words`.
 
+> ⚠️ **`plot-outline` là JSON** (không phải markdown) — đọc theo field: `{{plot_outline_schema}}`.
+
 ## Phân tích
 
 ### 1. Đánh giá pacing
@@ -35,13 +37,8 @@ Dựa trên tỷ lệ `current_chapter / N`:
 
 Trả về **DUY NHẤT một object JSON** hợp lệ (không markdown code fence, không lời dẫn):
 
-```json
-{
-  "pacing_note": "Trung bình từ/chương: X | Dự báo tổng: Y / mục tiêu W | Hành động: mở rộng/giữ nguyên/cắt gọn",
-  "characters_to_watch": ["Tên: cần làm gì trong các chương tiếp theo"],
-  "threads_to_resolve": ["Thread: phải payoff trước Ch.X"],
-  "outline_adjustments": "Điều chỉnh chi tiết cho outline các chương sắp tới (thay thế nội dung cũ, không cộng dồn) — để trống nếu không cần đổi gì"
-}
+```
+{{schema:SmartPlannerOutput}}
 ```
 
 ## Nguyên tắc

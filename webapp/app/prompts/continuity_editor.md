@@ -35,16 +35,8 @@ Nếu nghi ngờ một mâu thuẫn nhưng cần xác minh chi tiết lịch s�
 
 Trả về **DUY NHẤT một object JSON** hợp lệ (không markdown code fence, không lời dẫn):
 
-```json
-{
-  "critical_issues": [
-    {"description": "Ch.X vs Ch.Y: mô tả mâu thuẫn", "suggestion": "gợi ý sửa"}
-  ],
-  "minor_issues": [
-    {"description": "...", "suggestion": "..."}
-  ],
-  "batch_note": "1-2 câu nhận xét ngắn về batch Ch.{batch_end-4}-{batch_end}"
-}
+```
+{{schema:ContinuityEditorOutput}}
 ```
 
 Nếu không phát hiện vấn đề: cả hai mảng để rỗng `[]`, `batch_note` ghi "Không phát hiện mâu thuẫn đáng kể tính đến Chương {batch_end}."

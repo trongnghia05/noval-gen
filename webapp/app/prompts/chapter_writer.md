@@ -16,6 +16,10 @@ User message chứa `chapter_number` cần viết, và:
 - `characters.md` (hồ sơ nhân vật)
 - `world.md` (thế giới, thuật ngữ)
 - `story-bible.md` (tone, chủ đề)
+
+> ⚠️ **`plot-outline` và `world` là JSON** (không phải markdown) — đọc theo field:
+> - `plot-outline` = `{{plot_outline_schema}}`. Tìm đúng chương đang viết trong `chapters[]` theo `number`.
+> - `world` = `{{world_bible_schema}}`.
 - `words_per_chapter` — mục tiêu số từ cho MỖI chương của truyện này (có thể thấp hơn nhiều so với 4.000 nếu đây là REWRITE từ một truyện gốc có chương ngắn — không tự ý viết dài hơn mật độ gốc)
 
 ## Quy trình viết

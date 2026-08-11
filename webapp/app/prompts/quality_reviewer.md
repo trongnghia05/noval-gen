@@ -10,6 +10,8 @@ The user message contains a `language` field. All `description`, `suggestion`, a
 
 User message contains: `language`, `input_type`, chapter number, `words_per_chapter` (target) and actual `word_count`, `world.md` (new story world definition), `story-bible.md` (tone/setting/genre). For REWRITE, also includes the **new graph's planned event node** for this chapter. Always includes: the **dialogue plan** (blueprint contract), the **valid character roster** (only these may appear/speak), and **character voices**.
 
+> ⚠️ **`world` is JSON** (not markdown) — read it by field: `{{world_bible_schema}}`.
+
 ## Axis 1 — QUALITY (all story types)
 
 Flag if the chapter has any of the following:
@@ -76,13 +78,8 @@ Do NOT flag a character appearing as he/she in dialogue or action — that is no
 
 Return **ONLY a valid JSON object** (no markdown fence, no preamble):
 
-```json
-{
-  "issues": [
-    {"dimension": "quality", "description": "specific description", "suggestion": "how to fix", "severity": "critical"}
-  ],
-  "verdict_note": "1 sentence summary of the chapter"
-}
+```
+{{schema:QualityReviewerOutput}}
 ```
 
 `dimension` is `"quality"`, `"world_consistency"`, `"graph_consistency"`, `"dialogue"`, or `"pov"`. No issues: `"issues": []`.

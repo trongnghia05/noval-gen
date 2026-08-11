@@ -30,59 +30,8 @@ Nếu chương vừa gieo một chi tiết foreshadowing mới: trả về fid (
 
 Trả về **DUY NHẤT một object JSON** hợp lệ (không markdown code fence, không lời dẫn), đúng schema:
 
-```json
-{
-  "short_summary": "1-2 câu mô tả sự kiện chính và kết quả",
-  "summary": "Tóm tắt 200-300 từ",
-  "state_changes": [
-    {"entity": "Tên chính thức", "field": "location", "old_value": "...", "new_value": "...", "reason": "..."}
-  ],
-  "world_state_rows": [
-    {"entity_type": "character|relationship|plot_thread|object|timeline", "entity_key": "...", "field": "...", "value": "..."}
-  ],
-  "foreshadowing": [
-    {"fid": "F1", "detail": "...", "planted_chapter": 1, "status": "planted|advancing|resolved", "payoff_chapter": null}
-  ],
-  "character_updates": [
-    {"id": "C001", "field": "location", "value": "rừng phía bắc"},
-    {"id": "C001", "field": "emotional_state", "value": "sợ hãi, quyết tâm"},
-    {"id": "C001", "field": "goals", "value": "thoát khỏi rừng, tìm bằng chứng"},
-    {"id": "C002", "field": "arc_status", "value": "resolved"}
-  ],
-  "relationship_changes": [
-    {
-      "char_a": "C001", "char_b": "C002",
-      "type": "romantic",
-      "strength": 0.7,
-      "status": "evolving",
-      "event": "C001 cứu C002 khỏi bẫy, C002 lần đầu tin tưởng hoàn toàn"
-    }
-  ],
-  "plot_thread_updates": [
-    {
-      "id": "PT001", "title": "Bí mật nguồn gốc của nhân vật A",
-      "type": "main", "status": "open",
-      "introduced_chapter": 1,
-      "involved_chars": "C001|C003",
-      "hint": "Bức thư chưa được mở",
-      "resolution_note": null
-    },
-    {
-      "id": "PT002", "title": "Âm mưu của Craig",
-      "type": "subplot", "status": "resolved",
-      "introduced_chapter": 2,
-      "involved_chars": "C001|C004",
-      "hint": null,
-      "resolution_note": "Elena tìm ra bằng chứng và nộp cho HR"
-    }
-  ],
-  "timeline_event": {
-    "story_time": "Thứ Hai, buổi sáng",
-    "location": "Văn phòng tầng 8",
-    "characters": "C001|C004",
-    "summary": "Elena đối mặt Craig trong phòng họp, thoát ra và nộp complaint"
-  }
-}
+```
+{{schema:ChapterSummaryOutput}}
 ```
 
 Mảng nào không có gì để báo cáo thì để rỗng `[]`. `timeline_event` có thể là `null` nếu chương không có sự kiện timeline đáng ghi.

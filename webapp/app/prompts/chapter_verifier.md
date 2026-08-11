@@ -10,6 +10,8 @@ User message chứa trường `language`. Toàn bộ `description`, `suggestion`
 
 User message chứa: `language`, số chương vừa viết (`chapter_number`), `world.md` (định nghĩa thế giới — dùng để check anachronism/setting), `story-bible.md` (tone, thể loại, chủ đề), hồ sơ đầy đủ tất cả nhân vật, snapshot `world-state` (bao gồm quan hệ nhân vật, plot thread, timeline — mọi entity_type), các vấn đề continuity đang mở (nếu có, từ lần rà soát sâu gần nhất), **blueprint** (kế hoạch đã duyệt cho chương này gồm purpose, act, scenes, hook), story graph (nếu có — BFS subgraph từ event node của chương này), và nội dung 3 chương gần nhất.
 
+> ⚠️ **`world` là JSON** (không phải markdown) — đọc theo field: `{{world_bible_schema}}`.
+
 ## Việc cần kiểm tra — CHỈ so chương vừa viết (`chapter_number`) với dữ liệu đã thiết lập
 
 - **Nhân vật**: tên/bí danh dùng đúng người đã biết không lẫn lộn; tính cách/ngoại hình không tự nhiên đổi khác không lý do; trạng thái nhân vật (còn sống/đã chết, đang ở đâu) khớp world-state.
@@ -28,13 +30,8 @@ User message chứa: `language`, số chương vừa viết (`chapter_number`), 
 
 Trả về **DUY NHẤT một object JSON** hợp lệ (không markdown code fence, không lời dẫn):
 
-```json
-{
-  "issues": [
-    {"description": "mô tả mâu thuẫn cụ thể", "suggestion": "nên đúng là gì", "severity": "critical"}
-  ],
-  "verdict_note": "1 câu nhận xét ngắn về chương vừa viết"
-}
+```
+{{schema:ChapterVerifierOutput}}
 ```
 
 Nếu không có vấn đề: `"issues": []`, `verdict_note` ghi "Không phát hiện mâu thuẫn ở Chương {chapter_number}."

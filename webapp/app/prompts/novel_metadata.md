@@ -29,16 +29,7 @@ User message contains: `language`, `title`, `genre`, total `word_count`, the `st
 - `summary` must be within 120-180 words. Count.
 
 ## Output — JSON schema: NovelMetadataOut
-```json
-{
-  "author": "...",
-  "tags": ["...", "..."],
-  "logline": "...",
-  "summary": "...",
-  "characters": [
-    {"name": "<exact name from cast>", "role": "<exact role from cast>",
-     "blurb": "2-3 sentences on what they do in the plot."}
-  ]
-}
+```
+{{schema:NovelMetadataOut}}
 ```
 Return ONLY the JSON object — no markdown fences, no preamble.

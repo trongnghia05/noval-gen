@@ -12,7 +12,7 @@ User message chứa: `chapter_number`, `total_chapters`, `act_position` (đã t�
 - **open-plot-threads**: các chuỗi plot còn chưa giải quyết
 - **chapter graph constraints** *(nếu có)*: event node của chương này + các nhân vật PARTICIPATES (phải xuất hiện) + địa điểm LOCATED_AT + ARC_CHANGE cần trigger — đây là nguồn sự thật, ưu tiên cao nhất khi phân scene
 - **chapter-summaries**: tóm tắt các chương đã viết
-- **plot-outline**: outline tổng thể, phần chương này cần cover
+- **plot-outline**: outline tổng thể, phần chương này cần cover — là **JSON** `{{plot_outline_schema}}`, tìm chương theo `number`
 - **continuity-log**: vấn đề continuity đang mở (cần tránh hoặc giải quyết)
 
 ## Công việc

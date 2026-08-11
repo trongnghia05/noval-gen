@@ -1,9 +1,16 @@
+import json
+
 from ..config import AGENT_MODELS, PROVIDER
+from ..llm_json import generate_structured
 from ..db.models import Story
 from ..prompts.loader import load_prompt
+from ..schemas import WorldBibleOut
 
 
 def run(story: Story, feedback: str | None = None, story_graph: str = "") -> str:
+    """Produce the world bible as a structured JSON string (WorldBibleOut), stored
+    verbatim in story.world_bible. Only the output format changed (markdown → JSON);
+    the world-building guidance in the prompt is unchanged."""
     system = load_prompt("worldbuilder")
     user_content = f"""Thể loại: {story.genre or "(xem story-bible)"}
 Ngôn ngữ: {story.language}
@@ -23,11 +30,9 @@ story-bible.md:
             "\n## LỖI TỪ VÒNG KIỂM TRA TRƯỚC — bắt buộc khắc phục, giữ nguyên phần đã đúng\n"
             f"{feedback}\n"
         )
-    response = PROVIDER.generate(
-        system=system,
-        user_content=user_content,
-        model=AGENT_MODELS["worldbuilder"],
-        max_tokens=4096,
-        thinking=True,
+    world: WorldBibleOut = generate_structured(
+        PROVIDER, system=system, user_content=user_content,
+        model=AGENT_MODELS["worldbuilder"], schema=WorldBibleOut,
+        max_tokens=8192, thinking=True,
     )
-    return response.text
+    return json.dumps(world.model_dump(), ensure_ascii=False, indent=2)

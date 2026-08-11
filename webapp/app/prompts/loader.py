@@ -2,6 +2,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from ..market import market_block
+from ..schema_hints import _resolve_schema_placeholders
 
 PROMPTS_DIR = Path(__file__).parent
 
@@ -21,6 +22,11 @@ _MARKET_AWARE = {
 @lru_cache(maxsize=None)
 def load_prompt(name: str) -> str:
     text = (PROMPTS_DIR / f"{name}.md").read_text(encoding="utf-8")
+    # Substitute schema placeholders with hints generated from the Pydantic models
+    # — the single source of truth. `{{schema:ModelName}}` → annotated output
+    # contract; `{{plot_outline_schema}}`/`{{world_bible_schema}}` → compact input
+    # shape. Change a model and every prompt referencing it updates automatically.
+    text = _resolve_schema_placeholders(text)
     if name in _MARKET_AWARE:
         text = f"{text}\n\n{market_block()}\n"
     return text

@@ -46,52 +46,13 @@ Phân bổ N chương theo tỷ lệ (làm tròn số chương mỗi hồi, đ�
 
 ## Đầu ra
 
-Trả về TOÀN BỘ `plot-outline.md` dưới dạng markdown, đúng cấu trúc sau cho tất cả N chương — không thêm lời dẫn:
+Trả về một **đối tượng JSON** (KHÔNG markdown, KHÔNG lời dẫn) đúng schema sau (chú thích `//` chỉ để giải thích field, KHÔNG đưa vào output):
 
-```markdown
-# Plot Outline — [Tên Truyện]
-
-## Tổng quan arc
-[2-3 câu mô tả hành trình tổng thể]
-
----
-
-## CHƯƠNG 1: [Tiêu đề]
-**Hồi**: 1 | **Mục tiêu từ**: [words_per_chapter đã cho, dao động ±15%]
-**Vị trí trong arc**: Hook / Mở đầu
-
-### Mục tiêu chương
-- [Điều gì phải được thiết lập/xảy ra trong chương này]
-
-### Các cảnh (3-4 cảnh)
-
-**Cảnh 1.1 — [Tên cảnh]**
-- Địa điểm: ...
-- Nhân vật có mặt: ...
-- Điều xảy ra: ...
-- Kết thúc cảnh bằng: ... (hook để đọc tiếp)
-
-**Cảnh 1.2 — [Tên cảnh]**
-[tương tự]
-
-### Thông tin nhân vật trong chương
-- Nhân vật chính ở đây đang: [trạng thái nội tâm]
-- Nhân vật phụ X đóng vai: ...
-
-### Plot threads
-- Mở: [thread mới bắt đầu]
-- Tiến: [thread đang tiến triển]
-
-### Cliffhanger / Hook cuối chương
-[Câu hỏi hoặc căng thẳng để lại]
-
----
-
-## CHƯƠNG 2: [Tiêu đề]
-[tiếp tục cấu trúc trên...]
+```
+{{schema:PlotOutlineOut}}
 ```
 
-Viết đầy đủ tất cả N chương theo cấu trúc này.
+Mỗi chương 3-4 cảnh trong `scenes`. Điền đủ tất cả N chương trong mảng `chapters`, đúng thứ tự `number` từ 1 đến N.
 
 ## Nguyên tắc
 
