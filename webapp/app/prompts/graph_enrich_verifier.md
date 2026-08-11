@@ -45,18 +45,8 @@ User message contains:
   voices must be distinct across the cast).
 
 ## Output — JSON schema: GraphEnrichVerifyOutput
-```json
-{
-  "issues": [
-    {
-      "target": "C003",
-      "dimension": "naming",
-      "problem": "node C003's label is 'Kaelan' but its background calls the character 'Jian Li'",
-      "fix": "rewrite C003's fields using only the exact name 'Kaelan'; remove 'Jian Li'"
-    }
-  ],
-  "note": "one short sentence; say 'clean' if no issues"
-}
+```
+{{schema:GraphEnrichVerifyOutput}}
 ```
 If the output is fully correct, return `"issues": []`. Be precise: each issue names
 the exact target and a concrete fix. Return ONLY the JSON object.

@@ -34,16 +34,8 @@ The source summary is a REFERENCE for plot function only — never a text to par
 
 ## Output — JSON schema: EventGroupEnrichOutput
 
-```json
-{
-  "events": [
-    {
-      "node_key": "E001",
-      "new_summary": "..."
-    }
-  ],
-  "note": "brief summary"
-}
+```
+{{schema:EventGroupEnrichOutput}}
 ```
 
 Return ONLY the JSON object — no markdown fences, no preamble.

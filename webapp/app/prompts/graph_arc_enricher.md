@@ -28,18 +28,8 @@ For each ARC_CHANGE, produce:
 
 ## Output — JSON schema: ArcChangeGroupEnrichOutput
 
-```json
-{
-  "arc_changes": [
-    {
-      "source_key": "C001",
-      "chapter_from": 3,
-      "new_old_val": "...",
-      "new_new_val": "..."
-    }
-  ],
-  "note": "brief summary"
-}
+```
+{{schema:ArcChangeGroupEnrichOutput}}
 ```
 
 Return ONLY the JSON object — no markdown fences, no preamble.

@@ -596,104 +596,88 @@ class GraphSurfaceRepairOutput(BaseModel):
 # ── new_graph_builder per-group enrichment ─────────────────────────────────────
 
 class CharacterSurfaceOut(BaseModel):
-    node_key: str
-    # Cast role in the NEW story. Assigned here because this is the only step that
-    # sees the whole cast at once; before it existed, role was merely inherited from
-    # whatever the source extraction happened to record, so a new graph could end up
-    # with nobody marked protagonist at all. Downstream this drives character tier
-    # (who reaches the cover art and the per-chapter context) and tells the name
-    # lexicon which character deserves a memorable name.
+    node_key: str = Field(description="node nhân vật cần enrich")
     new_role: str = Field(
         default="",
-        description="EXACTLY ONE OF: protagonist | antagonist | love_interest | "
-                    "supporting | minor. No other value, no compound labels.",
+        description="ĐÚNG MỘT TRONG: protagonist | antagonist | love_interest | "
+                    "supporting | minor. Không giá trị khác, không nhãn ghép.",
     )
-    # Gender for the NEW world, chosen to be self-consistent: it must match the new
-    # name's gender signal, the character's role/relationships in the new plot, and
-    # every pronoun used in arc/background/voice/appearance. male|female|nonbinary.
-    new_gender: str = ""
-    new_arc_stage: str
-    new_wants: str
-    new_fears: str
-    new_background: str = ""
-    new_speech_pattern: str = ""      # short one-liner (CSV column)
-    # Rich, multi-line voice guide the chapter_writer uses to make dialogue
-    # distinct: register, vocabulary, sentence rhythm, verbal tic/"tell",
-    # and 2-3 sample lines — all in the NEW world, no source prose.
-    new_voice_profile: str = ""
-    # Distinctive PHYSICAL appearance for the poster/image art. Attractive, but a
-    # SPECIFIC individual (heritage/ethnicity, face shape, hair, eye colour, one or
-    # two memorable-but-still-good-looking features) that differs from a generic
-    # model-default face — so different stories yield clearly different-looking people.
-    new_appearance: str = ""
+    new_gender: str = Field("", description="male|female|nonbinary — khớp tên mới + mọi đại từ dùng ở arc/background/voice/appearance")
+    new_arc_stage: str = Field(description="trạng thái nội tâm hiện tại (thế giới mới)")
+    new_wants: str = Field(description="mục tiêu/khao khát (thế giới mới)")
+    new_fears: str = Field(description="nỗi sợ/điểm yếu (thế giới mới)")
+    new_background: str = Field("", description="backstory (thế giới mới)")
+    new_speech_pattern: str = Field("", description="một dòng ngắn (cột CSV)")
+    new_voice_profile: str = Field("", description='hướng dẫn giọng nhiều dòng theo format "REGISTER: …\\nVOCABULARY: …\\nRHYTHM: …\\nTIC/TELL: …\\nSAMPLE LINES:\\n- \\"…\\"\\n- \\"…\\"" — thế giới mới, không lấy prose gốc')
+    new_appearance: str = Field("", description="ngoại hình vật lý ĐẶC TRƯNG cho ảnh bìa: một cá thể cụ thể (heritage, dáng mặt, tóc, màu mắt, 1-2 nét dễ nhớ) khác gương mặt mặc định")
 
 
 class CharacterGroupEnrichOutput(BaseModel):
-    characters: list[CharacterSurfaceOut]
-    note: str = ""
+    characters: list[CharacterSurfaceOut] = Field(description="mỗi nhân vật một entry")
+    note: str = Field("", description="ghi chú tuỳ chọn")
 
 
 class EventSurfaceOut(BaseModel):
-    node_key: str
-    new_summary: str
+    node_key: str = Field(description="node sự kiện")
+    new_summary: str = Field(description="tóm tắt sự kiện đọc như một beat của thế giới mới")
 
 
 class EventGroupEnrichOutput(BaseModel):
-    events: list[EventSurfaceOut]
-    note: str = ""
+    events: list[EventSurfaceOut] = Field(description="mỗi sự kiện một entry")
+    note: str = Field("", description="ghi chú tuỳ chọn")
 
 
 class ArcChangeSurfaceOut(BaseModel):
-    source_key: str
-    chapter_from: int | None
-    new_old_val: str
-    new_new_val: str
+    source_key: str = Field(description="node nhân vật (self-loop ARC_CHANGE)")
+    chapter_from: int | None = Field(description="chương xảy ra thay đổi")
+    new_old_val: str = Field(description="trạng thái trước (thế giới mới)")
+    new_new_val: str = Field(description="trạng thái sau (thế giới mới)")
 
 
 class ArcChangeGroupEnrichOutput(BaseModel):
-    arc_changes: list[ArcChangeSurfaceOut]
-    note: str = ""
+    arc_changes: list[ArcChangeSurfaceOut] = Field(description="mỗi arc-change một entry")
+    note: str = Field("", description="ghi chú tuỳ chọn")
 
 
 class RelationSurfaceOut(BaseModel):
-    source_key: str
-    target_key: str
-    chapter_from: int | None
-    new_rel_type: str    # friendship|rivalry|love|family|mentor|debt|alliance|betrayal|distrust
-    new_label: str
+    source_key: str = Field(description="node nhân vật nguồn")
+    target_key: str = Field(description="node nhân vật đích")
+    chapter_from: int | None = Field(description="chương quan hệ này bắt đầu")
+    new_rel_type: str = Field(description="friendship|rivalry|love|family|mentor|debt|alliance|betrayal|distrust")
+    new_label: str = Field(description="mô tả ngắn quan hệ (thế giới mới)")
 
 
 class RelationGroupEnrichOutput(BaseModel):
-    relations: list[RelationSurfaceOut]
-    note: str = ""
+    relations: list[RelationSurfaceOut] = Field(description="mỗi quan hệ một entry")
+    note: str = Field("", description="ghi chú tuỳ chọn")
 
 
 class CausesSurfaceOut(BaseModel):
-    source_key: str
-    target_key: str
-    new_mechanism: str
-    new_label: str = ""
+    source_key: str = Field(description="node sự kiện nguyên nhân")
+    target_key: str = Field(description="node sự kiện kết quả")
+    new_mechanism: str = Field(description="cơ chế nhân quả (thế giới mới)")
+    new_label: str = Field("", description="nhãn ngắn cho liên kết")
 
 
 class CausesGroupEnrichOutput(BaseModel):
-    causes: list[CausesSurfaceOut]
-    note: str = ""
+    causes: list[CausesSurfaceOut] = Field(description="mỗi liên kết nhân quả một entry")
+    note: str = Field("", description="ghi chú tuỳ chọn")
 
 
 # ── graph_enrich_verifier (per-enricher quality/logic/naming gate) ─────────────
 
 class GraphEnrichIssueOut(BaseModel):
     """One problem the enrich-verifier found in a group's enriched output."""
-    target: str = ""        # which node_key / edge (e.g. "C003" or "C003→C007")
-    dimension: Literal["naming", "logic", "quality"] = "naming"
-    problem: str            # what is wrong
-    fix: str = ""           # concrete instruction for the re-enrichment
+    target: str = Field("", description='node_key/cạnh liên quan, VD "C003" hoặc "C003→C007"')
+    dimension: Literal["naming", "logic", "quality"] = Field("naming", description="loại lỗi")
+    problem: str = Field(description="lỗi là gì")
+    fix: str = Field("", description="chỉ dẫn cụ thể để re-enrich")
 
 
 class GraphEnrichVerifyOutput(BaseModel):
     """Verdict on one enrichment group. `issues` empty ⇒ the group passed."""
-    issues: list[GraphEnrichIssueOut] = []
-    note: str = ""
+    issues: list[GraphEnrichIssueOut] = Field(default=[], description="rỗng ⇒ nhóm đạt")
+    note: str = Field("", description="ghi chú tuỳ chọn")
 
 
 # ── graph_verifier ─────────────────────────────────────────────────────────────

@@ -108,24 +108,8 @@ For each character, produce:
 
 ## Output — JSON schema: CharacterGroupEnrichOutput
 
-```json
-{
-  "characters": [
-    {
-      "node_key": "C001",
-      "new_role": "protagonist | antagonist | love_interest | supporting | minor — exactly one, no other wording",
-      "new_gender": "male | female | nonbinary — consistent with the new name, plot role, and all pronouns below",
-      "new_arc_stage": "...",
-      "new_wants": "...",
-      "new_fears": "...",
-      "new_background": "...",
-      "new_speech_pattern": "one-line summary",
-      "new_voice_profile": "REGISTER: ...\nVOCABULARY: ...\nRHYTHM: ...\nTIC/TELL: ...\nSAMPLE LINES:\n- \"...\"\n- \"...\"",
-      "new_appearance": "1-2 câu tả DIỆN MẠO cho poster: tuổi, HERITAGE/sắc tộc cụ thể, hình mặt, tóc, màu mắt/da, 1-2 nét đáng nhớ. ĐẸP/ưa nhìn nhưng là MỘT NGƯỜI CỤ THỂ, không phải 'người đẹp generic'."
-    }
-  ],
-  "note": "brief summary of enrichment decisions"
-}
+```
+{{schema:CharacterGroupEnrichOutput}}
 ```
 
 Return ONLY the JSON object — no markdown fences, no preamble.
