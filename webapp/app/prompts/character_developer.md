@@ -19,30 +19,8 @@ Xác định tất cả nhân vật xuất hiện trong plot-outline. Tạo hồ
 
 Trả về **DUY NHẤT một object JSON** hợp lệ (không có markdown code fence, không có lời dẫn), đúng schema sau:
 
-```json
-{
-  "characters": [
-    {
-      "name": "Tên chính thức của nhân vật",
-      "aliases": ["biệt hiệu 1", "cách gọi khác 2"],
-      "tier": "core | important | secondary",
-      "profile_md": "Toàn bộ hồ sơ nhân vật viết bằng markdown, gồm: Thông tin cơ bản (tuổi, ngoại hình, nghề nghiệp/vai trò), Tâm lý & Tính cách (điểm mạnh, điểm yếu/vết thương tâm lý, nỗi sợ lớn nhất, khao khát sâu thẳm nhất, niềm tin sai lầm), Backstory (2-3 đoạn cho core/important, 1 đoạn cho secondary), Arc của nhân vật (bắt đầu/midpoint/kết thúc/bài học — bỏ qua nếu secondary), Quan hệ với các nhân vật khác."
-    }
-  ],
-  "character_graph": [
-    {
-      "id": "C001",
-      "name": "Tên chính thức — phải khớp với characters[i].name",
-      "role": "protagonist | antagonist | supporting | minor",
-      "initial_location": "Vị trí ở đầu truyện",
-      "initial_emotional_state": "Tâm trạng ở đầu truyện",
-      "initial_goals": "mục tiêu 1, mục tiêu 2",
-      "initial_secrets": "bí mật 1, bí mật 2",
-      "speech_pattern": "2-3 câu mô tả cách nhân vật này nói: nhịp câu, từ dùng nhiều, cách thể hiện cảm xúc qua lời thoại"
-    }
-  ],
-  "character_voices_md": "## [Tên nhân vật 1]\n[Hướng dẫn giọng văn chi tiết]\n\n## [Tên nhân vật 2]\n..."
-}
+```
+{{schema:CharacterDeveloperOutput}}
 ```
 
 **`character_graph`**: Mỗi nhân vật trong `characters` phải có một entry tương ứng trong `character_graph` với cùng `name`. ID đặt theo thứ tự C001, C002, C003...

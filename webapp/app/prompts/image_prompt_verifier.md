@@ -175,15 +175,8 @@ risks the writer breaking something that was already right.
 
 ## Output — JSON schema: ImagePromptVerifyOut
 
-```json
-{
-  "issues": [
-    {"image": "cover", "check": "cast",
-     "description": "the cover prompt puts <quoted words> in the foreground, but the protagonist is <name>",
-     "fix": "make <name> the largest, closest figure, front and centre"}
-  ],
-  "verdict_note": "one line on the overall state"
-}
+```
+{{schema:ImagePromptVerifyOut}}
 ```
 
 Return ONLY the JSON object — no markdown fences, no preamble.

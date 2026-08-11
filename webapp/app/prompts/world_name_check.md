@@ -25,11 +25,8 @@ User message contains the world-design fields (setting, archetypes, location
 concepts, narrative summary, etc.) as plain text.
 
 ## Output — JSON schema: WorldNameCheckOutput
-```json
-{
-  "proper_names": ["every invented proper name found; empty list if the text is fully role-based"],
-  "note": "one short sentence: clean, or which kinds of names leaked"
-}
+```
+{{schema:WorldNameCheckOutput}}
 ```
 Be thorough — list EVERY occurrence type once. If the text is genuinely name-free,
 return an empty `proper_names` list. Return ONLY the JSON object.

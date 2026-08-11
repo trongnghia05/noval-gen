@@ -142,28 +142,28 @@ class ChapterGraphOutput(BaseModel):
 # ── character_developer ────────────────────────────────────────────────────────
 
 class CharacterOut(BaseModel):
-    name: str
-    aliases: list[str] = []
-    tier: str
-    profile_md: str
+    name: str = Field(description="tên nhân vật")
+    aliases: list[str] = Field(default=[], description="các cách gọi khác/biệt danh")
+    tier: str = Field(description="core | important | secondary")
+    profile_md: str = Field(description="hồ sơ markdown đầy đủ: Thông tin cơ bản (tuổi, ngoại hình, nghề/vai); Tâm lý & Tính cách (điểm mạnh, điểm yếu/vết thương, nỗi sợ lớn nhất, khao khát sâu nhất, niềm tin sai lầm); Backstory (2-3 đoạn core/important, 1 đoạn secondary); Arc (bắt đầu/midpoint/kết/bài học — bỏ nếu secondary); Quan hệ với nhân vật khác")
 
 
 class CharacterGraphInitOut(BaseModel):
     """CSV-ready initial state for one character."""
-    id: str                  # C001, C002, ... assigned by the model
-    name: str                # must match CharacterOut.name exactly
-    role: str                # protagonist | antagonist | supporting | minor
-    initial_location: str
-    initial_emotional_state: str
-    initial_goals: str       # comma-separated
-    initial_secrets: str     # comma-separated
-    speech_pattern: str      # 1-3 sentences describing how they speak
+    id: str = Field(description="C001, C002, … do model gán")
+    name: str = Field(description="phải khớp CharacterOut.name chính xác")
+    role: str = Field(description="protagonist | antagonist | supporting | minor")
+    initial_location: str = Field(description="vị trí ban đầu")
+    initial_emotional_state: str = Field(description="trạng thái cảm xúc ban đầu")
+    initial_goals: str = Field(description="mục tiêu, ngăn bằng dấu phẩy")
+    initial_secrets: str = Field(description="bí mật, ngăn bằng dấu phẩy")
+    speech_pattern: str = Field(description="1-3 câu mô tả cách nói")
 
 
 class CharacterDeveloperOutput(BaseModel):
-    characters: list[CharacterOut]
-    character_graph: list[CharacterGraphInitOut]
-    character_voices_md: str  # full markdown voice guide, one section per character
+    characters: list[CharacterOut] = Field(description="danh sách nhân vật với hồ sơ")
+    character_graph: list[CharacterGraphInitOut] = Field(description="trạng thái CSV ban đầu mỗi nhân vật")
+    character_voices_md: str = Field(description="hướng dẫn giọng markdown đầy đủ, mỗi nhân vật một section ## Tên")
 
 
 # ── novel metadata (front matter for the exported file) ─────────────────────────
@@ -185,25 +185,24 @@ class NovelMetadataOut(BaseModel):
 
 class ImagePromptIssueOut(BaseModel):
     """One fault found in a drafted poster prompt, phrased so it can be fixed."""
-    image: str          # cover | thumb1 | thumb2 | all
-    check: str          # era | protagonist | age | dynamic | title | wardrobe |
-                        # variety | colour | cast — which rule was broken
-    description: str    # what the prompt currently says that is wrong — quote it
-    fix: str            # the concrete correction to make
+    image: str = Field(description="cover | thumb1 | thumb2 | all")
+    check: str = Field(description="era | protagonist | age | dynamic | title | wardrobe | variety | colour | cast — rule bị vi phạm")
+    description: str = Field(description="prompt hiện đang sai chỗ nào — trích dẫn")
+    fix: str = Field(description="cách sửa cụ thể")
 
 
 class ImagePromptVerifyOut(BaseModel):
-    issues: list[ImagePromptIssueOut] = []
-    verdict_note: str = ""
+    issues: list[ImagePromptIssueOut] = Field(default=[], description="rỗng ⇒ đạt")
+    verdict_note: str = Field("", description="kết luận ngắn")
 
 
 class ImagePromptSetOut(BaseModel):
     """Three text-to-image prompts (English) for the poster art. Each describes a
     cinematic, photorealistic drama-poster composition in the STORY'S world, with
     NO text/letters/watermarks (the title is overlaid separately by Pillow)."""
-    cover: str    # wide: montage of the story's main characters in-world
-    thumb1: str   # portrait: the protagonist (optionally + one secondary character)
-    thumb2: str   # portrait: the central pair / key relationship
+    cover: str = Field(description="wide: montage các nhân vật chính trong thế giới truyện")
+    thumb1: str = Field(description="portrait: nhân vật chính (tuỳ chọn + một nhân vật phụ)")
+    thumb2: str = Field(description="portrait: cặp đôi trung tâm / quan hệ then chốt")
 
 
 # ── chapter_writer ─────────────────────────────────────────────────────────────
@@ -413,23 +412,23 @@ class QualityReviewerOutput(BaseModel):
 # ── new_graph_builder Phase 0 (world design) ─────────────────────────────────
 
 class WorldDesignOutput(BaseModel):
-    setting: str              # e.g. "1990s Hong Kong financial district"
-    time_period: str          # e.g. "1994-1997, pre-handover"
-    genre: str                # e.g. "corporate thriller with political undercurrent"
-    tone: str                 # e.g. "tense, morally ambiguous, atmospheric"
-    protagonist_archetype: str  # e.g. "junior auditor who discovers embezzlement"
-    antagonist_archetype: str   # e.g. "senior partner exploiting political transition"
-    location_concepts: list[str]  # 3-5 key settings in new world
-    thematic_core: str          # e.g. "loyalty vs integrity when institutions collapse"
-    narrative_summary: str      # 300-400 word prose summary of the new story
+    setting: str = Field(description='bối cảnh, VD "1990s Hong Kong financial district"')
+    time_period: str = Field(description='thời kỳ, VD "1994-1997, pre-handover"')
+    genre: str = Field(description='thể loại, VD "corporate thriller with political undercurrent"')
+    tone: str = Field(description='tông, VD "tense, morally ambiguous, atmospheric"')
+    protagonist_archetype: str = Field(description="nhân vật chính THEO VAI (KHÔNG tên riêng) + tình huống họ đối mặt")
+    antagonist_archetype: str = Field(description="phản diện THEO VAI (KHÔNG tên riêng) + động cơ đối kháng")
+    location_concepts: list[str] = Field(description="3-5 địa điểm then chốt, mỗi cái mô tả THEO VAI + mục đích tự sự, TUYỆT ĐỐI KHÔNG tên riêng")
+    thematic_core: str = Field(description="câu hỏi/chân lý trung tâm truyện khám phá")
+    narrative_summary: str = Field(description="tóm tắt prose 300-400 từ về truyện MỚI, kể HOÀN TOÀN theo VAI (nhân vật chính, phe đối địch…), KHÔNG tên riêng cho người/nơi/phe, KHÔNG nhắc truyện gốc, viết bằng ngôn ngữ được yêu cầu")
 
 
 class WorldNameCheckOutput(BaseModel):
     """Verdict from the world-design name checker: which invented PROPER NAMES (of
     people / places / clans / factions / objects) still appear, so the world design
     can be regenerated until it is fully name-free (roles only)."""
-    proper_names: list[str] = []   # every invented proper name found (empty = clean)
-    note: str = ""
+    proper_names: list[str] = Field(default=[], description="mọi tên riêng bịa còn sót (rỗng = sạch)")
+    note: str = Field("", description="ghi chú tuỳ chọn")
 
 
 class EntityResolveOutput(BaseModel):
@@ -437,8 +436,8 @@ class EntityResolveOutput(BaseModel):
     node actually the SAME real entity as one already in the graph? A code pre-filter
     finds same-name candidates; this decides if the new node should REUSE an existing
     key (`same_as`) or is genuinely distinct (`same_as` = null)."""
-    same_as: str | None = None   # node_key of the existing entity, or null if new
-    note: str = ""
+    same_as: str | None = Field(None, description="node_key của thực thể đã có, hoặc null nếu là thực thể mới")
+    note: str = Field("", description="ghi chú tuỳ chọn")
 
 
 class StoryBibleLeakCheckOutput(BaseModel):
@@ -447,8 +446,8 @@ class StoryBibleLeakCheckOutput(BaseModel):
     pass judges which candidates are ACTUAL leaks — the source character re-appearing
     — vs false positives (a coincidental common word, or a name legitimately reused by
     the new world). Only confirmed real leaks should trigger a rewrite."""
-    real_leaks: list[str] = []   # candidates confirmed as genuine source-name leaks
-    note: str = ""
+    real_leaks: list[str] = Field(default=[], description="candidates được xác nhận là rò tên nguồn thật")
+    note: str = Field("", description="ghi chú tuỳ chọn")
 
 
 # ── new_graph_builder Phase 1 (name lexicon) ─────────────────────────────────
@@ -683,17 +682,17 @@ class GraphEnrichVerifyOutput(BaseModel):
 # ── graph_verifier ─────────────────────────────────────────────────────────────
 
 class GraphVerifyIssueOut(BaseModel):
-    check_type: Literal["narrative_logic", "reskin", "enrichment", "cast_role"] = "narrative_logic"
-    node_key: str | None = None       # which node has the issue (None if general)
-    edge_desc: str | None = None      # describe the edge (e.g. "C001→C002 CAUSES Ch.5")
-    description: str
-    suggestion: str
-    severity: Literal["critical", "minor"]
+    check_type: Literal["narrative_logic", "reskin", "enrichment", "cast_role"] = Field("narrative_logic", description="loại kiểm tra bị vi phạm")
+    node_key: str | None = Field(None, description="node có vấn đề (null nếu chung)")
+    edge_desc: str | None = Field(None, description='mô tả cạnh, VD "C001→C002 CAUSES Ch.5"')
+    description: str = Field(description="mô tả vấn đề")
+    suggestion: str = Field(description="cách sửa đề xuất")
+    severity: Literal["critical", "minor"] = Field(description="critical | minor")
 
 
 class GraphVerifierOutput(BaseModel):
-    issues: list[GraphVerifyIssueOut] = []
-    verdict_note: str
+    issues: list[GraphVerifyIssueOut] = Field(default=[], description="mọi vấn đề tìm thấy ở graph mới")
+    verdict_note: str = Field(description="kết luận ngắn")
 
 
 # ── graph_repair ───────────────────────────────────────────────────────────────

@@ -135,36 +135,8 @@ Return ONLY a single valid JSON object (no markdown fences, no preamble):
 
 **CRITICAL — `edge_desc` format**: Always use **node_key identifiers** (e.g. `C001→C002 RELATION Ch.3-15`, `E006→E007 CAUSES`), never character names or labels. Node keys are the bracketed IDs like `C001`, `E006`, `L002` shown in the graph.
 
-```json
-{
-  "issues": [
-    {
-      "check_type": "narrative_logic",
-      "node_key": "E007",
-      "edge_desc": "E006→E007 CAUSES",
-      "description": "The mechanism 'the cake caused the arrest' does not logically connect E006 (birthday party) to E007 (Mira's mother is detained). No causal link exists.",
-      "suggestion": "Rewrite mechanism: explain what specific action or information from E006 directly led to the detention in E007.",
-      "severity": "critical"
-    },
-    {
-      "check_type": "reskin",
-      "node_key": "C003",
-      "edge_desc": null,
-      "description": "NEW graph character C003's label is 1 character away from a SOURCE character's name (quote both actual names here).",
-      "suggestion": "Rename to a completely different name with no phonetic or visual similarity to source.",
-      "severity": "critical"
-    },
-    {
-      "check_type": "enrichment",
-      "node_key": "E101",
-      "edge_desc": null,
-      "description": "Enrichment added an EVENT node (E101) which is forbidden — events are fixed by the source structure.",
-      "suggestion": "Remove E101 and any edges referencing it.",
-      "severity": "critical"
-    }
-  ],
-  "verdict_note": "1-2 sentence summary covering all three axes: narrative logic quality, reskin originality, enrichment validity."
-}
+```
+{{schema:GraphVerifierOutput}}
 ```
 
 If no issues found: `"issues": []` with a positive verdict_note.

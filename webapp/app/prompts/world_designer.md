@@ -116,22 +116,8 @@ The new world must be:
 
 ## Output — JSON schema: WorldDesignOutput
 
-```json
-{
-  "setting": "one sentence describing the physical and social world",
-  "time_period": "specific era and place",
-  "genre": "genre label(s)",
-  "tone": "2-3 adjectives describing the emotional register",
-  "protagonist_archetype": "who the protagonist is BY ROLE (no name) and the situation they face",
-  "antagonist_archetype": "who the antagonist is BY ROLE (no name) and what drives their opposition",
-  "location_concepts": [
-    "the <descriptive role of location A> — what it is and its narrative purpose (NO proper name)",
-    "the <descriptive role of location B> — ...",
-    "the <descriptive role of location C> — ..."
-  ],
-  "thematic_core": "the central question or truth this story explores",
-  "narrative_summary": "300-400 word prose summary of the NEW story told entirely by ROLE (protagonist, the rival lord, the ruling clan...) with ZERO proper names for people/places/factions. Written in the requested language. No mention of the source."
-}
+```
+{{schema:WorldDesignOutput}}
 ```
 
 Return ONLY the JSON object — no markdown fences, no preamble.
