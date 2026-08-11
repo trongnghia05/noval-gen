@@ -252,11 +252,51 @@ def suggest_title(story_id: int, req: SuggestTitleRequest):
     return {"title": title, "current_title": story.title}
 
 
+def _retitle_exports(out_dir: Path, new: str) -> list[str]:
+    """Put the new title on the files already written to disk.
+
+    Only the FIRST line of each file is touched, never a global replace: the title's
+    words also occur in the prose, and rewriting those would corrupt the manuscript.
+    The compiler always writes the title as line 1 — bare in summarize.txt, as an `# `
+    heading in the markdown — so the line is identified by that shape rather than by
+    matching the previous title. Matching the previous title fails exactly when it
+    matters: a story renamed before this existed has files still carrying the name
+    they were generated under, which is no longer the title being replaced.
+    """
+    changed = []
+    for name, prefix in (("summarize.txt", ""), ("full.md", "# "), ("novel.md", "# ")):
+        p = out_dir / name
+        if not p.exists():
+            continue
+        try:
+            lines = p.read_text(encoding="utf-8", errors="ignore").split("\n")
+        except OSError:
+            continue
+        if not lines or not lines[0].strip():
+            continue
+        first = lines[0].strip()
+        # A heading, or summarize.txt's bare title line — never one of its labelled
+        # fields ("Author: …", "Genre: …"), which is what the colon test excludes.
+        if not (first.startswith("# ") or (prefix == "" and ":" not in first)):
+            continue
+        lines[0] = f"{prefix}{new}"
+        try:
+            p.write_text("\n".join(lines), encoding="utf-8")
+        except OSError:
+            continue
+        changed.append(name)
+    return changed
+
+
 @router.patch("/stories/{story_id}/title")
 def set_title(story_id: int, req: ApplyTitleRequest):
-    """Accept a new title. The slug is deliberately left alone: the export folder is
-    named after it and is claimed by a `.story-{id}` marker inside, so renaming here
-    would orphan the finished manuscript and its art."""
+    """Accept a new title, and carry it into the files already exported.
+
+    The slug is deliberately NOT recomputed: the export folder is named after it and
+    claimed by a `.story-{id}` marker inside, so changing it would orphan the finished
+    manuscript and its art. Download names come from the title instead — see
+    `download_name` on the story endpoints.
+    """
     title = (req.title or "").strip()
     if not title:
         raise HTTPException(400, "title must not be empty")
@@ -266,8 +306,11 @@ def set_title(story_id: int, req: ApplyTitleRequest):
             raise HTTPException(404, "story not found")
         old, story.title = story.title, title
         session.commit()
-        logger.info("[%s] title changed: %r -> %r", story.slug, old, title)
-        return {"title": story.title, "slug": story.slug, "previous_title": old}
+        touched = _retitle_exports(_story_output_dir(story), title)
+        logger.info("[%s] title changed: %r -> %r (updated %s)",
+                    story.slug, old, title, ", ".join(touched) or "no files")
+        return {"title": story.title, "slug": story.slug, "previous_title": old,
+                "download_name": slugify(story.title), "updated_files": touched}
 
 
 class RegenImagesRequest(BaseModel):
@@ -350,7 +393,7 @@ def download_zip(story_id: int):
         )
         if not chapters:
             raise HTTPException(409, "no completed chapters to download yet")
-        slug = story.slug
+        download_name = slugify(story.title) or story.slug
         out_dir = _story_output_dir(story)
 
         buf = io.BytesIO()
@@ -387,7 +430,9 @@ def download_zip(story_id: int):
     return Response(
         buf.getvalue(),
         media_type="application/zip",
-        headers={"Content-Disposition": f'attachment; filename="{slug}.zip"'},
+        # Named after the current title, not the frozen slug, so a renamed story
+        # does not keep handing out files under the name it used to have.
+        headers={"Content-Disposition": f'attachment; filename="{download_name}.zip"'},
     )
 
 
@@ -479,6 +524,7 @@ def list_stories():
         stories = session.query(Story).order_by(Story.created_at.desc()).all()
         return [
             {"id": s.id, "title": s.title, "slug": s.slug, "phase": s.phase,
+             "download_name": slugify(s.title),
              "input_type": s.input_type, "source_title": s.source_title}
             for s in stories
         ]
@@ -497,6 +543,10 @@ def get_story(story_id: int):
             "id": story.id,
             "title": story.title,
             "slug": story.slug,
+            # What downloads are named. Derived from the CURRENT title, unlike `slug`
+            # which is frozen at creation because the export folder is keyed on it —
+            # so a renamed story stops handing out files under its old name.
+            "download_name": slugify(story.title),
             # For a REWRITE, the title of the original this was reskinned from —
             # the detail page shows it so you can tell what a story came from.
             "input_type": story.input_type,

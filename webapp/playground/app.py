@@ -935,8 +935,8 @@ def edit_dialog(story: dict):
                         use_container_width=True):
             st.session_state.pop(f"ed_tcand_{sid}", None)
             st.rerun()
-        st.caption("Slug và thư mục xuất bản giữ nguyên — đổi slug sẽ làm mất "
-                   "liên kết tới bản thảo và ảnh đã xuất.")
+        st.caption("Tiêu đề mới được ghi vào summarize.txt và full.md, "
+                   "và các file tải về sẽ mang tên mới.")
 
     st.divider()
 
@@ -1158,7 +1158,7 @@ def view_library():
                              help="Đổi tiêu đề / ảnh — chỉ khi truyện đã hoàn thành"):
                 edit_dialog(s)
             if zip_data:
-                act[2].download_button("Tải", zip_data, file_name=f"{s['slug']}.zip", mime="application/zip", key=f"zip{s['id']}", use_container_width=True)
+                act[2].download_button("Tải", zip_data, file_name=f"{s.get('download_name') or s['slug']}.zip", mime="application/zip", key=f"zip{s['id']}", use_container_width=True)
             else:
                 act[2].button("Tải", key=f"zip_disabled{s['id']}", disabled=True, use_container_width=True)
             cms_url = st.session_state.get("cms_upload_url", "").strip()
@@ -1302,7 +1302,7 @@ def view_detail():
 
         dl = st.columns([1.35, 1.0, 1.15, 1.65], gap="medium")
         if zip_data:
-            dl[0].download_button("⬇️ Tải truyện (.zip)", zip_data, file_name=f"{d['slug']}.zip", mime="application/zip", use_container_width=True)
+            dl[0].download_button("⬇️ Tải truyện (.zip)", zip_data, file_name=f"{d.get('download_name') or d['slug']}.zip", mime="application/zip", use_container_width=True)
         else:
             dl[0].button("⬇️ Tải truyện (.zip)", use_container_width=True, disabled=True)
 
@@ -1314,7 +1314,7 @@ def view_detail():
             try:
                 r = requests.get(f"{_base()}/stories/{sid}/export", timeout=30)
                 if r.ok:
-                    dl[2].download_button("⬇️ Bản thảo .md", r.content, file_name=f"{d['slug']}.md", mime="text/markdown", use_container_width=True)
+                    dl[2].download_button("⬇️ Bản thảo .md", r.content, file_name=f"{d.get('download_name') or d['slug']}.md", mime="text/markdown", use_container_width=True)
             except Exception:
                 dl[2].button("⬇️ Bản thảo .md", use_container_width=True, disabled=True)
         else:
@@ -1347,7 +1347,7 @@ def view_detail():
                     col.download_button(
                         f"⬇️ {label}",
                         p.read_bytes(),
-                        file_name=f"{d['slug']}-{stem}{p.suffix}",
+                        file_name=f"{d.get('download_name') or d['slug']}-{stem}{p.suffix}",
                         mime="image/" + p.suffix.lstrip(".").lower().replace("jpg", "jpeg"),
                         key=f"dl_{stem}", use_container_width=True,
                     )
