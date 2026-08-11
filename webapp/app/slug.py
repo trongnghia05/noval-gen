@@ -27,6 +27,7 @@ def generate_title(
     genre: str | None,
     source_content: str,
     relationships: str | None = None,
+    notes: str | None = None,
 ) -> str:
     system = load_prompt("title_generator")
     # `relationships` matters more than its size suggests. source_content is truncated
@@ -41,10 +42,21 @@ def generate_title(
         f"{relationships.strip()}"
         if relationships and relationships.strip() else ""
     )
+    # A human asking for a specific angle ("nhấn vào yếu tố mafia", "ngắn hơn").
+    # Placed last so it is the freshest thing in context, and marked as outranking the
+    # writer's own judgement — but never the title RULES, which _title_problem still
+    # enforces in code afterwards whatever was asked for.
+    note_block = (
+        "\n\nYEU CAU RIENG cua nguoi dung cho lan dat ten nay — uu tien cao hon lua "
+        "chon cua ban, nhung KHONG duoc pha cac quy tac ve do dai va cau truc tieu de:\n"
+        f"{notes.strip()}"
+        if notes and notes.strip() else ""
+    )
     user_content = (
         f"Ngon ngu: {language}\nLoai input: {input_type}\nThe loai: {genre or '(tu chon)'}"
         f"{rel_block}\n\n"
         f"Noi dung:\n{source_content[:4000]}"
+        f"{note_block}"
     )
     # Generous headroom even for a "just give me 2-6 words" task: reasoning
     # models spend part of max_tokens on invisible chain-of-thought before

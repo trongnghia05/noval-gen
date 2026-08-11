@@ -23,6 +23,13 @@ ungrammatical, because the pieces were never meant to sit in the same sentence.
 Before you answer, read your title back as a plain English sentence and check it
 means what you intend.
 
+**Give all three a fair hearing.** Mould 1 carries more warnings than the others
+because it has more ways to go wrong, not because it is worse — used correctly it is
+the strongest of the three, and skipping it to avoid the risk is how a whole
+catalogue ends up in one shape. Mould 2 needs a real reversal in the story; mould 3
+needs a real forbidden tie. Where two moulds both fit, prefer the one this story has
+not been given before.
+
 Each mould is given as a **shape to fill**, followed by published titles that show
 the shape working. The published titles are illustrations of the PATTERN — see the
 anti-copy rule below.
@@ -40,9 +47,22 @@ holding power. The revenge power-fantasy payoff.
 
 **3. Forbidden relationship** — names a bond that should not exist. Curiosity plus
 controversy is what gets it shared.
-> Shape: `My [Forbidden relation]'s [Role]` · `The [Power title] Wants His [Role]` ·
+> Shape, opening from HER side: `My [Forbidden relation]'s [Role]` ·
 > `Married to My [Obstacle]'s [Relation]`
+> Shape, opening from HIS side: `The [Power title] Wants His [Role]` ·
+> `The [Power title]'s Forbidden [Role]` · `His [Role], Her [Obstacle]`
+> Shape, opening from the ACT or the TWIST: `[Twist] with the [Power title]` ·
+> `[Verb she performs] the [Power title]'s [Role]` ·
+> `Sleeping with the [Obstacle]'s [Power title]`
 > In the wild: *My Stepbrother's Bride* · *The Don Wants His Nanny*
+
+**These three openings are equally good, and you must actually choose between them.**
+Left alone this mould collapses onto its first shape: every title in this catalogue
+now opens with the same possessive pronoun, which makes the whole list look like one
+book. Before you settle on an opening from her side, write the same hook from his
+side and from the act, and keep whichever lands hardest. A title that opens on the
+man's rank, or on the forbidden act itself, carries exactly the same information and
+stands out on a shelf where everything else opens the same way.
 
 ## Anti-copy rule — READ THIS
 
@@ -103,6 +123,18 @@ contempt, rivalry). Sort them out before you write: the permanent tie is what ma
 premise forbidden and is almost always the hook, while a passing state usually is
 not. Only what appears in the map counts as a tie.
 
+**One fact per noun.** Each role word in the title comes from ONE entry in the map,
+never two welded together. The map lists a permanent tie and a passing state for the
+same pair — a woman who is the fiancé's sister AND currently the heroine's rival —
+and gluing them produces a role nobody has: `Rival Sister`, `Enemy Brother`,
+`Hostile Stepmother`. A reader cannot tell whether that names a sibling or an
+opponent, and the forbidden-bond hook is lost in the mash. Two titles in this
+catalogue already shipped in this exact shape.
+
+Pick the tie OR the state, not both. If the animosity really is the story, put it in
+a verb the heroine performs or in the twist slot — `[Verb] the [Rank]'s Sister` —
+never inside the role noun itself.
+
 A relationship title names the person from the **heroine's** side, and it must point
 at the character the story is actually about. Before you commit, check: if the hook
 is "her love interest is X's brother", the title must name **X**, not the love
@@ -149,6 +181,13 @@ rather than his.
 ## Hard rules
 
 - **3-6 words.** A bare 1-2 word title is not acceptable.
+- **Do not open with a possessive pronoun by default.** `My …` earns its place only
+  when the ownership IS the hook and no other opening carries it — and you must have
+  tried the alternatives first, not reached for it because it came to mind soonest.
+  Openings available to you: the man's rank (`The …`), the forbidden act, a verb the
+  heroine performs, a first-person declaration, a preposition. Measured across this
+  catalogue, one opening currently accounts for every single title; that is the
+  failure this rule exists to stop.
 - **At most ONE apostrophe-s possessive in the whole title.** Two possessives
   chained together (a relation of a relation of a thing) is clumsy English and
   buries the hook. If you find yourself writing a second `'s`, rephrase: turn the

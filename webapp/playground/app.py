@@ -33,6 +33,10 @@ PHASE_META = {
     "COMPLETE": ("Hoàn thành", "#75C58E"),
 }
 
+# Rows per page in the library. Each row costs an API call and a zip download, so
+# this caps the work per rerun as much as it caps the height of the table.
+PAGE_SIZE = 20
+
 st.set_page_config(page_title="Xưởng Gen Truyện", page_icon="📖", layout="wide")
 
 
@@ -54,6 +58,12 @@ def api_post(path: str, json=None, timeout=180):
 
 def api_put(path: str, json=None, timeout=30):
     r = requests.put(f"{_base()}{path}", json=json, timeout=timeout)
+    r.raise_for_status()
+    return r.json()
+
+
+def api_patch(path: str, json=None, timeout=30):
+    r = requests.patch(f"{_base()}{path}", json=json, timeout=timeout)
     r.raise_for_status()
     return r.json()
 
@@ -80,6 +90,43 @@ def poster_images(slug: str) -> dict[str, Path]:
                     out[stem] = p
                     break
     return out
+
+
+STEMS = (("cover", "Bìa"), ("thumbnail1", "Thumb 1"), ("thumbnail2", "Thumb 2"))
+
+
+def _preview_root(slug: str) -> Path:
+    return OUTPUT_DIR / slug / "image" / ".preview"
+
+
+def preview_images(slug: str, newer_than: float = 0.0) -> dict[str, Path]:
+    """The regenerated set waiting to be accepted, in image/.preview/.
+
+    `newer_than` filters to files written after a given moment. The preview folder is
+    seeded with copies of the current art (so a lone thumbnail still has a cover to
+    match faces against, and so accepting is a straight move of a complete set) — the
+    timestamp is what separates a freshly generated poster from one of those copies.
+    """
+    d = _preview_root(slug)
+    out: dict[str, Path] = {}
+    if d.is_dir():
+        for stem, _ in STEMS:
+            for ext in _IMG_EXTS:
+                p = d / f"{stem}.{ext}"
+                if p.exists() and p.stat().st_mtime >= newer_than:
+                    out[stem] = p
+                    break
+    return out
+
+
+def preview_status(slug: str) -> tuple[bool, str]:
+    """(still generating, error message) — read straight off the marker files the
+    API writes, since this app already has the output folder mounted."""
+    d = _preview_root(slug)
+    err = d / ".error"
+    return (d / ".running").exists(), (
+        err.read_text(encoding="utf-8", errors="ignore") if err.exists() else ""
+    )
 
 
 def cover_for(slug: str) -> Path | None:
@@ -845,6 +892,147 @@ def view_launching():
             st.rerun()
 
 
+@st.dialog("Chỉnh sửa truyện", width="large")
+def edit_dialog(story: dict):
+    """Retitle and re-art a finished story, deciding each time whether to keep the
+    result. Nothing here overwrites anything until the accept button is pressed:
+    a title is drafted without being saved, and art is generated into a preview
+    folder — so a worse result costs nothing but the time it took."""
+    sid = story["id"]
+    st.markdown(f"**#{sid}** · `{story['slug']}`")
+
+    # ── Title ────────────────────────────────────────────────────────────────
+    st.markdown("#### Tiêu đề")
+    st.markdown(f"Hiện tại: **{story['title']}**")
+    t_notes = st.text_area(
+        "Yêu cầu cho tiêu đề mới (để trống vẫn gen được)",
+        key=f"ed_tnotes_{sid}", height=70,
+        placeholder="VD: nhấn vào yếu tố mafia, bớt uỷ mị, ngắn hơn",
+    )
+    if st.button("✨ Gen tiêu đề mới", key=f"ed_tgen_{sid}", use_container_width=True):
+        try:
+            with st.spinner("Đang nghĩ tiêu đề…"):
+                r = api_post(f"/stories/{sid}/suggest-title",
+                             json={"notes": t_notes}, timeout=180)
+            st.session_state[f"ed_tcand_{sid}"] = r.get("title", "")
+        except Exception as e:
+            st.error(f"Lỗi: {e}")
+
+    cand = st.session_state.get(f"ed_tcand_{sid}")
+    if cand:
+        st.success(f"Tiêu đề đề xuất: **{cand}**")
+        tc = st.columns([1, 1])
+        if tc[0].button("✓ Dùng tiêu đề này", key=f"ed_tok_{sid}",
+                        type="primary", use_container_width=True):
+            try:
+                api_patch(f"/stories/{sid}/title", json={"title": cand})
+                st.session_state.pop(f"ed_tcand_{sid}", None)
+                st.toast("Đã đổi tiêu đề.")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Lỗi: {e}")
+        if tc[1].button("✕ Bỏ, giữ tiêu đề cũ", key=f"ed_tno_{sid}",
+                        use_container_width=True):
+            st.session_state.pop(f"ed_tcand_{sid}", None)
+            st.rerun()
+        st.caption("Slug và thư mục xuất bản giữ nguyên — đổi slug sẽ làm mất "
+                   "liên kết tới bản thảo và ảnh đã xuất.")
+
+    st.divider()
+
+    # ── Images ───────────────────────────────────────────────────────────────
+    st.markdown("#### Ảnh")
+    live, prev = poster_images(story["slug"]), preview_images(story["slug"])
+    if not live:
+        st.caption("Chưa có ảnh nào.")
+    else:
+        cols = st.columns(3)
+        for col, (stem, label) in zip(cols, (("cover", "Bìa"), ("thumbnail1", "Thumb 1"),
+                                             ("thumbnail2", "Thumb 2"))):
+            if stem in live:
+                col.image(str(live[stem]), caption=f"{label} (hiện tại)",
+                          use_container_width=True)
+
+    i_notes = st.text_area(
+        "Yêu cầu cho ảnh mới (để trống vẫn gen được)",
+        key=f"ed_inotes_{sid}", height=70,
+        placeholder="VD: tông xanh lạnh, bối cảnh ngoài trời\nthumb2: đứng xa nhau hơn",
+    )
+    which = st.selectbox(
+        "Gen lại ảnh nào", ["all", "cover", "thumbnail1", "thumbnail2"],
+        format_func=lambda v: {"all": "Tất cả", "cover": "Bìa",
+                               "thumbnail1": "Thumb 1", "thumbnail2": "Thumb 2"}[v],
+        key=f"ed_iwhich_{sid}",
+    )
+    if st.button("🎨 Gen ảnh mới (xem trước)", key=f"ed_igen_{sid}",
+                 use_container_width=True):
+        started = time.time() - 1          # 1s of slack for clock skew across mounts
+        try:
+            api_post(f"/stories/{sid}/regenerate-images",
+                     json={"which": which, "notes": i_notes,
+                           "preview": True, "background": True},
+                     timeout=60)
+        except Exception as e:
+            st.error(f"Lỗi: {e}")
+        else:
+            # Draw into one placeholder and keep redrawing it. Each poster appears the
+            # moment it lands on disk, so a finished image stops spinning while the
+            # others carry on — instead of one spinner covering all three for two
+            # minutes with no sign of which is done.
+            wanted = [s for s, _ in STEMS] if which == "all" else [which]
+            slot = st.empty()
+            deadline = time.time() + 900
+            while time.time() < deadline:
+                fresh = preview_images(story["slug"], newer_than=started)
+                running, err = preview_status(story["slug"])
+                with slot.container():
+                    cols = st.columns(3)
+                    for col, (stem, label) in zip(cols, STEMS):
+                        if stem in fresh:
+                            col.image(str(fresh[stem]), caption=f"{label} ✓",
+                                      use_container_width=True)
+                        elif stem in wanted:
+                            col.markdown(f"**{label}**")
+                            col.caption("⏳ đang vẽ…")
+                        else:
+                            col.markdown(f"**{label}**")
+                            col.caption("— giữ nguyên")
+                if err:
+                    st.error(f"Gen ảnh lỗi: {err}")
+                    break
+                if not running and all(s in fresh for s in wanted):
+                    break
+                if not running:
+                    break
+                time.sleep(2)
+            st.rerun()
+
+    if prev:
+        st.info("Ảnh mới đang chờ duyệt — ảnh hiện tại chưa bị thay.")
+        pcols = st.columns(3)
+        for col, (stem, label) in zip(pcols, (("cover", "Bìa"), ("thumbnail1", "Thumb 1"),
+                                              ("thumbnail2", "Thumb 2"))):
+            if stem in prev:
+                col.image(str(prev[stem]), caption=f"{label} (mới)",
+                          use_container_width=True)
+        ic = st.columns([1, 1])
+        if ic[0].button("✓ Dùng ảnh mới", key=f"ed_iok_{sid}",
+                        type="primary", use_container_width=True):
+            try:
+                api_post(f"/stories/{sid}/images/accept", timeout=60)
+                st.toast("Đã thay ảnh.")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Lỗi: {e}")
+        if ic[1].button("✕ Bỏ, giữ ảnh cũ", key=f"ed_ino_{sid}",
+                        use_container_width=True):
+            try:
+                api_post(f"/stories/{sid}/images/discard", timeout=60)
+                st.rerun()
+            except Exception as e:
+                st.error(f"Lỗi: {e}")
+
+
 def view_library():
     page_header("Thư viện truyện", "Theo dõi tiến độ, mở bản thảo và tiếp tục các truyện đang dở.")
     toolbar = st.columns([1, 5])
@@ -873,15 +1061,54 @@ def view_library():
 
     f1, f2 = st.columns([2, 3])
     phase_filter = f1.multiselect("Lọc theo trạng thái", list(PHASE_META.keys()), default=[])
-    query = f2.text_input("Tìm theo tên", placeholder="Gõ tên truyện...").strip().lower()
+    query = f2.text_input("Tìm theo tên", placeholder="Gõ tên truyện...",
+                          key="lib_query").strip().lower()
 
+    # Filter on the cheap list payload FIRST. Everything below costs one API call and
+    # one zip download per row, so only the page actually on screen may pay it — with
+    # ninety-odd stories the old "fetch every row, then draw" cost a hundred round
+    # trips and several MB of zips on every rerun.
+    matches = [
+        s for s in stories
+        if (not phase_filter or s["phase"] in phase_filter)
+        and (not query or query in s["title"].lower())
+    ]
+    if not matches:
+        st.info("Không có truyện nào khớp bộ lọc hiện tại.")
+        return
+
+    # /stories comes back newest-first; keep that order so page 1 is the newest work.
+    pages = max(1, -(-len(matches) // PAGE_SIZE))
+    st.session_state.setdefault("lib_page", 1)
+    # Changing the search or the filter starts again at page 1 — staying on page 5
+    # after a search that matches three stories shows an empty table.
+    sig = (query, tuple(sorted(phase_filter)))
+    if st.session_state.get("_lib_sig") != sig:
+        st.session_state._lib_sig = sig
+        st.session_state.lib_page = 1
+    # A narrowed filter can still leave the stored page past the end.
+    page_no = min(max(1, int(st.session_state.lib_page)), pages)
+
+    if pages > 1:
+        nav = st.columns([1, 1, 3, 2])
+        if nav[0].button("← Trước", disabled=page_no <= 1, use_container_width=True):
+            st.session_state.lib_page = page_no - 1
+            st.rerun()
+        if nav[1].button("Sau →", disabled=page_no >= pages, use_container_width=True):
+            st.session_state.lib_page = page_no + 1
+            st.rerun()
+        nav[2].markdown(
+            f"<div class='row-cell muted'>Trang {page_no}/{pages} — "
+            f"{len(matches)} truyện khớp, hiện {PAGE_SIZE} mỗi trang. "
+            f"Tìm theo tên để thấy truyện cũ hơn.</div>",
+            unsafe_allow_html=True,
+        )
+    elif len(matches) < len(stories):
+        st.caption(f"{len(matches)} truyện khớp bộ lọc.")
+
+    start = (page_no - 1) * PAGE_SIZE
     rows = []
-    shown = 0
-    for s in reversed(stories):
-        if phase_filter and s["phase"] not in phase_filter:
-            continue
-        if query and query not in s["title"].lower():
-            continue
+    for s in matches[start:start + PAGE_SIZE]:
         try:
             d = api_get(f"/stories/{s['id']}")
         except Exception:
@@ -903,11 +1130,6 @@ def view_library():
         pct_row = done / total_ch if total_ch else 0.0
 
         rows.append((s, run_state, done, total_ch, words, target, pct_row))
-        shown += 1
-
-    if not shown:
-        st.info("Không có truyện nào khớp bộ lọc hiện tại.")
-        return
 
     header = st.columns([2.15, .85, .9, 1.05, .72, .95, .72, 3.0], gap="medium")
     for col, label in zip(header, ("Truyện", "Truyện gốc", "Trạng thái", "Phase", "Chương", "Số từ", "Tiến độ", "Thao tác")):
@@ -926,18 +1148,22 @@ def view_library():
         c[6].markdown(f"<div class='row-cell'><div class='mini-progress'><span style='width:{round(pct_row * 100)}%'></span></div></div>", unsafe_allow_html=True)
         with c[7]:
             st.markdown("<div style='height:.22rem'></div>", unsafe_allow_html=True)
-            act = st.columns([1, 1, 1], gap="small")
+            act = st.columns([1, 1, 1, 1], gap="small")
             if act[0].button("Mở", key=f"open{s['id']}", use_container_width=True):
                 go("detail", s["id"])
                 st.rerun()
                 st.stop()
+            if act[1].button("Sửa", key=f"edit{s['id']}", use_container_width=True,
+                             disabled=s["phase"] != "COMPLETE",
+                             help="Đổi tiêu đề / ảnh — chỉ khi truyện đã hoàn thành"):
+                edit_dialog(s)
             if zip_data:
-                act[1].download_button("Tải", zip_data, file_name=f"{s['slug']}.zip", mime="application/zip", key=f"zip{s['id']}", use_container_width=True)
+                act[2].download_button("Tải", zip_data, file_name=f"{s['slug']}.zip", mime="application/zip", key=f"zip{s['id']}", use_container_width=True)
             else:
-                act[1].button("Tải", key=f"zip_disabled{s['id']}", disabled=True, use_container_width=True)
+                act[2].button("Tải", key=f"zip_disabled{s['id']}", disabled=True, use_container_width=True)
             cms_url = st.session_state.get("cms_upload_url", "").strip()
             can_export = bool(zip_data and cms_url)
-            if act[2].button("CMS", key=f"cms{s['id']}", disabled=not can_export, use_container_width=True,
+            if act[3].button("CMS", key=f"cms{s['id']}", disabled=not can_export, use_container_width=True,
                              help=None if cms_url else "Nhập CMS upload URL trong Cài đặt"):
                 try:
                     upload_zip_to_cms(cms_url, s, zip_data)
@@ -975,6 +1201,17 @@ def view_detail():
         st.rerun()
     nav_r.empty()
 
+    # For a reskin, say which original it came from — a REWRITE title is deliberately
+    # unrecognisable, so without this there is nothing on the page tying it back.
+    # Kept on ONE line with the slug below: an empty value on a line of its own leaves
+    # a blank line inside the HTML block, and Markdown ends the block there — which
+    # printed the trailing </div></div> as visible text on any story without a source.
+    src_title = (d.get("source_title") or "").strip()
+    source_note = (
+        f' <span class="muted">(gen từ: {_html.escape(src_title)})</span>'
+        if src_title and d.get("input_type") == "REWRITE" else ""
+    )
+
     st.markdown(
         f"""
         <div class="detail-hero">
@@ -986,7 +1223,7 @@ def view_detail():
                 {badge(d['phase'])}
                 <span class="status-pill">{run_label}</span>
                 <span class="muted">#{d['id']}</span>
-                <span class="muted">{_html.escape(d['slug'])}</span>
+                <span class="muted">{_html.escape(d['slug'])}</span>{source_note}
               </div>
             </div>
           </div>
