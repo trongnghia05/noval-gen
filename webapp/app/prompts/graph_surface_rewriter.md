@@ -44,56 +44,10 @@ For `RELATION` edges: `rel_type` must be one of `friendship | rivalry | love | f
 
 ## Output — JSON schema: GraphSurfaceRepairOutput
 
-```json
-{
-  "node_patches": [
-    {
-      "node_key": "E007",
-      "new_summary": "Eleanor discovers the falsified accounts hidden in her husband's private correspondence — proof of his financial crimes. Before she can act, Professor Sterling's solicitor arrives unannounced at the townhouse."
-    },
-    {
-      "node_key": "C001",
-      "new_arc_stage": "(CHARACTER: rewritten current inner state)",
-      "new_background": "(CHARACTER: rewritten backstory)",
-      "new_wants": "(CHARACTER: rewritten goal)",
-      "new_fears": "(CHARACTER: rewritten vulnerability)"
-    }
-  ],
-  "edge_patches": [
-    {
-      "source_key": "C001",
-      "target_key": "C007",
-      "edge_type": "RELATION",
-      "new_rel_type": "family",
-      "new_label": "devoted daughter seeking maternal guidance",
-      "new_condition": "(RELATION: rewritten condition/context text)"
-    },
-    {
-      "source_key": "E006",
-      "target_key": "E007",
-      "edge_type": "CAUSES",
-      "new_mechanism": "Eleanor's accidental discovery of a hidden letter in E006 reveals the archive location where the original financial records are kept — her only chance to gather evidence before the hearing."
-    },
-    {
-      "source_key": "C001",
-      "target_key": "E008",
-      "edge_type": "ARC_CHANGE",
-      "new_old_val": "(ARC_CHANGE: rewritten prior state)",
-      "new_new_val": "(ARC_CHANGE: rewritten resulting state)"
-    }
-  ],
-  "add_edges": [
-    {
-      "source_key": "C001",
-      "target_key": "E012",
-      "edge_type": "PARTICIPATES",
-      "role": "victim",
-      "label": "confronted publicly",
-      "chapter_from": 12
-    }
-  ],
-  "repair_note": "Fixed Eleanor→Matron rel_type from patient_therapist to family. Added missing PARTICIPATES edge for E012."
-}
 ```
+{{schema:GraphSurfaceRepairOutput}}
+```
+
+Chỉ điền các field cần vá cho mỗi patch; field không đổi thì bỏ qua (để null).
 
 Return ONLY the JSON object — no markdown fences, no preamble.

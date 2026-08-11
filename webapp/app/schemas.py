@@ -454,15 +454,15 @@ class StoryBibleLeakCheckOutput(BaseModel):
 # ── new_graph_builder Phase 1 (name lexicon) ─────────────────────────────────
 
 class NameLexiconEntry(BaseModel):
-    node_key: str       # e.g. "C001"
-    node_type: str      # character | location | faction | object
-    source_label: str   # original name from source
-    new_label: str      # new name for the reimagined world
+    node_key: str = Field(description='node_key nguồn, VD "C001"')
+    node_type: str = Field(description="character | location | faction | object")
+    source_label: str = Field(description="tên gốc, copy nguyên văn từ danh sách node")
+    new_label: str = Field(description="tên đầy đủ bạn đặt cho thế giới mới (không dùng lại từ nào của tên gốc)")
 
 
 class NameLexiconOutput(BaseModel):
-    entries: list[NameLexiconEntry]
-    world_note: str     # 1-2 sentences on naming convention chosen
+    entries: list[NameLexiconEntry] = Field(description="một entry cho mỗi node cần đổi tên")
+    world_note: str = Field(description="1-2 câu về quy ước đặt tên đã chọn")
 
     @model_validator(mode="after")
     def check_unique_labels(self) -> "NameLexiconOutput":
@@ -553,48 +553,44 @@ class GraphEnrichmentOutput(BaseModel):
 # ── graph_surface_rewriter (targeted surface repair) ──────────────────────────
 
 class SurfaceNodePatchOut(BaseModel):
-    node_key: str
-    new_label: str | None = None
-    new_summary: str | None = None       # EVENT
-    new_profile_md: str | None = None    # CHARACTER
-    new_description: str | None = None   # LOCATION / FACTION / THEME / OBJECT
-    # CHARACTER prose fields — commonly flagged as near-verbatim translations of
-    # the source and previously un-patchable, so reskin never converged on them.
-    new_arc_stage: str | None = None     # CHARACTER
-    new_background: str | None = None    # CHARACTER
-    new_wants: str | None = None         # CHARACTER
-    new_fears: str | None = None         # CHARACTER
+    node_key: str = Field(description="node cần vá")
+    new_label: str | None = Field(None, description="tên mới (nếu đổi)")
+    new_summary: str | None = Field(None, description="EVENT: tóm tắt viết lại")
+    new_profile_md: str | None = Field(None, description="CHARACTER: profile viết lại")
+    new_description: str | None = Field(None, description="LOCATION/FACTION/THEME/OBJECT: mô tả viết lại")
+    new_arc_stage: str | None = Field(None, description="CHARACTER: trạng thái nội tâm hiện tại viết lại")
+    new_background: str | None = Field(None, description="CHARACTER: backstory viết lại")
+    new_wants: str | None = Field(None, description="CHARACTER: mục tiêu viết lại")
+    new_fears: str | None = Field(None, description="CHARACTER: nỗi sợ/điểm yếu viết lại")
 
 
 class SurfaceEdgePatchOut(BaseModel):
-    source_key: str
-    target_key: str
-    edge_type: str                       # RELATION | PARTICIPATES | CAUSES | ARC_CHANGE | FORESHADOWS | LOCATED_AT | INVOLVES | OWNS | MEMBER_OF | EMBODIES
-    new_mechanism: str | None = None     # CAUSES
-    new_label: str | None = None
-    new_rel_type: str | None = None      # RELATION only — friendship|rivalry|love|family|mentor|debt|alliance|betrayal|distrust
-    new_condition: str | None = None     # RELATION condition text
-    # ARC_CHANGE edges carry the arc description in old_val/new_val — the single
-    # most-flagged reskin field; previously no patch path existed for it.
-    new_old_val: str | None = None       # ARC_CHANGE
-    new_new_val: str | None = None       # ARC_CHANGE
+    source_key: str = Field(description="node nguồn của cạnh")
+    target_key: str = Field(description="node đích của cạnh")
+    edge_type: str = Field(description="RELATION | PARTICIPATES | CAUSES | ARC_CHANGE | FORESHADOWS | LOCATED_AT | INVOLVES | OWNS | MEMBER_OF | EMBODIES")
+    new_mechanism: str | None = Field(None, description="CAUSES: cơ chế nhân quả viết lại")
+    new_label: str | None = Field(None, description="nhãn cạnh viết lại")
+    new_rel_type: str | None = Field(None, description="RELATION: friendship|rivalry|love|family|mentor|debt|alliance|betrayal|distrust")
+    new_condition: str | None = Field(None, description="RELATION: text điều kiện/bối cảnh viết lại")
+    new_old_val: str | None = Field(None, description="ARC_CHANGE: trạng thái trước viết lại")
+    new_new_val: str | None = Field(None, description="ARC_CHANGE: trạng thái sau viết lại")
 
 
 class NewEdgeForRepairOut(BaseModel):
-    source_key: str
-    target_key: str
-    edge_type: str                       # PARTICIPATES | RELATION | LOCATED_AT | INVOLVES | OWNS | MEMBER_OF | EMBODIES
-    label: str = ""
-    rel_type: str | None = None          # for RELATION
-    role: str | None = None              # for PARTICIPATES: cause|victim|witness|ally|bystander
-    chapter_from: int | None = None
+    source_key: str = Field(description="node nguồn")
+    target_key: str = Field(description="node đích")
+    edge_type: str = Field(description="PARTICIPATES | RELATION | LOCATED_AT | INVOLVES | OWNS | MEMBER_OF | EMBODIES")
+    label: str = Field("", description="nhãn cạnh")
+    rel_type: str | None = Field(None, description="dành cho RELATION")
+    role: str | None = Field(None, description="dành cho PARTICIPATES: cause|victim|witness|ally|bystander")
+    chapter_from: int | None = Field(None, description="chương bắt đầu (nếu có)")
 
 
 class GraphSurfaceRepairOutput(BaseModel):
-    node_patches: list[SurfaceNodePatchOut] = []
-    edge_patches: list[SurfaceEdgePatchOut] = []
-    add_edges: list[NewEdgeForRepairOut] = []   # edges that are missing and must be created
-    repair_note: str
+    node_patches: list[SurfaceNodePatchOut] = Field(default=[], description="vá node")
+    edge_patches: list[SurfaceEdgePatchOut] = Field(default=[], description="vá cạnh")
+    add_edges: list[NewEdgeForRepairOut] = Field(default=[], description="cạnh còn thiếu cần tạo mới")
+    repair_note: str = Field(description="ghi chú ngắn về những gì đã sửa")
 
 
 # ── new_graph_builder per-group enrichment ─────────────────────────────────────

@@ -36,30 +36,8 @@ User message contains:
 
 ## Output — JSON schema: NameLexiconOutput
 
-```json
-{
-  "entries": [
-    {
-      "node_key": "C001",
-      "node_type": "character",
-      "source_label": "<source character 1, copied verbatim from the node list>",
-      "new_label": "<a full name you invent for the new world>"
-    },
-    {
-      "node_key": "C002",
-      "node_type": "character",
-      "source_label": "<source character 2>",
-      "new_label": "<a different invented full name>"
-    },
-    {
-      "node_key": "L001",
-      "node_type": "location",
-      "source_label": "<source location 1>",
-      "new_label": "<an invented place name fitting the new world>"
-    }
-  ],
-  "world_note": "<one sentence on the naming convention you applied — which register the cast is drawn from, and how places are named — in terms of THIS story's setting>"
-}
+```
+{{schema:NameLexiconOutput}}
 ```
 
 Return ONLY the JSON object — no markdown fences, no preamble.
