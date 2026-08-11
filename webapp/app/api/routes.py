@@ -1,4 +1,5 @@
 import io
+import json
 import logging
 import shutil
 import zipfile
@@ -14,6 +15,7 @@ from ..db.models import (
     AppSetting,
     Chapter,
     ChapterSummary,
+    ChapterTrace,
     ChapterVerifyLog,
     Character,
     ContinuityLog,
@@ -32,8 +34,8 @@ from ..slug import generate_title, slugify
 # Every table that carries a story_id — deleted (children first) when a story is
 # removed. Story itself is deleted last, separately.
 _CHILD_MODELS = (
-    ChapterSummary, ChapterVerifyLog, PlanningVerifyLog, WorldState, StateLog,
-    Foreshadowing, Chapter, Character, StoryGraphNode, StoryGraphEdge,
+    ChapterSummary, ChapterTrace, ChapterVerifyLog, PlanningVerifyLog, WorldState,
+    StateLog, Foreshadowing, Chapter, Character, StoryGraphNode, StoryGraphEdge,
     ContinuityLog, SmartPlannerState,
 )
 
@@ -378,9 +380,10 @@ def _regen_images_job(story_id: int, which: str, notes: str, seed: int | None,
 @router.get("/stories/{story_id}/download-zip")
 def download_zip(story_id: int):
     """Download the story as a .zip: one flat `ch-NNN.txt` per chapter (the same
-    naming the compiler writes to the export dir), plus `full.md`, `summarize.txt`
-    and the poster art under `image/`. Files are taken from the export dir when
-    present, else built from the DB."""
+    naming the compiler writes to the export dir), plus `full.md`, `summarize.txt`,
+    the poster art under `image/`, and a per-chapter reproducibility record under
+    `trace/ch-NNN.json`. Files are taken from the export dir when present, else
+    built from the DB."""
     with SessionLocal() as session:
         story = session.get(Story, story_id)
         if not story:
@@ -426,6 +429,15 @@ def download_zip(story_id: int):
             for img in sorted((out_dir / "image").glob("*")):
                 if img.is_file():
                     z.writestr(f"image/{img.name}", img.read_bytes())
+
+            # Per-chapter reproducibility traces from the DB, each under trace/.
+            for t in (session.query(ChapterTrace)
+                      .filter_by(story_id=story_id)
+                      .order_by(ChapterTrace.chapter_number).all()):
+                z.writestr(
+                    f"trace/ch-{t.chapter_number:03d}.json",
+                    json.dumps(t.trace, ensure_ascii=False, indent=2),
+                )
 
     return Response(
         buf.getvalue(),
@@ -576,6 +588,22 @@ def get_chapter(story_id: int, number: int):
             "word_count": chapter.word_count,
             "status": chapter.status,
         }
+
+
+@router.get("/stories/{story_id}/chapters/{number}/trace")
+def get_chapter_trace(story_id: int, number: int):
+    """The reproducibility record for one chapter: every input the writer saw
+    (snapshotted at write time) + the produced output. 404 until the chapter has
+    been written."""
+    with SessionLocal() as session:
+        row = (
+            session.query(ChapterTrace)
+            .filter_by(story_id=story_id, chapter_number=number)
+            .one_or_none()
+        )
+        if row is None:
+            raise HTTPException(404, "no trace for this chapter yet")
+        return row.trace
 
 
 @router.get("/stories/{story_id}/export")

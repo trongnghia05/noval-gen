@@ -160,6 +160,23 @@ class ChapterSummary(Base):
     __table_args__ = (UniqueConstraint("story_id", "chapter_number", name="uq_chapter_summary"),)
 
 
+class ChapterTrace(Base):
+    """Full reproducibility record for one written chapter: every input the writer
+    saw, SNAPSHOTTED at write time (world-state / continuity / smart-planner / CSV
+    graph are live and overwritten each chapter, so they can only be captured then),
+    plus the produced output. One row per chapter."""
+
+    __tablename__ = "chapter_traces"
+
+    id = Column(Integer, primary_key=True)
+    story_id = Column(Integer, ForeignKey("stories.id"), nullable=False)
+    chapter_number = Column(Integer, nullable=False)
+    trace = Column(JSON)  # {meta, inputs, output} — see orchestrator.build_chapter_trace
+    created_at = Column(DateTime, default=_utcnow)
+
+    __table_args__ = (UniqueConstraint("story_id", "chapter_number", name="uq_chapter_trace"),)
+
+
 class ContinuityLog(Base):
     """One row per story — living checkpoint state, overwritten in place."""
 
