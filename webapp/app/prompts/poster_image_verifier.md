@@ -112,6 +112,14 @@ has; the poster must be somewhere in it.
 Also flag wardrobe that the world cannot produce: evening wear on an apocalypse
 survivor, a cocktail dress on a cultivator, a business suit in a pre-industrial court.
 
+Also flag **an emotion these people could not be feeling.** ART DIRECTION draws an
+emotional register at random and knows nothing about this book, so the writer is told
+to discard one the story cannot reach — captor and captive sharing a warm private joke,
+contentment in a revenge plot, tenderness between two people who have not met. This is
+a **contradiction** check, not a mood-scoring one: a feeling the plot merely does not
+mention is fine, and a varied or unexpected expression is wanted, not a fault. Never
+ask for "more emotion" — that can be demanded endlessly and the loop will not finish.
+
 Do NOT flag a detail the FACTS simply do not mention. Only a genuine conflict counts.
 
 ### 5. `title`

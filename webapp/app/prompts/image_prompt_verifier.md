@@ -24,9 +24,11 @@ needless regeneration of all three images.
 
 **The ART DIRECTION is not something you enforce.** It is included so you know what
 style was asked for, not as a rulebook to audit against. Its lines about exposure,
-brightness, palette strength, composition and wardrobe register have no check here, so
-a prompt that departs from them is not reporting-worthy. Only the seven checks below
-are.
+brightness, palette strength, composition, wardrobe register, male-lead casting,
+emotional register and eyelines have no check here, so a prompt that departs from them
+is not reporting-worthy. Only the seven checks below are. The writer is explicitly told
+to DISCARD a drawn emotion or eyeline the plot cannot reach — doing so is correct, and
+never a fault.
 
 **USER DIRECTION, if present, is a deliberate request and outranks the ART DIRECTION.**
 A prompt that follows it is correct even where it contradicts the drawn style — never
@@ -92,6 +94,14 @@ the youngest. Specifically, flag it when:
   described as more so;
 - the male lead is not described as attractive and magnetic.
 
+**A specific physical type for the male lead is not a fault.** ART DIRECTION casts him
+for each run — a build, a face and hair, one distinguishing feature — because he had
+been arriving as the same mid-thirties square-jawed man on nearly every poster. So a
+lead who is heavy rather than lean, boyish rather than severe, bearded, silvering, or
+carrying a scar or a gap-toothed smile is working as intended. Flag him only when the
+prompt fails to say he is striking and magnetic at all — never because the type drawn
+is not the conventional one.
+
 Do NOT flag this as a matter of degree. You are checking whether these things are
 stated, not scoring how alluring the description is. Never ask for "more alluring" —
 that request can be satisfied endlessly and the loop will never finish.
@@ -106,6 +116,20 @@ The prompt must match this story. Two things to catch:
   wrong.)
 - **A setting that is not this story's.** The places shown should be places this world
   actually contains.
+- **An emotion these two people could not be feeling.** ART DIRECTION draws an
+  emotional register at random and it knows nothing about this plot, so the prompt
+  writer is told to discard one the story cannot reach. Flag it when the feeling
+  contradicts the FACTS: captor and captive sharing a warm private joke, a revenge
+  story opening on contentment, tenderness between two people the logline says have
+  not met or cannot stand each other.
+  - This is a **contradiction** check, not a mood-scoring one. A feeling the plot
+    merely does not mention is fine; only one it rules out is a fault. Never ask for
+    "more emotion" or "a better mood" — that can be demanded endlessly and the loop
+    will not finish.
+  - A varied or unexpected expression is NOT a fault by itself. Laughter, tears,
+    triumph and fury are all wanted; the whole catalogue had been coming back with the
+    male lead staring at the female lead while she wore one blank look, and that is
+    what this register exists to break.
 
 Do NOT flag a detail the FACTS simply do not mention. Only a genuine conflict counts.
 

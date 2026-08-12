@@ -204,6 +204,35 @@ _LIGHTING = [
 # Commercial short-drama key art is VIVID, not naturalistic — colour is pushed hard
 # and one signature hue owns the poster. Photorealism applies to the PEOPLE (real
 # skin, real actors); the colour grade is deliberately stylised on top of them.
+# The palettes below all say "the signature hue" and leave the actual colour to the
+# prompt designer — who, with no memory between runs, picks blue, teal or emerald
+# almost every time. Same mode-seeking as the male lead's face. Drawing the hue fixes
+# it; the blue family is present but is now one option in twelve, not the default.
+_SIGNATURE_HUE = [
+    "deep crimson red",
+    "hot magenta",
+    "burnt orange",
+    "gold and amber",
+    "emerald green",
+    "sapphire blue",
+    "violet and plum",
+    "coral and warm pink",
+    "acid yellow-green",
+    "oxblood and wine",
+    "turquoise",
+    "silver and cold white",
+    # Restrained hues. Half the covers of any real bookshelf are quiet, and a catalogue
+    # where every poster shouts is as monotonous as one where every poster is blue.
+    # These still OWN the frame — a warm sand poster reads as a sand poster — they just
+    # do it without maximum chroma.
+    "warm sand and cream",
+    "soft dusty rose",
+    "sage and pale eucalyptus",
+    "warm greys with a single warm accent",
+    "muted olive and stone",
+    "ivory and pale gold",
+]
+
 _PALETTES = [
     "punchy saturated colour, the signature hue blazing through lights and wardrobe",
     "warm-cool split complementary, each half strongly colour-graded against the other",
@@ -212,6 +241,13 @@ _PALETTES = [
     "sunlit high-chroma colour, everything vivid and glowing",
     "bold two-tone scheme: the signature hue against one strong contrasting accent",
     "candy-bright high-key colour, cheerful and heavily saturated",
+    # Quieter grades. Every entry above pushes chroma hard, which made the catalogue
+    # uniformly loud. These stay BRIGHT and clearly lit — the mandatory exposure rule
+    # is untouched — but let the colour be restrained, the way much premium key art is.
+    "soft natural colour, gently graded, the signature hue clear but not shouting",
+    "warm neutral palette — creams, sand and skin tones, one quiet accent of the hue",
+    "airy pastel grade, low chroma and high brightness, clean and modern",
+    "near-monochrome in the signature hue: many tones of one colour, quietly rich",
 ]
 
 
@@ -233,6 +269,25 @@ _WARDROBE = [
     "old-money elegance — restrained cuts in fine cloth, one bold slit or open back",
     "sharp tailoring worn bare — a jacket with nothing under it, sleeves pushed up",
     "caught in the weather — rain-damp hair, fabric clinging, coat pulled open",
+    # Registers where HE is the one on display. The menu used to dress everyone up,
+    # which is why he arrived in tailoring on nearly every poster; correcting that with
+    # five undressed registers then produced runs where he was stripped in all three.
+    # These undo him without taking the shirt off — an open shirt, a wet shirt, a
+    # half-fastened collar suits far more stories than a bare chest, and does not spend
+    # the reveal. Only the first two go as far as bare skin, and the prompt caps him at
+    # ONE bare-chested image per set regardless.
+    "the morning after — a sheet, a shirt hanging open over bare skin, bare feet, hair "
+    "still wrecked from sleep",
+    "straight from exertion — a fight, a forge, a sparring floor or a gym: sweat, "
+    "wrapped hands, a shirt soaked through and clinging, muscle and effort visible",
+    "shirt open at the chest — buttons undone to the sternum, no tie, collar loose, "
+    "chain or pendant against skin",
+    "undone after a long night — bow tie hanging loose, top buttons open, shirt "
+    "half-untucked, jacket over one shoulder",
+    "silk and skin at rest — a robe or unfastened overshirt worn loose, sleeves pushed "
+    "high, nothing beneath fastened",
+    "caught in the rain — soaked shirt clinging to every line of him, hair dripping, "
+    "fabric gone translucent",
 ]
 
 
@@ -292,13 +347,129 @@ _INTIMACY = [
     "both caught in rain, clothes soaked and clinging, gripping each other like the "
     "argument just ended",
     "she is draped back across his lap or a couch arm, looking up at him as he leans over",
+    # Skin contact — the fifteen above stage the pair close, but every one of them
+    # keeps him clothed, and the only "mid-undress" entry undresses HER. Without these
+    # the couple shot is always two dressed people standing near each other.
+    "her palms flat on his bare chest, either holding him off or holding him there — "
+    "his own hands closed over hers",
+    "he is shirtless with his arms around her from behind, her back against his skin, "
+    "her head tipped onto his shoulder, both of them looking at the same thing",
+    "she is winding a bandage around his bare ribs and neither of them is looking at "
+    "the wound",
+    "carried — she is up in his arms or on his back, his shirt gone, her arms locked "
+    "around his neck, both mid-laugh or mid-argument",
+    "wrapped in one blanket, coat or cloak together, his chest bare under it, only "
+    "their faces and her hands showing",
+]
+
+
+# ── Emotional register ────────────────────────────────────────────────────────
+# The only emotional direction in the whole prompt was "charged, not polite", "tension
+# and heat", "a look held a beat too long" — and 17 of the 20 intimacy poses stage a
+# confrontation. So every poster came back the same: he stares at her, she gives one
+# unreadable look, nobody feels anything else. A romance catalogue needs joy, laughter,
+# grief and relief on its covers too, not one smouldering note repeated.
+#
+# These are registers to interpret, not captions: a mafia story and a small-town
+# romance play "the moment it all lands" completely differently.
+# Each entry names the feeling and what the FACE does — never a scenario. An earlier
+# version described situations ("the second the news landed", "two people who have
+# stopped performing"), and the writer copied the scenario straight through: a fake-
+# engagement story, whose whole premise is that they ARE performing, came back with
+# "the unguarded ease of two people who have stopped performing". A face works in any
+# plot; a situation has to be one the book contains.
+_EMOTION = [
+    "open joy — a real laugh, eyes creased, teeth showing, caught mid-laugh not posed",
+    "quiet contentment — soft mouth, shoulders down, eyes easy and unhurried",
+    "grief — wet eyes, mouth tight, one face turned into the other's shoulder",
+    "triumph — chin up, a slow spreading smile, eyes bright and direct",
+    "longing — lips parted, gaze fixed on someone not looking back",
+    "fury — jaw set, nostrils flared, colour high, eyes locked and unblinking",
+    "tenderness — eyes soft and lids low, a hand at a face, everything gentled",
+    "shock — mouth open, eyes wide, the face not yet arranged",
+    "mischief — one smirking sideways, the other biting back a laugh",
+    "relief — eyes shut, a long exhale, foreheads resting together",
+    "defiance — chins lifted, jaws firm, eyes hard and facing outward",
+    "smouldering restraint — the charged held look, lips almost touching, neither moving",
+]
+
+# Where the eyes go. He was gazing at her in essentially every shipped poster, which
+# flattens all three images into the same beat.
+_EYELINE = [
+    "both looking straight down the lens, daring the viewer",
+    "she looks at the camera; he is looking at her",
+    "he looks at the camera; she is looking at him",
+    "neither looks at the other — both fixed on something outside the frame",
+    "eyes closed, faces close, the moment held",
+    "one looking down at the other, who is looking up",
+    "both looking at the same off-frame thing, shoulder to shoulder",
+    "she is looking away and he is watching her decide",
+]
+
+
+# ── Casting the male lead ─────────────────────────────────────────────────────
+# Measured across three independent runs, every male lead came back as the same man:
+# 35-38 years old, "strong jawline", dark or grey eyes that "miss nothing". The
+# character enricher writes that description and has no memory of what it wrote for
+# other stories, so it returns the modal romance hero every time and the image model
+# faithfully draws him. The female leads did NOT need this — their faces already vary
+# between stories.
+#
+# Three orthogonal axes rather than one flat list: a dozen entries each multiply out
+# to hundreds of combinations, where a single list of fifteen would itself start
+# repeating by the fifteenth book. Drawn once per run (like wardrobe and intimacy) so
+# the cover and both thumbnails cast the same man.
+#
+# EVERY entry below is a HANDSOME man. They differ in TYPE, never in how attractive he
+# is — the verifier flags a male lead who is not described as attractive and magnetic,
+# so an entry that reads as plain or declining would fight it and stall the loop.
+# These are DIRECTIONS to interpret in the story's own world, not costumes to paste.
+_MALE_BUILD = [
+    "lean and wiry — narrow through the hips, more speed than mass, every line of him defined",
+    "tall and powerfully built — thick through the neck and shoulders, a body that fills a doorway",
+    "broad-shouldered and V-tapered, a swimmer's frame",
+    "compact and dense — not the tallest man in the room, but built low and solid and impossible to move",
+    "rangy and rawboned — long limbs, visible tendon, hard and stripped down",
+    "long-limbed and elegant — narrow, upright, moves like he was trained to",
+    "heavy and strong rather than sculpted — a big man's body, warm and imposing",
+    "athletic and mid-sized — nothing extreme, but every part of him is used",
+    "leonine — wide chest, thick arms, a slow heavy grace",
+    "slight and deceptively strong — people underestimate him exactly once",
+]
+
+_MALE_FACE = [
+    "a broad, blunt, handsome face and a heavy brow; close-cropped hair",
+    "high cheekbones and a narrow jaw; dark hair long enough to fall in his eyes",
+    "an open, boyish face that reads younger than he is; soft thick hair, clean-shaven",
+    "hollow cheeks and a hard beautiful mouth; hair shaved close at the sides, longer on top",
+    "a full well-kept beard and deep-set eyes; thick hair worn pushed back",
+    "clean-shaven, a long straight nose and a wide mouth; hair tied back off his face",
+    "heavy stubble and a nose broken once and set slightly off; short unruly waves",
+    "a square face and a soft mouth; tight curls kept short",
+    "fine, almost beautiful features that sit strikingly on a hard frame; straight hair, side-parted",
+    "a weathered outdoor face, sun lines at the eyes; hair going silver early at the temples",
+    "a wide face and quick dark eyes; hair worn short and pushed straight back off a high forehead",
+    "a narrow aristocratic face and a neat trimmed moustache; hair combed back",
+]
+
+_MALE_MARK = [
+    "an old scar through one eyebrow",
+    "a scar along one forearm, usually covered",
+    "hands that are visibly a working man's — scarred knuckles, short nails",
+    "he does not smile with his teeth, only with his eyes",
+    "a tattoo running up one side of his neck",
+    "a gap between his front teeth that shows when he finally laughs",
+    "one ear scarred at the rim",
+    "eyes of two slightly different colours",
+    "a habit of holding perfectly still while everyone else moves",
+    "ink or callus on the fingers of one hand from his trade",
+    "a jaw he keeps clenched, so the muscle shows",
+    "always fractionally under-groomed compared to what he is wearing",
 ]
 
 
 def _art_direction(seed: int | None = None) -> str:
-    """One randomly-drawn composition / lens / lighting / palette recipe. These are
-    VISUAL-style knobs only (dynamic-neutral) — the pair's staging is decided by the
-    LLM from the story's power dynamic, not randomised, so it never reverses it."""
+    """House style plus the dice for one run. Reasons live next to each menu above."""
     rnd = random.Random(seed)
     # The NON-NEGOTIABLE block comes FIRST. When it sat at the bottom, a single
     # evocative palette draw ("neon-lit…") beat it and produced a dark night poster —
@@ -309,15 +480,17 @@ def _art_direction(seed: int | None = None) -> str:
         "with visible detail, no crushed blacks, no murky or dim frame, no night scene "
         "unless the story is unavoidably nocturnal, no heavy vignette, no dark "
         "teal-orange grade. Faces fully and evenly lit.\n"
-        "- Colour: VIVID, high-saturation commercial poster colour — pushed well past "
-        "naturalistic, glowing and eye-catching, like a streaming short-drama "
-        "thumbnail. Never flat, dull, washed out or muted.\n"
-        "- Signature colour: choose ONE dominant hue for this story from its own world "
-        "and let it OWN the poster. Name the hue explicitly in the prompt, then put it "
-        "in ALL of: the lighting or the air itself, a key costume, the environment, "
-        "AND the title lettering. A viewer must be able to name the poster's colour in "
-        "one word at a glance — if the result reads as neutral, grey, navy-and-beige "
-        "or generally 'natural', the hue was too weak. Same signature hue in all three "
+        # Colour STRENGTH is drawn below, not fixed here. This line used to demand
+        # "VIVID, high-saturation… never muted", which cancelled every restrained
+        # palette in the menu and made the whole catalogue shout at one volume.
+        "- Colour: deliberate and commercial, following the palette drawn below — which "
+        "may be candy-bright or deliberately restrained. Either way the colour is "
+        "CHOSEN and consistent, never an accidental wash of nothing.\n"
+        "- Signature colour: the hue is drawn below. Name it explicitly, then anchor it "
+        "in TWO OR THREE places — the light, one key garment, one element of the "
+        "setting, the title lettering — never in everything at once. A gold poster is "
+        "gold light and one gold dress, not gold walls, gold sky and gold clothes on "
+        "everyone; that is a colour cast, not art direction. Same hue in all three "
         "images.\n"
         # Every example here is conditional on the era, never absolute. An earlier
         # version listed the pre-modern case as if it were universal ("no skyscrapers…
@@ -344,17 +517,26 @@ def _art_direction(seed: int | None = None) -> str:
         "- People: they stay photoreal — real actors, real skin with pores and texture, "
         "never illustrated, painted or CGI. The bold grade sits on top of a real "
         "photograph; it does not turn the people into artwork.\n"
-        "\nSTYLE FOR THIS RUN (vary within the mandatory rules above):\n"
-        f"- Composition (anchor for the cover): {rnd.choice(_COMPOSITIONS)}\n"
-        f"- Lens: {rnd.choice(_LENSES)}\n"
-        f"- Lighting: {rnd.choice(_LIGHTING)}\n"
-        f"- Palette direction: {rnd.choice(_PALETTES)}\n"
-        f"- Wardrobe register: {rnd.choice(_WARDROBE)} — realise it in THIS story's "
-        f"world and era, and vary the three images within it\n"
-        f"- Title treatment: {rnd.choice(_TYPOGRAPHY)} — coloured from the signature "
-        f"hue, same treatment across all three images\n"
-        f"- Intimacy staging (thumb2 only): {rnd.choice(_INTIMACY)} — stage the couple "
-        f"shot this way, in this story's world\n"
+        # Values only. Every rule about how to use them lives in image_prompt.md, once
+        # — this text is rebuilt and sent on every run, and each past fix used to append
+        # another paragraph of justification here (the emotion line reached 487
+        # characters, the casting line 1074, against 40 for the lens line nobody had
+        # ever had to fix).
+        "\nTHIS RUN — drawn at random. Check each against STORY DIRECTION and discard "
+        "any the plot cannot contain:\n"
+        f"- composition (anchor for the cover): {rnd.choice(_COMPOSITIONS)}\n"
+        f"- lens: {rnd.choice(_LENSES)}\n"
+        f"- lighting: {rnd.choice(_LIGHTING)}\n"
+        f"- signature hue: {rnd.choice(_SIGNATURE_HUE)}\n"
+        f"- palette: {rnd.choice(_PALETTES)}\n"
+        f"- wardrobe register: {rnd.choice(_WARDROBE)}\n"
+        f"- title treatment: {rnd.choice(_TYPOGRAPHY)}\n"
+        f"- emotional register: {rnd.choice(_EMOTION)}\n"
+        f"- eyelines: {rnd.choice(_EYELINE)}\n"
+        f"- male lead build: {rnd.choice(_MALE_BUILD)}\n"
+        f"- male lead face and hair: {rnd.choice(_MALE_FACE)}\n"
+        f"- male lead distinguishing feature: {rnd.choice(_MALE_MARK)}\n"
+        f"- intimacy staging (thumb2 only): {rnd.choice(_INTIMACY)}\n"
     )
 
 
@@ -420,6 +602,30 @@ def _user_direction(notes: str) -> str:
     )
 
 
+def _plot_summary(story: Story, meta: NovelMetadataOut | None) -> str:
+    """What actually happens in this book, so the drawn look can be checked against it.
+
+    Everything else in the prompt describes the world, the cast and the mood — nothing
+    said what the plot contains, so the writer had no way to reject a drawn line the
+    story rules out. That shipped a bandaged, bare-chested wound onto a fake-engagement
+    story with no violence in it.
+
+    `meta` is only present on the first generation; a regenerate from the UI has none,
+    so fall back to the Summary block already written into summarize.txt at export.
+    """
+    if meta and meta.summary:
+        return meta.summary.strip()
+    path = _story_dir(story) / "summarize.txt"
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return ""
+    # summarize.txt: "Summary" on its own line, the blurb, then a blank line and the
+    # next block ("Table of Contents").
+    _, sep, rest = text.partition("\nSummary\n")
+    return rest.strip().split("\n\n")[0].strip() if sep else ""
+
+
 def _build_prompts(session: Session, story: Story, meta: NovelMetadataOut | None,
                    notes: str = "", seed: int | None = None) -> ImagePromptSetOut:
     tags = ", ".join(meta.tags) if (meta and meta.tags) else (story.genre or "")
@@ -428,15 +634,25 @@ def _build_prompts(session: Session, story: Story, meta: NovelMetadataOut | None
     logger.info("[%s] art direction for this run:\n%s", story.slug, art_direction)
     if notes:
         logger.info("[%s] user direction: %s", story.slug, notes.strip()[:300])
-    logline = (meta.logline if meta and meta.logline else "")
+    # Front matter is stored on the story, so a regenerate (which has no `meta`) still
+    # gets it. Without the summary the writer had no idea what the plot contains and
+    # could not reject a drawn line the book rules out — that shipped a bandaged,
+    # bare-chested wound onto a fake-engagement story with no violence in it.
+    # A book finished before those columns existed has neither. Rather than minting
+    # them here — which would charge an LLM call to the first image run of every old
+    # story — scripts/backfill_front_matter.py fills them in one pass.
+    logline = (meta.logline if meta and meta.logline else story.logline) or ""
+    summary = (meta.summary if meta and meta.summary else story.summary) or ""
     dynamics = _relationship_dynamics(session, story.id)
     cast = _character_lines(session, story.id)
     user_content = (
         f"title (render EXACTLY this text on each image): {story.title}\n"
         f"tags: {tags}\n\n"
-        f"## STORY DIRECTION (the plot's power dynamic — ALL three images must honour "
-        f"this; never reverse who pursues/controls/is captive to whom)\n"
+        f"## STORY DIRECTION (what this book is, and its power dynamic — ALL three "
+        f"images must honour this; never reverse who pursues/controls/is captive to "
+        f"whom, and never show something the plot does not contain)\n"
         f"logline: {logline or '(derive from world below)'}\n"
+        f"what happens: {summary or '(derive from world below)'}\n"
         f"main relationships:\n{dynamics or '(derive from characters below)'}\n\n"
         f"## ART DIRECTION (visual style for this run — composition/lens/lighting/palette; "
         f"vary the three images from each other around them)\n{art_direction}\n"
