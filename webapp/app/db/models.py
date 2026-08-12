@@ -55,6 +55,17 @@ class Story(Base):
     source_chapter_count = Column(Integer)   # REWRITE only: number of source chapters to graph-extract
     source_spirit = Column(Text)             # REWRITE only: overall tone + excerpts, passed to chapter_writer
 
+    # Front matter, written once when the book completes. It used to be generated on
+    # every export and thrown away with the file, so the same book could get a
+    # different logline each time, the API could not serve either without reading a
+    # file, and image regeneration — which has no export step — lost them entirely.
+    # `summary` is what tells the poster designer what the plot actually contains.
+    author = Column(String)
+    tags = Column(JSON, default=list)     # 3-6 genre/theme tags
+    logline = Column(Text)                # 1-2 sentence premise
+    summary = Column(Text)                # back-cover blurb, 120-180 words
+    cast_blurbs = Column(JSON, default=list)  # [{name, role, blurb}] for the export
+
     created_at = Column(DateTime, default=_utcnow)
     updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
 

@@ -12,6 +12,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app ./app
 COPY alembic.ini ./alembic.ini
 COPY migrations ./migrations
+COPY scripts ./scripts
 
 # DATABASE_URL is provided by docker-compose (Postgres). The SQLite fallback in
 # app/config.py only applies to bare `uvicorn` runs outside compose.
