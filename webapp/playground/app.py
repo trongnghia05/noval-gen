@@ -7,6 +7,7 @@ from __future__ import annotations
 import html as _html
 import base64
 import io
+import json
 import os
 import re
 import time
@@ -197,6 +198,41 @@ def _html_to_text(raw: str) -> str:
     return _html.unescape(raw)
 
 
+# The "Chapter 12 - " / "Chapter 12: " lead-in of a scraped chapter title. Only the
+# numbering is stripped; whatever the site appends to the book name is left alone,
+# exactly as the folder-name path leaves "... Book PDF Free" alone.
+_CH_TITLE_LEAD_RE = re.compile(r"^\s*#?\s*chapter\s+\d+\s*[-–—:.|]*\s*", re.I)
+
+
+def _title_from_chapter_json(zf: zipfile.ZipFile, found: dict[int, dict]) -> str:
+    """Book title recovered from the per-chapter `chapter.json`, for a .zip with no
+    wrapping folder to take the name from.
+
+    Those files carry `"title": "Chapter 12 - <book> <site suffix>"`, so dropping the
+    chapter numbering leaves the same string for every chapter of one book. It is
+    accepted ONLY if every chapter agrees. One chapter disagreeing means the title
+    carries per-chapter text (a chapter subtitle, two books in one archive), and then
+    no chapter's title is the book's name — better an empty box the user fills in than
+    a wrong original recorded against the story forever.
+    """
+    titles = set()
+    for entry in found.values():
+        name = entry.get("json")
+        if not name:
+            return ""  # a chapter with no metadata: unanimity cannot be established
+        try:
+            meta = json.loads(zf.read(name).decode("utf-8", "ignore"))
+            title = _CH_TITLE_LEAD_RE.sub("", str(meta.get("title") or "")).strip()
+        except (ValueError, KeyError, AttributeError):
+            return ""
+        if not title:
+            return ""
+        titles.add(title)
+        if len(titles) > 1:
+            return ""
+    return titles.pop() if titles else ""
+
+
 def merge_chapter_zip(data: bytes) -> tuple[str, dict]:
     zf = zipfile.ZipFile(io.BytesIO(data))
     found: dict[int, dict] = {}
@@ -213,6 +249,8 @@ def merge_chapter_zip(data: bytes) -> tuple[str, dict]:
             entry["txt"] = name
         elif base == "content.html":
             entry["html"] = name
+        elif base == "chapter.json":
+            entry["json"] = name
         segs = name.split("/")
         for i, seg in enumerate(segs):
             if re.match(r"(?i)^\s*#?\d*\s*chapter\s+\d+", seg):
@@ -242,6 +280,10 @@ def merge_chapter_zip(data: bytes) -> tuple[str, dict]:
 
     nums = sorted(found)
     missing = [i for i in range(nums[0], nums[-1] + 1) if i not in found]
+    # The wrapping folder is the primary source of the original title; chapter.json is
+    # only consulted when the archive has none (chapters zipped at the top level).
+    folder_title = max(roots, key=roots.get) if roots else ""
+    source_title = folder_title or _title_from_chapter_json(zf, found)
     report = {
         "count": len(parts),
         "words": total_words,
@@ -250,7 +292,8 @@ def merge_chapter_zip(data: bytes) -> tuple[str, dict]:
         "empty": empty,
         "from_html": from_html,
         "range": (nums[0], nums[-1]),
-        "source_title": max(roots, key=roots.get) if roots else "",
+        "source_title": source_title,
+        "title_source": ("folder" if folder_title else "chapter.json" if source_title else ""),
     }
     return "\n\n".join(parts), report
 
@@ -787,6 +830,20 @@ def view_create():
                         st.warning(f"Chương rỗng: {r['empty']}")
                     if r["from_html"]:
                         st.caption(f"Khôi phục từ HTML: {r['from_html']}")
+                    # Say where the original title came from — an empty box after an
+                    # upload used to look like the upload worked when in fact the one
+                    # link back to the source book had just been lost.
+                    if r.get("title_source") == "chapter.json":
+                        st.caption(
+                            "Tên truyện gốc đọc từ `chapter.json` (mọi chương khớp nhau) "
+                            "— .zip không có thư mục bọc ngoài."
+                        )
+                    elif not r.get("source_title"):
+                        st.warning(
+                            "Không xác định được tên truyện gốc: .zip không có thư mục bọc "
+                            "ngoài, và `chapter.json` thiếu hoặc không khớp giữa các chương. "
+                            "Điền tay ở ô **Tên truyện gốc** bên dưới."
+                        )
                 elif msg and msg[0] == "err":
                     st.error(f"Không gộp được .zip: {msg[1]}")
             else:
@@ -811,7 +868,8 @@ def view_create():
                 "Tên truyện gốc",
                 key="src_title",
                 help="Tên truyện gốc trước khi reskin — hiển thị ở Thư viện. "
-                     "Tự điền từ tên thư mục .zip hoặc tên file.",
+                     "Tự điền từ tên thư mục .zip, hoặc `chapter.json` nếu .zip không có "
+                     "thư mục bọc ngoài, hoặc tên file.",
             )
         else:
             ph = (
@@ -904,39 +962,65 @@ def edit_dialog(story: dict):
     # ── Title ────────────────────────────────────────────────────────────────
     st.markdown("#### Tiêu đề")
     st.markdown(f"Hiện tại: **{story['title']}**")
-    t_notes = st.text_area(
-        "Yêu cầu cho tiêu đề mới (để trống vẫn gen được)",
-        key=f"ed_tnotes_{sid}", height=70,
-        placeholder="VD: nhấn vào yếu tố mafia, bớt uỷ mị, ngắn hơn",
-    )
-    if st.button("✨ Gen tiêu đề mới", key=f"ed_tgen_{sid}", use_container_width=True):
+
+    def apply_title(new_title: str) -> None:
+        """Both paths land on the same endpoint — the API never cared whether a title
+        came from the model or from the keyboard."""
         try:
-            with st.spinner("Đang nghĩ tiêu đề…"):
-                r = api_post(f"/stories/{sid}/suggest-title",
-                             json={"notes": t_notes}, timeout=180)
-            st.session_state[f"ed_tcand_{sid}"] = r.get("title", "")
+            r = api_patch(f"/stories/{sid}/title", json={"title": new_title})
+            st.session_state.pop(f"ed_tcand_{sid}", None)
+            files = ", ".join(r.get("updated_files") or []) or "chưa có file xuất bản"
+            st.toast(f"Đã đổi tiêu đề. Đã cập nhật: {files}")
+            st.rerun()  # RerunException is a BaseException — the handlers below miss it
+        except requests.HTTPError as e:
+            st.error(f"{e.response.status_code}: {e.response.text}")
         except Exception as e:
             st.error(f"Lỗi: {e}")
 
-    cand = st.session_state.get(f"ed_tcand_{sid}")
-    if cand:
-        st.success(f"Tiêu đề đề xuất: **{cand}**")
-        tc = st.columns([1, 1])
-        if tc[0].button("✓ Dùng tiêu đề này", key=f"ed_tok_{sid}",
-                        type="primary", use_container_width=True):
+    modes = ("✨ Gen lại bằng AI", "✏️ Nhập tay")
+    mode = st.radio("Cách đổi tiêu đề", modes, key=f"ed_tmode_{sid}",
+                    horizontal=True, label_visibility="collapsed")
+
+    if mode == modes[1]:
+        # Deliberately unkeyed: a widget's identity includes `value`, so after a save
+        # the box reopens holding the NEW title. A key would pin it to the text typed
+        # last time and quietly offer a stale title as the next edit.
+        manual = st.text_input("Tiêu đề mới", value=story["title"],
+                               placeholder="Nhập tiêu đề...").strip()
+        if st.button("💾 Lưu tiêu đề", key=f"ed_tsave_{sid}", type="primary",
+                     use_container_width=True, disabled=not manual):
+            apply_title(manual)
+        # Saving an unchanged title is allowed on purpose: it re-syncs the title line
+        # in files exported under an older name.
+    else:
+        t_notes = st.text_area(
+            "Yêu cầu cho tiêu đề mới (để trống vẫn gen được)",
+            key=f"ed_tnotes_{sid}", height=70,
+            placeholder="VD: nhấn vào yếu tố mafia, bớt uỷ mị, ngắn hơn",
+        )
+        if st.button("✨ Gen tiêu đề mới", key=f"ed_tgen_{sid}", use_container_width=True):
             try:
-                api_patch(f"/stories/{sid}/title", json={"title": cand})
-                st.session_state.pop(f"ed_tcand_{sid}", None)
-                st.toast("Đã đổi tiêu đề.")
-                st.rerun()
+                with st.spinner("Đang nghĩ tiêu đề…"):
+                    r = api_post(f"/stories/{sid}/suggest-title",
+                                 json={"notes": t_notes}, timeout=180)
+                st.session_state[f"ed_tcand_{sid}"] = r.get("title", "")
             except Exception as e:
                 st.error(f"Lỗi: {e}")
-        if tc[1].button("✕ Bỏ, giữ tiêu đề cũ", key=f"ed_tno_{sid}",
-                        use_container_width=True):
-            st.session_state.pop(f"ed_tcand_{sid}", None)
-            st.rerun()
-        st.caption("Tiêu đề mới được ghi vào summarize.txt và full.md, "
-                   "và các file tải về sẽ mang tên mới.")
+
+        cand = st.session_state.get(f"ed_tcand_{sid}")
+        if cand:
+            st.success(f"Tiêu đề đề xuất: **{cand}**")
+            tc = st.columns([1, 1])
+            if tc[0].button("✓ Dùng tiêu đề này", key=f"ed_tok_{sid}",
+                            type="primary", use_container_width=True):
+                apply_title(cand)
+            if tc[1].button("✕ Bỏ, giữ tiêu đề cũ", key=f"ed_tno_{sid}",
+                            use_container_width=True):
+                st.session_state.pop(f"ed_tcand_{sid}", None)
+                st.rerun()
+
+    st.caption("Tiêu đề mới được ghi vào summarize.txt và full.md, "
+               "và các file tải về sẽ mang tên mới.")
 
     st.divider()
 
