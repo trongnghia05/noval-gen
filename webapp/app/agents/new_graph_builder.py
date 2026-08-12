@@ -25,11 +25,10 @@ import re
 
 from sqlalchemy.orm import Session
 
+from . import _common
 from .. import context_builder
 from ..config import AGENT_MODELS, PROVIDER
 from ..db.models import Character, Story, StoryGraphEdge, StoryGraphNode
-from ..llm_json import generate_structured
-from ..prompts.loader import load_prompt
 from ..slug import generate_title, slugify
 from ..schemas import (
     ArcChangeGroupEnrichOutput,
@@ -698,7 +697,6 @@ def _verify_enrichment(
     objects (empty ⇒ clean). On LLM failure, returns [] (fail-open — the deterministic
     reconcile pass downstream is the final naming backstop)."""
     try:
-        system = load_prompt("graph_enrich_verifier")
         user_content = (
             f"language: {story.language}\n\n"
             f"## ENRICHER TASK\n{_ENRICH_BRIEFS.get(group, group)}\n\n"
@@ -706,10 +704,13 @@ def _verify_enrichment(
             f"## WORLD DESIGN\n{world_design_text}\n\n"
             f"## ENRICHED OUTPUT\n{rendered}"
         )
-        out: GraphEnrichVerifyOutput = generate_structured(
-            PROVIDER, system=system, user_content=user_content,
-            model=AGENT_MODELS.get("graph_enrich_verifier", AGENT_MODELS["graph_character_enricher"]),
-            schema=GraphEnrichVerifyOutput, max_tokens=8000, thinking=False,
+        out: GraphEnrichVerifyOutput = _common.call_agent(
+            "graph_enrich_verifier",
+            user_content=user_content,
+            model_fallback="graph_character_enricher",
+            schema=GraphEnrichVerifyOutput,
+            max_tokens=8000,
+            thinking=False,
         )
         return list(out.issues or [])
     except Exception as exc:
@@ -844,7 +845,6 @@ def _enrich_characters(
         )
 
     lexicon_block = "\n".join(f"  {k}: \"{v}\"" for k, v in sorted(lexicon.items()))
-    system = load_prompt("graph_character_enricher")
     user_content = (
         f"language: {story.language}\n\n"
         f"{_style_contract(session, story, world_design_text)}"
@@ -856,10 +856,12 @@ def _enrich_characters(
                          "Return ONLY these entries; leave every other character exactly as-is.")
     if feedback:
         user_content += f"\n\n{feedback}"
-    output: CharacterGroupEnrichOutput = generate_structured(
-        PROVIDER, system=system, user_content=user_content,
-        model=AGENT_MODELS["graph_character_enricher"],
-        schema=CharacterGroupEnrichOutput, max_tokens=48000, thinking=False,
+    output: CharacterGroupEnrichOutput = _common.call_agent(
+        "graph_character_enricher",
+        user_content=user_content,
+        schema=CharacterGroupEnrichOutput,
+        max_tokens=48000,
+        thinking=False,
     )
     node_map = {n.node_key: n for n in nodes}
     applied = 0
@@ -928,7 +930,6 @@ def _enrich_events(
             f"| type:{p.get('event_type','')} | {p.get('summary','')[:120]}"
         )
 
-    system = load_prompt("graph_event_enricher")
     user_content = (
         f"language: {story.language}\n\n"
         f"{_style_contract(session, story, world_design_text)}"
@@ -940,10 +941,12 @@ def _enrich_events(
                          "Return ONLY these entries; leave every other event exactly as-is.")
     if feedback:
         user_content += f"\n\n{feedback}"
-    output: EventGroupEnrichOutput = generate_structured(
-        PROVIDER, system=system, user_content=user_content,
-        model=AGENT_MODELS["graph_event_enricher"],
-        schema=EventGroupEnrichOutput, max_tokens=48000, thinking=False,
+    output: EventGroupEnrichOutput = _common.call_agent(
+        "graph_event_enricher",
+        user_content=user_content,
+        schema=EventGroupEnrichOutput,
+        max_tokens=48000,
+        thinking=False,
     )
     node_map = {n.node_key: n for n in nodes}
     applied = 0
@@ -990,7 +993,6 @@ def _enrich_arc_changes(
             f"'{p.get('old_val','')}' → '{p.get('new_val','')}'"
         )
 
-    system = load_prompt("graph_arc_enricher")
     user_content = (
         f"language: {story.language}\n\n"
         f"{_style_contract(session, story, world_design_text)}"
@@ -1002,10 +1004,12 @@ def _enrich_arc_changes(
                          "Return ONLY those; leave every other arc-change exactly as-is.")
     if feedback:
         user_content += f"\n\n{feedback}"
-    output: ArcChangeGroupEnrichOutput = generate_structured(
-        PROVIDER, system=system, user_content=user_content,
-        model=AGENT_MODELS["graph_arc_enricher"],
-        schema=ArcChangeGroupEnrichOutput, max_tokens=48000, thinking=False,
+    output: ArcChangeGroupEnrichOutput = _common.call_agent(
+        "graph_arc_enricher",
+        user_content=user_content,
+        schema=ArcChangeGroupEnrichOutput,
+        max_tokens=48000,
+        thinking=False,
     )
     # Match by (source_key, chapter_from)
     edge_map: dict[tuple, StoryGraphEdge] = {}
@@ -1074,7 +1078,6 @@ def _enrich_relations(
                 f"'{src}' → '{tgt}' | rel_type:{p.get('rel_type','')} | label:{e.label}"
             )
 
-        system = load_prompt("graph_relation_enricher")
         user_content = (
             f"language: {story.language}\n\n"
             f"{_style_contract(session, story, world_design_text)}"
@@ -1086,10 +1089,12 @@ def _enrich_relations(
                              "return exactly these, corrected.")
         if feedback:
             user_content += f"\n\n{feedback}"
-        output: RelationGroupEnrichOutput = generate_structured(
-            PROVIDER, system=system, user_content=user_content,
-            model=AGENT_MODELS["graph_relation_enricher"],
-            schema=RelationGroupEnrichOutput, max_tokens=48000, thinking=False,
+        output: RelationGroupEnrichOutput = _common.call_agent(
+            "graph_relation_enricher",
+            user_content=user_content,
+            schema=RelationGroupEnrichOutput,
+            max_tokens=48000,
+            thinking=False,
         )
         # Match by (source_key, target_key, chapter_from)
         edge_map: dict[tuple, StoryGraphEdge] = {}
@@ -1146,7 +1151,6 @@ def _enrich_causes(
             f"| mechanism: {p.get('mechanism','')[:100]} | label: {e.label}"
         )
 
-    system = load_prompt("graph_causes_enricher")
     user_content = (
         f"language: {story.language}\n\n"
         f"{_style_contract(session, story, world_design_text)}"
@@ -1158,10 +1162,12 @@ def _enrich_causes(
                          "return exactly these, corrected.")
     if feedback:
         user_content += f"\n\n{feedback}"
-    output: CausesGroupEnrichOutput = generate_structured(
-        PROVIDER, system=system, user_content=user_content,
-        model=AGENT_MODELS["graph_causes_enricher"],
-        schema=CausesGroupEnrichOutput, max_tokens=48000, thinking=False,
+    output: CausesGroupEnrichOutput = _common.call_agent(
+        "graph_causes_enricher",
+        user_content=user_content,
+        schema=CausesGroupEnrichOutput,
+        max_tokens=48000,
+        thinking=False,
     )
     edge_map = {(e.source_key, e.target_key): e for e in edges}
     applied = 0
@@ -1223,12 +1229,13 @@ def _world_design_name_leaks(story: Story, wd: WorldDesignOutput) -> list[str]:
     pointless regenerations."""
     text = _world_design_text(wd)
     try:
-        system = load_prompt("world_name_check")
-        out: WorldNameCheckOutput = generate_structured(
-            PROVIDER, system=system,
-            user_content=f"language: {story.language}\n\n## WORLD DESIGN\n{text}\n",
-            model=AGENT_MODELS.get("world_name_check", AGENT_MODELS["name_lexicon"]),
-            schema=WorldNameCheckOutput, max_tokens=2048, thinking=False,
+        out: WorldNameCheckOutput = _common.call_agent(
+            "world_name_check",
+            user_content=f'language: {story.language}\n\n## WORLD DESIGN\n{text}\n',
+            model_fallback="name_lexicon",
+            schema=WorldNameCheckOutput,
+            max_tokens=2048,
+            thinking=False,
         )
         return sorted({n.strip() for n in (out.proper_names or []) if n and n.strip()})
     except Exception as exc:
@@ -1246,7 +1253,6 @@ def _design_world(session: Session, story: Story, feedback: str | None = None,
     to address it — a feedback loop that improves the world across rebuilds, rather
     than freezing the first attempt."""
     source_summary = _format_source_compact(session, story.id)
-    system = load_prompt("world_designer")
     base = (
         f"language: {story.language}\n"
         f"genre_hint: {story.genre or '(derive from source)'}\n"
@@ -1265,10 +1271,12 @@ def _design_world(session: Session, story: Story, feedback: str | None = None,
     user_content = base
     output = None
     for attempt in range(max_attempts):
-        output = generate_structured(
-            PROVIDER, system=system, user_content=user_content,
-            model=AGENT_MODELS["world_designer"], schema=WorldDesignOutput,
-            max_tokens=4096, thinking=True,
+        output = _common.call_agent(
+            "world_designer",
+            user_content=user_content,
+            schema=WorldDesignOutput,
+            max_tokens=4096,
+            thinking=True,
         )
         leaks = _world_design_name_leaks(story, output)
         if not leaks:
@@ -1375,7 +1383,6 @@ def _build_name_lexicon(
     forbidden = _source_forbidden_names(session, story.id)
     forbidden_block = ", ".join(sorted(forbidden))
 
-    system = load_prompt("name_lexicon")
     base_user = (
         f"language: {story.language}\n\n"
         f"## NEW WORLD DESIGN\n{world_design_text}\n\n"
@@ -1387,10 +1394,12 @@ def _build_name_lexicon(
     if feedback:
         base_user += f"\n\n## FEEDBACK — these names were too similar to source, change them:\n{feedback}\n"
 
-    output: NameLexiconOutput = generate_structured(
-        PROVIDER, system=system, user_content=base_user,
-        model=AGENT_MODELS["name_lexicon"], schema=NameLexiconOutput,
-        max_tokens=4096, thinking=False,
+    output: NameLexiconOutput = _common.call_agent(
+        "name_lexicon",
+        user_content=base_user,
+        schema=NameLexiconOutput,
+        max_tokens=4096,
+        thinking=False,
     )
 
     # Validate + bounded regen. The lexicon is the ONLY place names are minted, so
@@ -1420,10 +1429,12 @@ def _build_name_lexicon(
             "surname is REQUIRED, not a violation — keep each family on one shared "
             f"surname with distinct given names.):\n{violation}\n"
         )
-        output = generate_structured(
-            PROVIDER, system=system, user_content=retry_user,
-            model=AGENT_MODELS["name_lexicon"], schema=NameLexiconOutput,
-            max_tokens=4096, thinking=False,
+        output = _common.call_agent(
+            "name_lexicon",
+            user_content=retry_user,
+            schema=NameLexiconOutput,
+            max_tokens=4096,
+            thinking=False,
         )
 
     lexicon = {e.node_key: e.new_label for e in output.entries}
@@ -1446,7 +1457,6 @@ def _rename_surface(
     source_summary = _format_source_for_surface(session, story.id)
     lexicon_block = "\n".join(f'  {k}: "{v}"' for k, v in sorted(lexicon.items()))
 
-    system = load_prompt("new_graph_builder")
     user_content = (
         f"language: {story.language}\n"
         f"genre: {story.genre or '(see world design)'}\n"
@@ -1461,10 +1471,12 @@ def _rename_surface(
     # Feedback rebuilds don't need thinking (the feedback already says exactly
     # what to fix); disabling it gives the full token budget to JSON output.
     # 65536 = Gemini 2.5 Flash max_output_tokens cap.
-    output: NewGraphSurfaceOutput = generate_structured(
-        PROVIDER, system=system, user_content=user_content,
-        model=AGENT_MODELS["new_graph_builder"], schema=NewGraphSurfaceOutput,
-        max_tokens=65536, thinking=(not feedback),
+    output: NewGraphSurfaceOutput = _common.call_agent(
+        "new_graph_builder",
+        user_content=user_content,
+        schema=NewGraphSurfaceOutput,
+        max_tokens=65536,
+        thinking=not feedback,
     )
 
     node_map = {
@@ -1519,16 +1531,17 @@ def _rename_surface(
 
 def _enrich_graph(session: Session, story: Story) -> None:
     new_graph_text = context_builder.format_story_graph(session, story.id, graph_type="new")
-    system = load_prompt("graph_enricher")
     user_content = (
         f"language: {story.language}\n"
         f"total_chapters: {story.total_chapters}\n\n"
         f"## NEW GRAPH (after surface rename)\n{new_graph_text}\n"
     )
-    output: GraphEnrichmentOutput = generate_structured(
-        PROVIDER, system=system, user_content=user_content,
-        model=AGENT_MODELS["graph_enricher"], schema=GraphEnrichmentOutput,
-        max_tokens=16384, thinking=False,
+    output: GraphEnrichmentOutput = _common.call_agent(
+        "graph_enricher",
+        user_content=user_content,
+        schema=GraphEnrichmentOutput,
+        max_tokens=16384,
+        thinking=False,
     )
     for node in output.new_nodes:
         session.add(StoryGraphNode(
@@ -1771,16 +1784,13 @@ def _confirm_story_bible_leaks(story: Story, candidates: list[str], prose: str) 
     if not candidates:
         return []
     try:
-        system = load_prompt("story_bible_leak_check")
-        out: StoryBibleLeakCheckOutput = generate_structured(
-            PROVIDER, system=system,
-            user_content=(
-                f"language: {story.language}\n\n"
-                f"## CANDIDATES\n{', '.join(candidates)}\n\n"
-                f"## STORY-BIBLE PROSE\n{prose}\n"
-            ),
-            model=AGENT_MODELS.get("story_bible_leak_check", AGENT_MODELS["name_lexicon"]),
-            schema=StoryBibleLeakCheckOutput, max_tokens=2048, thinking=False,
+        out: StoryBibleLeakCheckOutput = _common.call_agent(
+            "story_bible_leak_check",
+            user_content=f"language: {story.language}\n\n## CANDIDATES\n{', '.join(candidates)}\n\n## STORY-BIBLE PROSE\n{prose}\n",
+            model_fallback="name_lexicon",
+            schema=StoryBibleLeakCheckOutput,
+            max_tokens=2048,
+            thinking=False,
         )
         confirmed = {n.strip().lower() for n in (out.real_leaks or []) if n and n.strip()}
         # Keep only names that were actually candidates — the LLM must not add new ones.
