@@ -26,15 +26,15 @@ from .schemas import ImagePromptSetOut, ImagePromptVerifyOut, NovelMetadataOut
 logger = logging.getLogger(__name__)
 
 
-def _norm(s: str) -> str:
+def _strip_to_alnum(s: str) -> str:
     """Lowercase, strip everything but a-z0-9 — for spelling-tolerant compare."""
     return re.sub(r"[^a-z0-9]", "", (s or "").lower())
 
 
 def _title_ok(title: str, ocr_text: str) -> bool:
     """True if the full title (normalized) appears in the OCR'd image text."""
-    t = _norm(title)
-    return bool(t) and t in _norm(ocr_text)
+    t = _strip_to_alnum(title)
+    return bool(t) and t in _strip_to_alnum(ocr_text)
 
 # Saved image format. WebP is a fraction of PNG's size at visually identical quality
 # for photographic key art, which adds up when every story ships three images. Set

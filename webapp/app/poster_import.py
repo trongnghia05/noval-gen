@@ -101,7 +101,12 @@ _ROLE_TIER = {"protagonist": "core", "love_interest": "core",
               "antagonist": "important", "supporting": "secondary"}
 
 
-def _norm_role(raw: str) -> str:
+def _map_role(raw: str) -> str:
+    """Free-text role from an imported novel → one of this system's role values.
+
+    A lookup, not a normalisation: the source writes whatever it likes ("ally /
+    hidden identity"), and _ROLE_MAP decides which of our fixed roles that is.
+    """
     r = (raw or "").strip().lower()
     for key, value in _ROLE_MAP.items():          # substring: "ally / hidden identity"
         if key in r:
@@ -170,7 +175,7 @@ def import_novel(session: Session, novel_json: Path, out_root: Path,
 
     keys: dict[str, str] = {}
     for i, c in enumerate(bible.get("characters", []) or [], start=1):
-        name, role = c.get("name"), _norm_role(c.get("role"))
+        name, role = c.get("name"), _map_role(c.get("role"))
         if not name:
             continue
         key = f"C{i:03d}"

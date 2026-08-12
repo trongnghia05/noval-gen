@@ -37,7 +37,7 @@ _ENTITY_TITLES = {
 }
 
 
-def _norm_tokens(label: str) -> list[str]:
+def _significant_name_tokens(label: str) -> list[str]:
     """Name words with titles + punctuation stripped, lowercased — order preserved."""
     out = []
     for raw in (label or "").replace(",", " ").split():
@@ -52,7 +52,7 @@ def _candidate_duplicates(session: Session, story_id: int, node_type: str,
     """Existing same-type nodes that MIGHT be the same entity as `label`: their
     stripped-title name is identical, or they share a distinctive (>=3 char) name
     token. Deliberately loose — the LLM resolver makes the final call."""
-    toks = set(_norm_tokens(label))
+    toks = set(_significant_name_tokens(label))
     if not toks:
         return []
     distinctive = {t for t in toks if len(t) >= 3}
@@ -61,7 +61,7 @@ def _candidate_duplicates(session: Session, story_id: int, node_type: str,
               .filter_by(story_id=story_id, graph_type="source", node_type=node_type).all()):
         if n.node_key == exclude_key:
             continue
-        ntoks = set(_norm_tokens(n.label))
+        ntoks = set(_significant_name_tokens(n.label))
         if ntoks == toks or (distinctive & {t for t in ntoks if len(t) >= 3}):
             cands.append(n)
     return cands

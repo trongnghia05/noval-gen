@@ -48,7 +48,7 @@ def _recent_beats(session: Session, story_id: int, before_chapter: int, n: int =
 MOTIF_CAP = 3  # a motif tag may recur at most this many times before it must be dropped/escalated
 
 
-def _norm_motif(tag: str) -> str:
+def _canonical_motif_tag(tag: str) -> str:
     """Deterministic backstop canonicalization: lowercase, collapse whitespace and
     separators. Catches case/spacing variants of the same tag; semantic near-dupes
     (different words, same meaning) are handled by the LLM's match-or-reuse rule."""
@@ -76,7 +76,7 @@ def _motif_ledger(session: Session, story_id: int, before_chapter: int) -> tuple
         for tag in used:
             if not isinstance(tag, str) or not tag.strip():
                 continue
-            key = _norm_motif(tag)
+            key = _canonical_motif_tag(tag)
             if key in tally:
                 tally[key][1] += 1
                 tally[key][2].append(c.number)
@@ -231,7 +231,7 @@ For each repeatable beat/motif in this chapter: if it means the same as a tag be
     for tag in (bp.get("motifs_used") or []):
         if not isinstance(tag, str) or not tag.strip():
             continue
-        key = _norm_motif(tag)
+        key = _canonical_motif_tag(tag)
         display = canon.get(key, tag.strip())
         if key not in seen:
             seen.add(key)

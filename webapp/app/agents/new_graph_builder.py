@@ -364,7 +364,7 @@ def _name_tokens(label: str) -> list[str]:
     return out
 
 
-def _normalized_full_name(label: str) -> str:
+def _sorted_name_key(label: str) -> str:
     """A language/order-independent identity key for a person's name: the set of its
     name words (titles removed), sorted. Two labels match IFF they are the same set of
     words — so a shared SURNAME between family members ('Isolde Ashworth' vs 'Silas
@@ -1345,7 +1345,7 @@ def _lexicon_duplicate_labels(entries) -> list:
     bad = []
     seen: dict[str, str] = {}       # normalized full name → node_key
     for e in entries:
-        key = _normalized_full_name(e.new_label)
+        key = _sorted_name_key(e.new_label)
         if not key:
             continue
         if key in seen:
