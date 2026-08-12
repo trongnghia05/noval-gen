@@ -372,25 +372,26 @@ _INTIMACY = [
 #
 # These are registers to interpret, not captions: a mafia story and a small-town
 # romance play "the moment it all lands" completely differently.
-# Each entry names the feeling and what the FACE does — never a scenario. An earlier
-# version described situations ("the second the news landed", "two people who have
-# stopped performing"), and the writer copied the scenario straight through: a fake-
-# engagement story, whose whole premise is that they ARE performing, came back with
-# "the unguarded ease of two people who have stopped performing". A face works in any
-# plot; a situation has to be one the book contains.
+# The feeling only. Two earlier versions both over-specified and both shipped bad art:
+# first as scenarios ("the second the news landed"), which the writer copied into plots
+# that could not contain them; then as facial mechanics ("shock — mouth open, eyes
+# wide"), which the image model executed literally and returned a whole set of posters
+# with everyone's mouth hanging open. Naming the emotion and stopping is what leaves the
+# writer free to express it in a way this particular story and scene can carry.
 _EMOTION = [
-    "open joy — a real laugh, eyes creased, teeth showing, caught mid-laugh not posed",
-    "quiet contentment — soft mouth, shoulders down, eyes easy and unhurried",
-    "grief — wet eyes, mouth tight, one face turned into the other's shoulder",
-    "triumph — chin up, a slow spreading smile, eyes bright and direct",
-    "longing — lips parted, gaze fixed on someone not looking back",
-    "fury — jaw set, nostrils flared, colour high, eyes locked and unblinking",
-    "tenderness — eyes soft and lids low, a hand at a face, everything gentled",
-    "shock — mouth open, eyes wide, the face not yet arranged",
-    "mischief — one smirking sideways, the other biting back a laugh",
-    "relief — eyes shut, a long exhale, foreheads resting together",
-    "defiance — chins lifted, jaws firm, eyes hard and facing outward",
-    "smouldering restraint — the charged held look, lips almost touching, neither moving",
+    "joy",
+    "contentment",
+    "grief",
+    "triumph",
+    "longing",
+    "fury",
+    "tenderness",
+    "shock",
+    "mischief",
+    "relief",
+    "defiance",
+    "fear",
+    "smouldering restraint — the charged, held look",
 ]
 
 # Where the eyes go. He was gazing at her in essentially every shipped poster, which

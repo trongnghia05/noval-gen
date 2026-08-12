@@ -44,11 +44,11 @@ Same world, same palette family, same faces throughout.
 - **thumb1** — the protagonist **alone** (at most one faint figure behind). Her face
   dominates, framed head-and-shoulders or waist-up with **clear space above her hair**.
   State the headroom.
-  - **She does not smile here.** A lone smiling portrait reads as an advertisement, not
-    as a book. Give her the drawn emotion in its held, unsmiling form: a level stare, a
-    lifted chin, wet eyes, a mouth about to speak, something withheld. Where the drawn
-    register is joy or mischief, land it in the eyes and let the mouth stay closed.
-    The laughing version belongs on the cover or the couple shot, never here.
+  - **She does not smile here, and her mouth stays closed.** A lone smiling portrait
+    reads as an advertisement, not as a book, and a parted mouth on a close portrait
+    reads as vacant. Whatever she feels, it is held and unsmiling — carried by the eyes,
+    the brow and the set of the jaw. The laughing or open-mouthed version belongs on the
+    cover or the couple shot, never here.
 - **thumb2** — the central pair, and the **hottest image of the three**. Realise the
   intimacy staging from ART DIRECTION; they are in contact, faces a breath apart, never
   simply facing each other. Show skin within the run's wardrobe register. Warm intimate
@@ -160,16 +160,21 @@ Same world, same palette family, same faces throughout.
 - **Stage them close**: a hand at her waist or jaw, his chest at her back, foreheads or
   mouths nearly touching. Tension and heat, always tasteful — suggestive framing and
   body language, never nudity, never explicit content.
-- **Name the emotion on every face.** For each person in each prompt, write what they
-  feel and what their face is doing: mid-laugh, eyes wet, jaw set, a smile breaking,
-  mouth open in shock, chin lifted in triumph. A face with no stated emotion comes back
-  blank — and the catalogue's worst habit is the male lead gazing intently at the female
-  lead while she wears one unreadable expression.
-  - "Charged" is a level of *closeness*, not the only feeling available. ART DIRECTION
-    names an **emotional register** for this run; use it.
-  - **The three images must not wear the same face.**
-  - **Except on thumb1, which never smiles** — see the thumb1 rule above. Its emotion
-    is carried by the eyes and the set of the mouth, not by a smile.
+- **Give every face a named, readable emotion.** A face with no stated feeling comes
+  back blank, and the catalogue's worst habit is the male lead gazing intently at the
+  female lead while she wears one unreadable expression.
+  - ART DIRECTION names one **emotional register** for the run. **It belongs to the
+    cover**; work out for yourself what the other two images feel, given where each sits
+    in the story. The three must not wear the same expression — one register repeated
+    across a whole set is how every poster ended up on one note.
+  - **You decide how each feeling shows on each face**, from this character, this scene
+    and this moment. Do not reach for a stock expression: fear is not always a scream,
+    triumph is not always a grin, shock is not always an open mouth. The same emotion
+    looks different on a woman who hides everything and a man who hides nothing.
+  - **Mouths stay closed unless there is a reason.** Open only for someone actually
+    speaking, genuinely laughing, or in a real moment of shock. Left to itself the image
+    model parts every mouth slightly, and a set came back with all three posters
+    slack-jawed. Say "lips closed" where nobody is speaking.
   - A dark story reaches these feelings its own way — bitter laughter, grim
     satisfaction, tears of rage. It does not turn cheerful, and it does not get a blank
     stare either.
@@ -211,8 +216,8 @@ End every prompt with exactly this:
 > no clothing from the wrong century, no modern garments in a historical story, no
 > cropped head, no top of head cut off, no forehead touching the top edge, the young
 > leads not aged up, no wrinkles or forehead lines or crow's feet or nasolabial folds on
-> the young leads, no middle-aged or matronly look on the female lead, no extra text, no
-> watermark, no logo
+> the young leads, no middle-aged or matronly look on the female lead, no slack open
+> mouth, no gaping mouth, no vacant expression, no extra text, no watermark, no logo
 
 **In a PRESENT-DAY story only**, add: `no high neckline, no turtleneck, no mock neck, no
 buttoned-up collar, no shapeless or covered-up clothing`. The model follows a described
