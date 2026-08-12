@@ -395,7 +395,8 @@ _EMOTION = [
 ]
 
 # Where the eyes go. He was gazing at her in essentially every shipped poster, which
-# flattens all three images into the same beat.
+# flattens all three images into the same beat. Every entry describes TWO people, so
+# this axis belongs to the cover and thumb2; thumb1 draws from _SOLO_POSE instead.
 _EYELINE = [
     "both looking straight down the lens, daring the viewer",
     "she looks at the camera; he is looking at her",
@@ -405,6 +406,30 @@ _EYELINE = [
     "one looking down at the other, who is looking up",
     "both looking at the same off-frame thing, shoulder to shoulder",
     "she is looking away and he is watching her decide",
+]
+
+# How the lone portrait stands. The cover had _COMPOSITIONS and thumb2 had _INTIMACY,
+# but thumb1's body was never described by anything — so the model returned its modal
+# solo portrait every run: standing, torso square to the lens, head level, eyes front,
+# hands out of frame. Six shipped posters were that same picture. Each entry fixes body
+# orientation, head angle, hands and gaze together, because naming only one of the four
+# leaves the rest to default back.
+_SOLO_POSE = [
+    "three-quarter turn away, face coming back over her near shoulder to the lens",
+    "full profile, chin lifted, eyes on something past the edge of the frame",
+    "chin resting on the back of her hand, elbow propped, gaze level and unhurried",
+    "seated, leaning in with forearms crossed, shoulders rolled toward the lens",
+    "head tipped back, throat bared, eyes half-lowered",
+    "one hand at the base of her throat, body squared, head angled away",
+    "her back to the lens, face turned just enough to read the near cheek and eye",
+    "fingers pushing back through her hair, elbow high, eyes into the lens",
+    "shoulder against a wall or door frame taking her weight, head tilted onto it",
+    "hands busy with something this story owns, eyes down on it",
+    "arms folded, weight on one hip, head lowered so she looks up through her lashes",
+    "seated side-on, one arm along the chair back, torso twisted to the lens",
+    "caught mid-turn, hair still carrying the movement, eyes just arriving at the lens",
+    "shot from slightly below, face three-quarters away, jaw and cheekbone leading",
+    "a curtain, door or window edge pushed aside by one hand, half-framing her face",
 ]
 
 
@@ -533,7 +558,8 @@ def _art_direction(seed: int | None = None) -> str:
         f"- wardrobe register: {rnd.choice(_WARDROBE)}\n"
         f"- title treatment: {rnd.choice(_TYPOGRAPHY)}\n"
         f"- emotional register: {rnd.choice(_EMOTION)}\n"
-        f"- eyelines: {rnd.choice(_EYELINE)}\n"
+        f"- eyelines (cover and thumb2): {rnd.choice(_EYELINE)}\n"
+        f"- solo portrait pose (thumb1 only): {rnd.choice(_SOLO_POSE)}\n"
         f"- male lead build: {rnd.choice(_MALE_BUILD)}\n"
         f"- male lead face and hair: {rnd.choice(_MALE_FACE)}\n"
         f"- male lead distinguishing feature: {rnd.choice(_MALE_MARK)}\n"

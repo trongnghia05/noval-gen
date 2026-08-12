@@ -44,6 +44,19 @@ Same world, same palette family, same faces throughout.
 - **thumb1** — the protagonist **alone** (at most one faint figure behind). Her face
   dominates, framed head-and-shoulders or waist-up with **clear space above her hair**.
   State the headroom.
+  - **Her pose starts from the ART DIRECTION solo portrait line**, never from a pose
+    described anywhere else in these instructions. Write the body orientation, the head
+    angle, where her hands are and where she is looking — all four, explicitly. Left
+    unstated she comes back standing square to the lens, head level, eyes front, hands
+    out of frame, which is the one portrait this catalogue already has too many of. The
+    eyeline drawn for the run describes two people and does not apply here.
+  - **The drawn pose has to serve this woman and this story, or it changes.** Almost any
+    pose is physically possible, so "could the plot contain it" is the wrong test here —
+    ask whether it tells the truth about her. A flirtatious pose on a woman who is
+    grieving, coerced or in command reverses the power dynamic. When it does not fit,
+    replace it with a different specific pose that does, and give the reason a body: what
+    she is doing with her hands and where she is looking should come from her situation
+    in the story. Never resolve the conflict by standing her square to the lens again.
   - **She does not smile here, and her mouth stays closed.** A lone smiling portrait
     reads as an advertisement, not as a book, and a parted mouth on a close portrait
     reads as vacant. Whatever she feels, it is held and unsmiling — carried by the eyes,

@@ -25,7 +25,8 @@ needless regeneration of all three images.
 **The ART DIRECTION is not something you enforce.** It is included so you know what
 style was asked for, not as a rulebook to audit against. Its lines about exposure,
 brightness, palette strength, composition, wardrobe register, male-lead casting,
-emotional register and eyelines have no check here, so a prompt that departs from them
+emotional register, eyelines and solo portrait pose have no check here, so a prompt
+that departs from them
 is not reporting-worthy. Only the seven checks below are. The writer is explicitly told
 to DISCARD a drawn emotion or eyeline the plot cannot reach — doing so is correct, and
 never a fault.
