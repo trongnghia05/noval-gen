@@ -13,11 +13,9 @@ import logging
 
 from sqlalchemy.orm import Session
 
+from . import _common
 from .. import context_builder, csv_graph
-from ..config import AGENT_MODELS, PROVIDER
 from ..db.models import Chapter, Story
-from ..llm_json import generate_structured
-from ..prompts.loader import load_prompt
 from ..schemas import QualityReviewIssueOut, QualityReviewerOutput
 
 logger = logging.getLogger(__name__)
@@ -72,7 +70,6 @@ def _pov_block(chapter: Chapter) -> str:
 
 
 def check(session: Session, story: Story, chapter: Chapter) -> list[QualityReviewIssueOut]:
-    system = load_prompt("quality_reviewer")
 
     # For REWRITE, include the new graph's planned event node for this chapter
     graph_event_section = ""
@@ -134,11 +131,9 @@ def check(session: Session, story: Story, chapter: Chapter) -> list[QualityRevie
         f"---\n{chapter.content}\n---\n"
     )
 
-    output: QualityReviewerOutput = generate_structured(
-        PROVIDER,
-        system=system,
+    output: QualityReviewerOutput = _common.call_agent(
+        "quality_reviewer",
         user_content=user_content,
-        model=AGENT_MODELS["quality_reviewer"],
         schema=QualityReviewerOutput,
         max_tokens=8192,
         thinking=False,

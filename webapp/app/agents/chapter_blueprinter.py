@@ -2,11 +2,10 @@ import json
 
 from sqlalchemy.orm import Session
 
+from . import _common
 from .. import context_builder, csv_graph
-from ..config import AGENT_MODELS, PROVIDER
+from ..config import AGENT_MODELS
 from ..db.models import Chapter, Story, StoryGraphNode
-from ..llm_json import generate_structured
-from ..prompts.loader import load_prompt
 from ..schemas import ChapterBlueprintOutput
 
 
@@ -135,7 +134,6 @@ def _resolve_pov_from_source(session: Session, story: Story, chapter_number: int
 
 
 def run(session: Session, story: Story, chapter: Chapter) -> None:
-    system = load_prompt("chapter_blueprinter")
     act = _act_position(chapter.number, story.total_chapters)
 
     graph_section = ""
@@ -197,11 +195,10 @@ For each repeatable beat/motif in this chapter: if it means the same as a tag be
 {story.plot_outline}
 """
 
-    blueprint = generate_structured(
-        PROVIDER,
-        system=system,
+    blueprint = _common.call_agent(
+        "chapter_blueprinter",
         user_content=user_content,
-        model=AGENT_MODELS.get("chapter_blueprinter", AGENT_MODELS["chapter_writer"]),
+        model_fallback="chapter_writer",
         schema=ChapterBlueprintOutput,
         # 4096 truncated the JSON mid-string once Gemini's thinking tokens ate
         # into the budget (unterminated-string parse failures). The blueprint

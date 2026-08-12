@@ -2,11 +2,9 @@ import logging
 
 from sqlalchemy.orm import Session
 
+from . import _common
 from .. import context_builder, csv_graph
-from ..config import AGENT_MODELS, PROVIDER
 from ..db.models import Chapter, ChapterSummary, Foreshadowing, StateLog, Story, WorldState
-from ..llm_json import generate_structured
-from ..prompts.loader import load_prompt
 from ..schemas import ChapterSummaryOutput
 
 logger = logging.getLogger(__name__)
@@ -54,7 +52,6 @@ def _upsert_foreshadowing(session: Session, story_id: int, f) -> None:
 
 
 def run(session: Session, story: Story, chapter: Chapter) -> None:
-    system = load_prompt("chapter_summarizer")
 
     graph_ids_section = ""
     if csv_graph.graph_exists(story.id):
@@ -74,11 +71,9 @@ chapter_number: {chapter.number}
 ## Chapter {chapter.number}: {chapter.title}
 {chapter.content}
 """
-    output = generate_structured(
-        PROVIDER,
-        system=system,
+    output = _common.call_agent(
+        "chapter_summarizer",
         user_content=user_content,
-        model=AGENT_MODELS["chapter_summarizer"],
         schema=ChapterSummaryOutput,
         max_tokens=32768,
     )

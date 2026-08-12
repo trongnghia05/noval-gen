@@ -23,9 +23,9 @@ from typing import Literal
 
 from sqlalchemy.orm import Session
 
-from ..config import AGENT_MODELS, PROVIDER
+from . import _common
+from ..config import AGENT_MODELS
 from ..db.models import Chapter, Story
-from ..llm_json import generate_structured
 from ..schemas import QualityReviewIssueOut
 
 # Dialogue spans to strip before counting narration pronouns.
@@ -78,9 +78,9 @@ def _llm_confirms_third(story: Story, chapter: Chapter, pov: str) -> bool:
     )
     user = f"POV character: {pov}\n\nChapter narration:\n{chapter.content[:6000]}"
     try:
-        out = generate_structured(
-            PROVIDER, system=system, user_content=user,
-            model=AGENT_MODELS.get("pov_check", AGENT_MODELS["quality_reviewer"]),
+        out = _common.call_agent(
+            "pov_check", system=system, user_content=user,
+            model_fallback="quality_reviewer",
             schema=_PovClassifyOut, max_tokens=200, thinking=False,
         )
         return out.person == "third"

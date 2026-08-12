@@ -18,12 +18,9 @@ from collections import defaultdict
 from sqlalchemy.orm import Session
 
 from .. import context_builder
-from ..config import AGENT_MODELS, PROVIDER
 from ..db.models import Character, PlanningVerifyLog, Story
-from ..llm_json import generate_structured
-from ..prompts.loader import load_prompt
 from ..schemas import PlanningVerifierOutput
-from . import character_developer, plot_architect, story_analyzer, worldbuilder
+from . import _common, character_developer, plot_architect, story_analyzer, worldbuilder
 
 MAX_REWRITES = 3  # feedback-guided rewrites per artifact before a from-scratch regen
 # 3 feedback + 1 from-scratch + 1 final verify = 5 iterations max per artifact.
@@ -34,7 +31,6 @@ ARTIFACTS = ("story_bible", "plot_outline", "characters", "world")
 
 
 def _verify(session: Session, story: Story) -> PlanningVerifierOutput:
-    system = load_prompt("planning_verifier")
     user_content = f"""Language: {story.language}
 Input type: {story.input_type}
 total_chapters: {story.total_chapters}
@@ -66,11 +62,9 @@ words_per_chapter: {story.words_per_chapter}
             "skeleton exactly)\n"
             f"---\n{story.source_content}\n---\n"
         )
-    return generate_structured(
-        PROVIDER,
-        system=system,
+    return _common.call_agent(
+        "planning_verifier",
         user_content=user_content,
-        model=AGENT_MODELS["planning_verifier"],
         schema=PlanningVerifierOutput,
         # 8192 truncated the JSON mid-string on a large story (many issues across 4
         # artifacts) -> "Unterminated string" -> crash. Same headroom fix as the

@@ -13,12 +13,10 @@ import re
 from sqlalchemy.orm import Session
 
 from .. import context_builder, csv_graph
-from ..config import AGENT_MODELS, PROVIDER
+from ..config import AGENT_MODELS
 from ..db.models import Chapter, Story
-from ..llm_json import generate_structured
-from ..prompts.loader import load_prompt
 from ..schemas import ChapterWriterOutput
-from . import chapter_writer
+from . import _common, chapter_writer
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +34,6 @@ def run(session: Session, story: Story, chapter: Chapter, feedback: str) -> Chap
     heading = f"# Chapter {chapter.number}: {chapter.title or ''}".rstrip()
     current = f"{heading}\n\n{chapter.content or ''}"
 
-    system = load_prompt("chapter_reviser")
 
     # Reference truth so the reviser can JUDGE whether each flagged issue is real
     # (reject false positives) and fix the real ones CORRECTLY — not guess. Same
@@ -78,9 +75,10 @@ def run(session: Session, story: Story, chapter: Chapter, feedback: str) -> Chap
         f"## CURRENT CHAPTER (revise in place)\n---\n{current}\n---\n"
     )
 
-    output: ChapterWriterOutput = generate_structured(
-        PROVIDER,
-        system=system,
+    # Runs on the WRITER's model, not its own: it is repairing the writer's prose, so
+    # a weaker model here would flatten the voice it is meant to preserve.
+    output: ChapterWriterOutput = _common.call_agent(
+        "chapter_reviser",
         user_content=user_content,
         model=AGENT_MODELS["chapter_writer"],
         schema=ChapterWriterOutput,

@@ -8,11 +8,9 @@ import logging
 
 from sqlalchemy.orm import Session
 
+from . import _common
 from .. import context_builder
-from ..config import AGENT_MODELS, PROVIDER
 from ..db.models import Story, StoryGraphEdge, StoryGraphNode
-from ..llm_json import generate_structured
-from ..prompts.loader import load_prompt
 from ..schemas import GraphSurfaceRepairOutput, GraphVerifyIssueOut, NewEdgeForRepairOut
 
 logger = logging.getLogger(__name__)
@@ -55,7 +53,6 @@ def run(
     ]
     issues_text = "\n".join(issue_lines)
 
-    system = load_prompt("graph_surface_rewriter")
     directive = _RESKIN_DIRECTIVE if reason == "reskin" else ""
     user_content = (
         f"language: {story.language}\n\n"
@@ -64,11 +61,9 @@ def run(
         f"## ISSUES TO FIX\n{issues_text}\n"
     )
 
-    output: GraphSurfaceRepairOutput = generate_structured(
-        PROVIDER,
-        system=system,
+    output: GraphSurfaceRepairOutput = _common.call_agent(
+        "graph_surface_rewriter",
         user_content=user_content,
-        model=AGENT_MODELS["graph_surface_rewriter"],
         schema=GraphSurfaceRepairOutput,
         max_tokens=16384,
         thinking=False,

@@ -8,11 +8,9 @@ import logging
 
 from sqlalchemy.orm import Session
 
+from . import _common
 from .. import context_builder
-from ..config import AGENT_MODELS, PROVIDER
 from ..db.models import Story, StoryGraphEdge, StoryGraphNode
-from ..llm_json import generate_structured
-from ..prompts.loader import load_prompt
 from ..schemas import GraphEnrichmentOutput
 
 logger = logging.getLogger(__name__)
@@ -25,18 +23,15 @@ def run(session: Session, story: Story) -> GraphEnrichmentOutput:
     """
     new_graph_text = context_builder.format_story_graph(session, story.id, graph_type="new")
 
-    system = load_prompt("graph_enricher")
     user_content = (
         f"language: {story.language}\n"
         f"total_chapters: {story.total_chapters}\n\n"
         f"## NEW GRAPH (after surface rename)\n{new_graph_text}\n"
     )
 
-    output: GraphEnrichmentOutput = generate_structured(
-        PROVIDER,
-        system=system,
+    output: GraphEnrichmentOutput = _common.call_agent(
+        "graph_enricher",
         user_content=user_content,
-        model=AGENT_MODELS["graph_enricher"],
         schema=GraphEnrichmentOutput,
         max_tokens=8192,
         thinking=False,

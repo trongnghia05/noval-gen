@@ -1,10 +1,7 @@
 import json
 
 from . import _common
-from ..config import AGENT_MODELS, PROVIDER
-from ..llm_json import generate_structured
 from ..db.models import Story
-from ..prompts.loader import load_prompt
 from ..schemas import PlotOutlineOut
 
 # A single generation can be cut off by the output-token ceiling before all N
@@ -32,7 +29,6 @@ def run(story: Story, feedback: str | None = None, story_graph: str = "") -> str
     Stored verbatim in story.plot_outline. Downstream agents receive this JSON
     string as context (the creative planning logic is unchanged — only the output
     format moved from markdown to JSON)."""
-    system = load_prompt("plot_architect")
     graph_section = (
         f"\n## Story Knowledge Graph (for REWRITE, use the EVENT nodes as your spine)\n{story_graph}\n"
         if story_graph else ""
@@ -55,9 +51,8 @@ story-bible.md (short summary):
     # long novels mid-chapter. Scale generously, stay under the hard output ceiling.
     max_tokens = min(60000, max(8192, story.total_chapters * 1600))
 
-    outline: PlotOutlineOut = generate_structured(
-        PROVIDER, system=system, user_content=base,
-        model=AGENT_MODELS["plot_architect"], schema=PlotOutlineOut,
+    outline: PlotOutlineOut = _common.call_agent(
+        "plot_architect", user_content=base, schema=PlotOutlineOut,
         max_tokens=max_tokens, thinking=True,
     )
 
@@ -79,9 +74,8 @@ CONTINUE from **chapter {last + 1}** through **chapter {story.total_chapters}**,
 JSON structure. Return ONLY chapters {last + 1} onward in `chapters` (title/arc_overview may
 be left empty), and do NOT repeat the chapters already written.
 """
-        more: PlotOutlineOut = generate_structured(
-            PROVIDER, system=system, user_content=continuation_prompt,
-            model=AGENT_MODELS["plot_architect"], schema=PlotOutlineOut,
+        more: PlotOutlineOut = _common.call_agent(
+            "plot_architect", user_content=continuation_prompt, schema=PlotOutlineOut,
             max_tokens=max_tokens, thinking=True,
         )
         if _highest_chapter(more) <= last:

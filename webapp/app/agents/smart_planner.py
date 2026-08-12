@@ -1,15 +1,12 @@
 from sqlalchemy.orm import Session
 
+from . import _common
 from .. import context_builder
-from ..config import AGENT_MODELS, PROVIDER
 from ..db.models import SmartPlannerState, Story
-from ..llm_json import generate_structured
-from ..prompts.loader import load_prompt
 from ..schemas import SmartPlannerOutput
 
 
 def run(session: Session, story: Story, current_chapter: int) -> None:
-    system = load_prompt("smart_planner")
     user_content = f"""language: {story.language}
 current_chapter: {current_chapter}
 total_chapters (N): {story.total_chapters}
@@ -25,11 +22,9 @@ current_words: {story.current_words}
 ## plot-outline.md (the original)
 {story.plot_outline}
 """
-    output = generate_structured(
-        PROVIDER,
-        system=system,
+    output = _common.call_agent(
+        "smart_planner",
         user_content=user_content,
-        model=AGENT_MODELS["smart_planner"],
         schema=SmartPlannerOutput,
         max_tokens=32768,
         thinking=True,

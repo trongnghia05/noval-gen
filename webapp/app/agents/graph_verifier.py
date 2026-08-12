@@ -26,11 +26,9 @@ from collections import defaultdict
 
 from sqlalchemy.orm import Session
 
+from . import _common
 from .. import context_builder
-from ..config import AGENT_MODELS, PROVIDER
 from ..db.models import PlanningVerifyLog, Story, StoryGraphEdge, StoryGraphNode
-from ..llm_json import generate_structured
-from ..prompts.loader import load_prompt
 from ..schemas import GraphVerifierOutput
 from . import graph_surface_rewriter
 from .new_graph_builder import (
@@ -252,7 +250,6 @@ def run(session: Session, story: Story) -> None:
         new_graph_text = context_builder.format_story_graph(
             session, story.id, graph_type="new"
         )
-        system = load_prompt("graph_verifier")
         user_content = (
             f"language: {story.language}\n"
             f"input_type: {story.input_type}\n"
@@ -264,15 +261,13 @@ def run(session: Session, story: Story) -> None:
                 f"\n## SOURCE GRAPH (for RESKIN QUALITY check)\n{source_graph_text}\n"
             )
 
-        output: GraphVerifierOutput = generate_structured(
-            PROVIDER,
-            system=system,
-            user_content=user_content,
-            model=AGENT_MODELS["graph_verifier"],
-            schema=GraphVerifierOutput,
-            max_tokens=48000,
-            thinking=False,
-        )
+        output: GraphVerifierOutput = _common.call_agent(
+        "graph_verifier",
+        user_content=user_content,
+        schema=GraphVerifierOutput,
+        max_tokens=48000,
+        thinking=False,
+    )
 
         critical = [i for i in output.issues if i.severity == "critical"]
         logger.info("[%s] graph_verifier iter%d: %d issues (%d critical) | %s",

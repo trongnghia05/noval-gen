@@ -15,10 +15,9 @@ import logging
 
 from sqlalchemy.orm import Session
 
-from ..config import AGENT_MODELS, PROVIDER
+from . import _common
+from ..config import AGENT_MODELS
 from ..db.models import PlanningVerifyLog, Story, StoryGraphEdge, StoryGraphNode
-from ..llm_json import generate_structured
-from ..prompts.loader import load_prompt
 from ..schemas import GraphVerifierOutput
 from . import chapter_graph_extractor
 
@@ -193,7 +192,6 @@ def run(session: Session, story: Story) -> None:
     """Verify source graph chapter by chapter. Each call checks only that
     chapter's additions + minimal context — O(additions) per call.
     """
-    system = load_prompt("source_graph_chapter_verifier")
     total = story.source_chapter_count or 0
 
     for chapter_number in range(1, total + 1):
@@ -210,9 +208,9 @@ def run(session: Session, story: Story) -> None:
                 f"## CONTEXT\n{context}\n"
             )
 
-            output: GraphVerifierOutput = generate_structured(
-                PROVIDER,
-                system=system,
+            # Its own prompt, but the graph verifier's model — same job, same rigour.
+            output: GraphVerifierOutput = _common.call_agent(
+                "source_graph_chapter_verifier",
                 user_content=user_content,
                 model=AGENT_MODELS["graph_verifier"],
                 schema=GraphVerifierOutput,

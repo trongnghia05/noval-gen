@@ -1,15 +1,12 @@
 from sqlalchemy.orm import Session
 
+from . import _common
 from .. import context_builder
-from ..config import AGENT_MODELS, PROVIDER
 from ..db.models import ContinuityLog, Story
-from ..llm_json import generate_structured
-from ..prompts.loader import load_prompt
 from ..schemas import ContinuityEditorOutput
 
 
 def run(session: Session, story: Story, batch_end: int) -> None:
-    system = load_prompt("continuity_editor")
     user_content = f"""language: {story.language}
 batch_end: {batch_end}
 
@@ -22,11 +19,9 @@ batch_end: {batch_end}
 ## The last 5 chapters (Ch.{max(1, batch_end - 4)}-{batch_end})
 {context_builder.last_n_chapters_text(session, story.id, batch_end, n=5)}
 """
-    output = generate_structured(
-        PROVIDER,
-        system=system,
+    output = _common.call_agent(
+        "continuity_editor",
         user_content=user_content,
-        model=AGENT_MODELS["continuity_editor"],
         schema=ContinuityEditorOutput,
         max_tokens=32768,
         thinking=True,

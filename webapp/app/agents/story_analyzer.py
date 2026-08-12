@@ -4,10 +4,7 @@ from sqlalchemy.orm import Session
 
 from . import _common
 from .. import length_calc
-from ..config import AGENT_MODELS, PROVIDER
 from ..db.models import Story, StoryGraphEdge, StoryGraphNode
-from ..llm_json import generate_structured
-from ..prompts.loader import load_prompt
 from ..schemas import StoryAnalyzerOutput
 
 logger = logging.getLogger(__name__)
@@ -30,7 +27,6 @@ def run(session: Session, story: Story, feedback: str | None = None) -> None:
                    (Act 1 end, midpoint, Act 2 end, climax — not per-chapter detail).
                    No chapter_graph_extractor step follows.
     """
-    system = load_prompt("story_analyzer")
     user_content = (
         f"Language: {story.language}\n"
         f"Input type: {story.input_type}\n"
@@ -46,11 +42,9 @@ def run(session: Session, story: Story, feedback: str | None = None) -> None:
     # IDEA/PREMISE: entities + ~4 arc EVENT nodes → output is small.
     max_tokens = 65536
 
-    output: StoryAnalyzerOutput = generate_structured(
-        PROVIDER,
-        system=system,
+    output: StoryAnalyzerOutput = _common.call_agent(
+        "story_analyzer",
         user_content=user_content,
-        model=AGENT_MODELS["story_analyzer"],
         schema=StoryAnalyzerOutput,
         max_tokens=max_tokens,
         thinking=True,

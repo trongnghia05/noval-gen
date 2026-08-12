@@ -9,14 +9,13 @@ import logging
 
 from sqlalchemy.orm import Session
 
+from . import _common
 from .. import context_builder
+from ..config import AGENT_MODELS
+from ..db.models import PlanningVerifyLog, Story, StoryGraphEdge, StoryGraphNode
+from ..schemas import GraphRepairOutput, GraphVerifyIssueOut
 
 logger = logging.getLogger(__name__)
-from ..config import AGENT_MODELS, PROVIDER
-from ..db.models import PlanningVerifyLog, Story, StoryGraphEdge, StoryGraphNode
-from ..llm_json import generate_structured
-from ..prompts.loader import load_prompt
-from ..schemas import GraphRepairOutput, GraphVerifyIssueOut
 
 
 def run(session: Session, story: Story, issues: list[GraphVerifyIssueOut]) -> None:
@@ -49,7 +48,6 @@ def run(session: Session, story: Story, issues: list[GraphVerifyIssueOut]) -> No
         for i in issues
     )
 
-    system = load_prompt("graph_repair")
     source_block = "\n\n".join(source_subgraphs) if source_subgraphs else "(no source subgraphs)"
     new_block = "\n\n".join(new_subgraphs) if new_subgraphs else "(no new subgraphs)"
     user_content = (
@@ -61,9 +59,9 @@ def run(session: Session, story: Story, issues: list[GraphVerifyIssueOut]) -> No
         f"## FULL NEW GRAPH (for context)\n{full_new_graph}\n"
     )
 
-    output: GraphRepairOutput = generate_structured(
-        PROVIDER,
-        system=system,
+    # Repairs what graph_verifier flagged, on the same model that flagged it.
+    output: GraphRepairOutput = _common.call_agent(
+        "graph_repair",
         user_content=user_content,
         model=AGENT_MODELS["graph_verifier"],
         schema=GraphRepairOutput,

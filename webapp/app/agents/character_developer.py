@@ -2,15 +2,11 @@ from sqlalchemy.orm import Session
 
 from . import _common
 from .. import csv_graph
-from ..config import AGENT_MODELS, PROVIDER
 from ..db.models import Character, Story
-from ..llm_json import generate_structured
-from ..prompts.loader import load_prompt
 from ..schemas import CharacterDeveloperOutput
 
 
 def run(session: Session, story: Story, feedback: str | None = None) -> None:
-    system = load_prompt("character_developer")
     user_content = f"""Language: {story.language}
 
 story-bible.md:
@@ -25,11 +21,9 @@ plot-outline.md:
 """
     if feedback:
         user_content += f"{_common.FEEDBACK_HEADER}{feedback}\n"
-    output = generate_structured(
-        PROVIDER,
-        system=system,
+    output = _common.call_agent(
+        "character_developer",
         user_content=user_content,
-        model=AGENT_MODELS["character_developer"],
         schema=CharacterDeveloperOutput,
         max_tokens=32768,
         thinking=True,

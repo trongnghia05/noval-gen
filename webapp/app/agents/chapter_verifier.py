@@ -2,11 +2,9 @@ import logging
 
 from sqlalchemy.orm import Session
 
+from . import _common
 from .. import context_builder
-from ..config import AGENT_MODELS, PROVIDER
 from ..db.models import Chapter, Story
-from ..llm_json import generate_structured
-from ..prompts.loader import load_prompt
 from ..schemas import ChapterVerifierOutput, ChapterVerifyIssueOut
 
 logger = logging.getLogger(__name__)
@@ -27,7 +25,6 @@ def check(
     (characters, relations, arc changes, causal chains) — used to cross-check
     structured graph state in addition to the flat world-state snapshot.
     """
-    system = load_prompt("chapter_verifier")
     graph_section = (
         f"\n## Story graph (new) — structured state to cross-check against\n{graph_context}\n"
         if graph_context
@@ -55,11 +52,9 @@ def check(
         f"Ch.{max(1, chapter.number - 2)}-{chapter.number})\n"
         f"{context_builder.last_n_chapters_text(session, story.id, chapter.number, n=3)}\n"
     )
-    output: ChapterVerifierOutput = generate_structured(
-        PROVIDER,
-        system=system,
+    output: ChapterVerifierOutput = _common.call_agent(
+        "chapter_verifier",
         user_content=user_content,
-        model=AGENT_MODELS["chapter_verifier"],
         schema=ChapterVerifierOutput,
         max_tokens=8192,
         thinking=False,
