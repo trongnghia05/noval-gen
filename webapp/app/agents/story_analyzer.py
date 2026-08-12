@@ -2,6 +2,7 @@ import logging
 
 from sqlalchemy.orm import Session
 
+from . import _common
 from .. import length_calc
 from ..config import AGENT_MODELS, PROVIDER
 from ..db.models import Story, StoryGraphEdge, StoryGraphNode
@@ -39,11 +40,7 @@ def run(session: Session, story: Story, feedback: str | None = None) -> None:
         f"The user's input:\n---\n{story.source_content}\n---\n"
     )
     if feedback:
-        user_content += (
-            "\n## ISSUES FROM THE PREVIOUS VERIFICATION PASS — you must fix these, and "
-            "leave everything already correct untouched\n"
-            f"{feedback}\n"
-        )
+        user_content += f"{_common.FEEDBACK_HEADER}{feedback}\n"
 
     # REWRITE: no EVENT nodes needed here — just stable entities.
     # IDEA/PREMISE: entities + ~4 arc EVENT nodes → output is small.

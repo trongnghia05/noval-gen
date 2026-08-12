@@ -1,5 +1,6 @@
 import json
 
+from . import _common
 from ..config import AGENT_MODELS, PROVIDER
 from ..llm_json import generate_structured
 from ..db.models import Story
@@ -26,11 +27,7 @@ story-bible.md:
             f"{story_graph}\n"
         )
     if feedback:
-        user_content += (
-            "\n## ISSUES FROM THE PREVIOUS VERIFICATION PASS — you must fix these, and "
-            "leave everything already correct untouched\n"
-            f"{feedback}\n"
-        )
+        user_content += f"{_common.FEEDBACK_HEADER}{feedback}\n"
     world: WorldBibleOut = generate_structured(
         PROVIDER, system=system, user_content=user_content,
         model=AGENT_MODELS["worldbuilder"], schema=WorldBibleOut,

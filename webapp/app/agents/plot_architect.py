@@ -1,5 +1,6 @@
 import json
 
+from . import _common
 from ..config import AGENT_MODELS, PROVIDER
 from ..llm_json import generate_structured
 from ..db.models import Story
@@ -47,11 +48,7 @@ story-bible.md (short summary):
 ---
 {graph_section}"""
     if feedback:
-        base += (
-            "\n## ISSUES FROM THE PREVIOUS VERIFICATION PASS — you must fix these, and "
-            "leave everything already correct untouched\n"
-            f"{feedback}\n"
-        )
+        base += f"{_common.FEEDBACK_HEADER}{feedback}\n"
 
     # A detailed per-chapter outline runs ~1200+ output tokens/chapter, and the
     # model's dynamic thinking draws from the same budget — a small cap truncates

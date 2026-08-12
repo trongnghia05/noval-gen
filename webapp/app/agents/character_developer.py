@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 
+from . import _common
 from .. import csv_graph
 from ..config import AGENT_MODELS, PROVIDER
 from ..db.models import Character, Story
@@ -23,11 +24,7 @@ plot-outline.md:
 ---
 """
     if feedback:
-        user_content += (
-            "\n## ISSUES FROM THE PREVIOUS VERIFICATION PASS — you must fix these, and "
-            "leave everything already correct untouched\n"
-            f"{feedback}\n"
-        )
+        user_content += f"{_common.FEEDBACK_HEADER}{feedback}\n"
     output = generate_structured(
         PROVIDER,
         system=system,
