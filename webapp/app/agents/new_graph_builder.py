@@ -49,6 +49,44 @@ from ..schemas import (
 
 logger = logging.getLogger(__name__)
 
+# The cast roles the new graph is allowed to use. Anything else is rejected on the way
+# in, so downstream code can rely on the value rather than pattern-matching prose.
+_VALID_ROLES = {"protagonist", "antagonist", "love_interest", "supporting", "minor"}
+
+_ROLE_TIERS = {
+    "protagonist":   "core",
+    "love_interest": "core",
+    "antagonist":    "important",
+    "supporting":    "important",
+    "minor":         "secondary",
+}
+
+
+def _tier_for_role(role: str) -> str:
+    """Character tier from cast role, tolerant of a role that isn't in _VALID_ROLES.
+
+    Exact matching used to be the rule, and every value outside a hard-coded tuple
+    fell through to the bottom tier in silence — so `male_lead` and `minor_antagonist`
+    both landed as background characters, as did anyone the extraction gave no role at
+    all. Tier drives who reaches the cover art and the per-chapter context, so getting
+    this wrong quietly demotes the leads. Substring matching keeps such variants near
+    the right tier; order matters, since `minor_antagonist` must read as minor.
+    """
+    r = (role or "").strip().lower()
+    if r in _ROLE_TIERS:
+        return _ROLE_TIERS[r]
+    if not r:
+        return "secondary"
+    if "minor" in r:
+        return "secondary"
+    if "protagonist" in r or "lead" in r or "heroine" in r or "hero" in r:
+        return "core"
+    if "love" in r or "romantic" in r:
+        return "core"
+    if "antagonist" in r or "villain" in r or "rival" in r or "supporting" in r:
+        return "important"
+    return "secondary"
+
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -74,11 +112,8 @@ def _rebuild_characters(session: Session, story: Story) -> None:
             continue
         seen_names.add(name_key)
         p = n.properties or {}
-        role = p.get("role", "minor")
-        tier = (
-            "core" if role == "protagonist"
-            else ("important" if role in ("antagonist", "supporting") else "secondary")
-        )
+        role = p.get("role", "")
+        tier = _tier_for_role(role)
         profile_md = p.get("profile_md") or (
             f"**Role**: {role}\n"
             f"**Gender**: {p.get('gender', '')}\n"
@@ -147,7 +182,7 @@ def build_characters_from_graph(session: Session, story: Story) -> None:
         if vp:
             voice_lines.append(f"## {n.label}\n{vp}")
 
-    voices_md = "\n\n".join(voice_lines) if voice_lines else "(chưa có dữ liệu giọng nói)"
+    voices_md = "\n\n".join(voice_lines) if voice_lines else "(no voice data yet)"
 
     # ── Initial relationships (RELATION edges active before chapter 1) ──────
     rel_edges = (
@@ -547,6 +582,66 @@ def _apply_lexicon_substitution(
 
 # ── Phase 2: Per-group LLM enrichment ─────────────────────────────────────────
 
+def _style_contract(session: Session, story: Story, world_design_text: str) -> str:
+    """The shared style anchor every Phase 2 enrichment call receives.
+
+    Phase 2 is five separate LLM calls, and each one used to see a different slice of
+    the world: only the character pass got the source's tonal energy, and the relation
+    pass was handed `world_design_text` and never used it — so it described
+    relationships without knowing the era, region or genre they sat in. The result was
+    a graph enriched in several unrelated voices, which chapter_writer then had to
+    reconcile.
+
+    The cast block is what keeps names, gender and heritage coherent. Names are minted
+    in Phase 1b, appearance in Phase 2, and nothing connected the two — which is how a
+    lead ended up with a French surname and an unexplained East Asian heritage. Every
+    call now sees both at once.
+    """
+    parts = [f"## WORLD DESIGN\n{world_design_text}"]
+
+    if story.source_spirit:
+        parts.append(
+            "## TONAL ENERGY (match the ENERGY LEVEL — lively/funny vs grim — in this "
+            f"world's idiom; do NOT copy source names or wording)\n{story.source_spirit}"
+        )
+
+    cast_lines = []
+    for n in (session.query(StoryGraphNode)
+              .filter_by(story_id=story.id, graph_type="new", node_type="character")
+              .order_by(StoryGraphNode.node_key)):
+        p = n.properties or {}
+        bits = [f"[{n.node_key}] {n.label}"]
+        for key, prefix in (("role", "role"), ("gender", "gender")):
+            if p.get(key):
+                bits.append(f"{prefix}:{p[key]}")
+        if p.get("appearance"):
+            bits.append(f"looks:{p['appearance'][:120]}")
+        cast_lines.append(" | ".join(bits))
+    if cast_lines:
+        parts.append(
+            "## CAST (names are FIXED — use these exact labels; a character's heritage, "
+            "gender and register must stay consistent with the name and looks shown "
+            "here in every field you write)\n" + "\n".join(cast_lines)
+        )
+
+    # Relationships belong in the shared contract, not just in the pass that writes
+    # them. Without this the character pass assigned each age independently and put a
+    # heroine in her early thirties beside the best friend she grew up with, who came
+    # out in her early twenties — a contradiction only visible if you can see the tie.
+    relations = relation_lines_for(session, story)
+    if relations:
+        parts.append(
+            "## RELATIONSHIPS (every recorded fact, grouped by pair — permanent ties "
+            "and passing moods are mixed together). Anything you write about a "
+            "character must be consistent with these: peers of one generation are "
+            "close in age, a parent is a generation above their child, and a tie "
+            "stated here cannot be contradicted.\n" + "\n".join(relations)
+        )
+
+    return "\n\n".join(parts) + "\n\n"
+
+
+
 # Per-enricher TASK BRIEF handed to the unified verifier so it checks against THIS
 # enricher's actual goals/rules, not a generic list.
 _ENRICH_BRIEFS = {
@@ -750,15 +845,9 @@ def _enrich_characters(
 
     lexicon_block = "\n".join(f"  {k}: \"{v}\"" for k, v in sorted(lexicon.items()))
     system = load_prompt("graph_character_enricher")
-    spirit_block = (
-        f"## SOURCE TONE (match its ENERGY LEVEL — lively/funny vs grim — in this world's idiom)\n"
-        f"{story.source_spirit}\n\n"
-        if story.source_spirit else ""
-    )
     user_content = (
         f"language: {story.language}\n\n"
-        f"## WORLD DESIGN\n{world_design_text}\n\n"
-        f"{spirit_block}"
+        f"{_style_contract(session, story, world_design_text)}"
         f"## NAME LEXICON\n{lexicon_block}\n\n"
         f"## CHARACTERS\n" + "\n".join(char_lines)
     )
@@ -788,9 +877,23 @@ def _enrich_characters(
         if surf.new_appearance:     props["appearance"]     = surf.new_appearance
         if surf.new_gender and surf.new_gender.strip().lower() in ("male", "female", "nonbinary"):
             props["gender"] = surf.new_gender.strip().lower()
+        if surf.new_role and surf.new_role.strip().lower() in _VALID_ROLES:
+            props["role"] = surf.new_role.strip().lower()
         node.properties = props
         applied += 1
     session.flush()
+
+    # The source graph is not a reliable source of roles — extraction drops the key
+    # often enough that a protagonist can arrive with no role at all — so the new
+    # graph must stand on its own here. Log rather than raise: a bad cast shape is
+    # worth seeing in the logs, but not worth killing a run over.
+    roles = [(n.properties or {}).get("role", "") for n in nodes]
+    leads = roles.count("protagonist")
+    if leads != 1:
+        logger.warning("[%s] Phase 2a: %d protagonists among %d characters (want exactly 1) — "
+                       "roles=%s", story.slug, leads, len(nodes), sorted(set(roles)))
+    if not any(r in ("antagonist", "love_interest") for r in roles):
+        logger.warning("[%s] Phase 2a: no antagonist or love_interest in the cast", story.slug)
     logger.info("[%s] Phase 2a: enriched %d characters%s", story.slug, applied,
                 f" (targeted {len(only_keys)})" if only_keys else "")
 
@@ -828,7 +931,7 @@ def _enrich_events(
     system = load_prompt("graph_event_enricher")
     user_content = (
         f"language: {story.language}\n\n"
-        f"## WORLD DESIGN\n{world_design_text}\n\n"
+        f"{_style_contract(session, story, world_design_text)}"
         f"## CHARACTER LABEL MAP\n{char_map_block}\n\n"
         f"## EVENTS\n" + "\n".join(event_lines)
     )
@@ -890,7 +993,7 @@ def _enrich_arc_changes(
     system = load_prompt("graph_arc_enricher")
     user_content = (
         f"language: {story.language}\n\n"
-        f"## WORLD DESIGN\n{world_design_text}\n\n"
+        f"{_style_contract(session, story, world_design_text)}"
         f"## CHARACTER LABEL MAP\n{char_map_block}\n\n"
         f"## ARC_CHANGES\n" + "\n".join(arc_lines)
     )
@@ -974,6 +1077,7 @@ def _enrich_relations(
         system = load_prompt("graph_relation_enricher")
         user_content = (
             f"language: {story.language}\n\n"
+            f"{_style_contract(session, story, world_design_text)}"
             f"## CHARACTER PROFILES\n{char_profiles}\n\n"
             f"## RELATIONS\n" + "\n".join(rel_lines)
         )
@@ -1045,7 +1149,7 @@ def _enrich_causes(
     system = load_prompt("graph_causes_enricher")
     user_content = (
         f"language: {story.language}\n\n"
-        f"## WORLD DESIGN\n{world_design_text}\n\n"
+        f"{_style_contract(session, story, world_design_text)}"
         f"## EVENT LABEL MAP\n{event_map_block}\n\n"
         f"## CAUSES\n" + "\n".join(cause_lines)
     )
@@ -1450,6 +1554,70 @@ def _enrich_graph(session: Session, story: Story) -> None:
 
 # ── Phase 3.5: Rewrite story_bible from new-graph names ──────────────────────
 
+def _edge_facts(edge: StoryGraphEdge) -> list[str]:
+    """Every human-readable fact on an edge, as `key: value` where a key exists.
+
+    Reads ALL of `properties`, not just `rel_type`. The enrichers are not consistent
+    about which key they use — kinship turns up under `relationship`, and some edges
+    carry no `rel_type` at all — so keying on one name silently loses the fact.
+    """
+    facts = []
+    for k, v in (edge.properties or {}).items():
+        if isinstance(v, str) and v.strip():
+            facts.append(f"{k}: {v.strip()}")
+    for v in (edge.label, edge.condition):
+        if v and v.strip():
+            facts.append(v.strip())
+    return facts
+
+
+def relation_lines_for(session: Session, story: Story) -> list[str]:
+    """Every recorded relationship fact, grouped by character pair.
+
+    This deliberately does NOT decide which fact matters — the model reading it does.
+    An earlier version tried to pick one line per pair and lost the thing it existed
+    to protect: for a story premised on "she fake-dates her ex's step-brother", the
+    pair's own line came out as "Ethan holds contempt for Julian" with no mention of
+    step-siblings, so the bible invented a different relationship and the title
+    dropped the hook. Picking by length failed because a structural fact is terse by
+    nature; classifying by a kinship keyword list failed differently, because such a
+    list is never finished — grandmother, godfather, foster and stepmother-in-law all
+    have to be predicted in advance, and whatever is missed is silently discarded.
+
+    Grouping is lossless, so no prediction is needed. Duplicates within a pair are
+    collapsed (the graph stores one edge per chapter that touches a relationship, so
+    the same phrase recurs many times), which is safe — it removes repetition, never
+    a distinct fact.
+
+    Direction is dropped on purpose: a relationship map wants one entry per pair, and
+    both directions carry the same fact.
+    """
+    char_labels = {
+        n.node_key: n.label
+        for n in session.query(StoryGraphNode).filter_by(
+            story_id=story.id, graph_type="new", node_type="character")
+    }
+    by_pair: dict[tuple[str, str], list[str]] = {}
+    for e in session.query(StoryGraphEdge).filter_by(
+            story_id=story.id, graph_type="new", edge_type="RELATION"):
+        src, tgt = char_labels.get(e.source_key), char_labels.get(e.target_key)
+        if not src or not tgt or src == tgt:
+            continue
+        key = (src, tgt) if src <= tgt else (tgt, src)
+        seen = by_pair.setdefault(key, [])
+        for fact in _edge_facts(e):
+            if fact not in seen:
+                seen.append(fact)
+
+    lines = []
+    for (a, b), facts in sorted(by_pair.items()):
+        if not facts:
+            continue
+        lines.append(f"- {a} ↔ {b}:")
+        lines.extend(f"    • {f[:200]}" for f in facts)
+    return lines
+
+
 def _rewrite_story_bible(
     session: Session,
     story: Story,
@@ -1492,6 +1660,8 @@ def _rewrite_story_bible(
         )
         for n in char_nodes
     )
+    relation_lines = relation_lines_for(session, story)
+    relation_block = "\n".join(relation_lines)
     event_block = "\n".join(
         "ch{ch}: {label} — {summary}".format(
             ch=n.chapter_introduced, label=n.label,
@@ -1524,12 +1694,25 @@ def _rewrite_story_bible(
         "Write a concise, vivid story bible (300-500 words) using ONLY the provided "
         "new-world information and character names. "
         "Never reference source/original character names, company names, or settings. "
+        "The CHARACTER RELATIONSHIPS block lists every recorded fact per pair, mixing "
+        "PERMANENT ties (family, marriage, exes, guardianship — including ones no "
+        "single word covers, e.g. raised in the same household) with the CURRENT "
+        "emotional state (affection, contempt, rivalry), in no particular order. Work "
+        "out which facts are permanent and state EVERY one of them explicitly in the "
+        "prose — those are what make a premise forbidden or high-stakes. If the love "
+        "interest is the antagonist's step-brother, say so in a sentence. A reader of "
+        "this bible must never have to infer who is whose sibling, spouse, ex or "
+        "parent, and must never be told a tie the block does not contain. "
         "Return ONLY the story bible prose — no headings, no commentary."
     )
     user_content = (
         f"language: {story.language}\n\n"
         f"## WORLD DESIGN\n{world_block}\n\n"
         f"## NEW CHARACTERS (use EXACTLY these names — no others)\n{char_block}\n\n"
+        f"## CHARACTER RELATIONSHIPS — every recorded fact, grouped by pair.\n"
+        f"## Permanent ties and current mood are mixed together; sort them out and "
+        f"put every permanent tie into the prose.\n"
+        f"{relation_block or '(none recorded)'}\n\n"
         f"## KEY PLOT EVENTS (in order)\n{event_block}\n"
     )
     if feedback:
@@ -1546,6 +1729,20 @@ def _rewrite_story_bible(
     )
     prose = response.text.strip()
 
+    # Stamp the era on the very first line. world_design carries `time_period`, but it
+    # was only ever used to WRITE this prose and the prose has no reason to repeat it —
+    # so across eight finished stories not one bible mentioned its own era anywhere.
+    # Everything downstream then had to guess: chapter_writer drifted into "the healer's
+    # parchment" for a pregnancy test in a modern corporate story, and the poster art
+    # dressed a 19th-century cast in modern tuxedos. It goes FIRST because
+    # image_generator only reads the opening 3000 characters.
+    era = (world_design.time_period if world_design else "").strip()
+    if not era:
+        m = re.search(r"^ERA:[ \t]*(.+)$", story.story_bible or "", re.MULTILINE)
+        era = m.group(1).strip() if m else ""
+    if era:
+        prose = f"ERA: {era}\n\n{prose}"
+
     # ── Append required structured sections (planning_verifier checks these) ──
 
     # "Bản đồ cốt truyện gốc (theo chương)": one bullet per event node, ordered
@@ -1558,25 +1755,12 @@ def _rewrite_story_bible(
 
     # "Sơ đồ quan hệ nhân vật": from RELATION edges — mirrors the source structure
     # under new names, which planning_verifier cross-checks against characters.md.
-    relation_edges = (
-        session.query(StoryGraphEdge)
-        .filter_by(story_id=story.id, graph_type="new", edge_type="RELATION")
-        .all()
-    )
-    node_label_map = {n.node_key: n.label for n in char_nodes}
-    rel_lines = ["## Sơ đồ quan hệ nhân vật\n"]
-    for e in relation_edges:
-        src = node_label_map.get(e.source_key, e.source_key)
-        tgt = node_label_map.get(e.target_key, e.target_key)
-        p = e.properties or {}
-        rel_type = p.get("rel_type", "") or e.label or "RELATION"
-        cond = (e.condition or "")[:100]
-        rel_lines.append(f"- {src} ↔ {tgt}: {rel_type}" + (f" — {cond}" if cond else ""))
-    rel_section = "\n".join(rel_lines) if len(rel_lines) > 1 else ""
+    # Same deduped lines the prose writer was given, so the two can't disagree.
+    rel_section = ("## Sơ đồ quan hệ nhân vật\n\n" + relation_block) if relation_lines else ""
 
     story.story_bible = prose + "\n\n" + plot_map_section + (("\n\n" + rel_section) if rel_section else "")
     logger.info("[%s] story_bible rewritten: %d chars (prose=%d, events=%d, relations=%d)",
-                story.slug, len(story.story_bible), len(prose), len(event_nodes), len(relation_edges))
+                story.slug, len(story.story_bible), len(prose), len(event_nodes), len(relation_lines))
 
 
 def _confirm_story_bible_leaks(story: Story, candidates: list[str], prose: str) -> list[str]:
@@ -1763,6 +1947,7 @@ def finalize_after_verify(session: Session, story: Story) -> None:
             PROVIDER, AGENT_MODELS["title_generator"],
             language=story.language, input_type="PREMISE",
             genre=story.genre, source_content=story.story_bible or "",
+            relationships="\n".join(relation_lines_for(session, story)),
         )
         if new_title and new_title.strip():
             logger.info("[%s] retitled for new world: %r -> %r",

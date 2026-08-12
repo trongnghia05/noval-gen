@@ -118,7 +118,7 @@ def _format_entity_list(session: Session, story_id: int, up_to_chapter: int | No
         q = q.filter(StoryGraphNode.chapter_introduced <= up_to_chapter)
     nodes = q.order_by(StoryGraphNode.node_type, StoryGraphNode.node_key).all()
     if not nodes:
-        return "(chưa có entity nào)"
+        return "(no entities yet)"
     lines = []
     current_type = None
     for n in nodes:
@@ -167,7 +167,7 @@ def _format_active_relations(session: Session, story_id: int) -> str:
         .all()
     )
     if not active:
-        return "(chưa có quan hệ nào)"
+        return "(no relationships yet)"
     lines = []
     for e in active:
         rel = (e.properties or {}).get("rel_type", e.edge_type)
@@ -176,7 +176,7 @@ def _format_active_relations(session: Session, story_id: int) -> str:
         if strength != "":
             s += f" (strength={strength})"
         if e.chapter_from:
-            s += f" [từ Ch.{e.chapter_from}]"
+            s += f" [from Ch.{e.chapter_from}]"
         if e.label:
             s += f' "{e.label}"'
         lines.append(s)
@@ -217,15 +217,17 @@ def _extract_chapter(session: Session, story: Story, chapter_number: int, chapte
         f"story_language: {story.language}\n"
         f"chapter_number: {chapter_number}\n"
         f"total_source_chapters: {story.source_chapter_count}\n"
-        f"new_character_name_context: các tên nhân vật ĐÃ được tái tạo trong entity list bên dưới — "
-        f"dùng đúng tên đó, KHÔNG dùng tên gốc.\n"
-        + (f"previous_event_key: {prev_event_key}\n" if prev_event_key else "previous_event_key: null (đây là chương đầu tiên)\n")
-        + f"\n## ENTITY LIST (dùng đúng các ID này trong edges)\n{entity_list}\n"
-        f"\n## QUAN HỆ ĐANG HOẠT ĐỘNG (trước chương {chapter_number})\n"
-        f"Chỉ tạo RELATION edge mới khi quan hệ BẮT ĐẦU hoặc THAY ĐỔI trong chương này.\n"
-        f"Nếu quan hệ không thay đổi so với danh sách dưới, KHÔNG tạo RELATION edge.\n"
+        f"new_character_name_context: the character names in the entity list below have "
+        f"ALREADY been recreated — use exactly those, never the source names.\n"
+        + (f"previous_event_key: {prev_event_key}\n" if prev_event_key
+           else "previous_event_key: null (this is the first chapter)\n")
+        + f"\n## ENTITY LIST (use exactly these IDs in your edges)\n{entity_list}\n"
+        f"\n## ACTIVE RELATIONSHIPS (before chapter {chapter_number})\n"
+        f"Create a new RELATION edge only when a relationship BEGINS or CHANGES in this "
+        f"chapter.\n"
+        f"If it is unchanged from the list below, create NO RELATION edge.\n"
         f"{active_relations}\n"
-        f"\n## NỘI DUNG CHƯƠNG GỐC SỐ {chapter_number}\n---\n{chapter_text}\n---\n"
+        f"\n## SOURCE CHAPTER TEXT — CHAPTER {chapter_number}\n---\n{chapter_text}\n---\n"
     )
 
     output: ChapterGraphOutput = generate_structured(
@@ -364,7 +366,7 @@ def _extract_chapter(session: Session, story: Story, chapter_number: int, chapte
             db_label = edge.label
         elif edge.edge_type == "CAUSES":
             db_props = {"mechanism": edge.mechanism}
-            db_label = "dẫn đến"
+            db_label = "leads to"
         elif edge.edge_type == "LOCATED_AT":
             db_props = {}
             db_label = edge.label

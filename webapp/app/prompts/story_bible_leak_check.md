@@ -29,10 +29,7 @@ User message contains:
 - `STORY-BIBLE PROSE` — the new prose the names were found in
 
 ## Output — JSON schema: StoryBibleLeakCheckOutput
-```json
-{
-  "real_leaks": ["only the candidates that are genuine source-name leaks; [] if all are false positives"],
-  "note": "one short sentence explaining the calls"
-}
+```
+{{schema:StoryBibleLeakCheckOutput}}
 ```
 Return ONLY the JSON object — no markdown fences, no preamble.

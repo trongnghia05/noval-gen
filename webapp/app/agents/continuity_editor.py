@@ -13,13 +13,13 @@ def run(session: Session, story: Story, batch_end: int) -> None:
     user_content = f"""language: {story.language}
 batch_end: {batch_end}
 
-## characters.md (tên chính thức + aliases)
+## characters.md (official names + aliases)
 {context_builder.format_character_aliases(session, story.id)}
 
 ## world-state.md
 {context_builder.format_world_state(session, story.id)}
 
-## 5 chương gần nhất (Ch.{max(1, batch_end - 4)}-{batch_end})
+## The last 5 chapters (Ch.{max(1, batch_end - 4)}-{batch_end})
 {context_builder.last_n_chapters_text(session, story.id, batch_end, n=5)}
 """
     output = generate_structured(

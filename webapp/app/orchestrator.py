@@ -13,6 +13,7 @@ through: advance() drives the single-step HTTP API, graph.py drives the
 continuous LangGraph run. Neither duplicates the other's logic.
 """
 
+import json
 import logging
 import re
 import unicodedata
@@ -43,10 +44,20 @@ from .agents import (
     worldbuilder,
 )
 from .config import AGENT_MODELS, OUTPUT_BASE, PROVIDER
-from .db.models import Character, Chapter, ChapterSummary, ChapterVerifyLog, Story
+from .db.models import (
+    Chapter,
+    ChapterSummary,
+    ChapterTrace,
+    ChapterVerifyLog,
+    Character,
+    ContinuityLog,
+    SmartPlannerState,
+    Story,
+    WorldState,
+)
 from .llm_json import generate_structured
 from .prompts.loader import load_prompt
-from .schemas import ChapterWriterOutput, NovelMetadataOut
+from .schemas import CharacterBlurbOut, ChapterWriterOutput, NovelMetadataOut
 
 logger = logging.getLogger(__name__)
 
@@ -351,7 +362,7 @@ def _verify_chapter_loop(session: Session, story: Story, chapter: Chapter) -> in
         for issue in critical:
             dim = getattr(issue, "dimension", "continuity")
             accumulated_feedback.append(
-                f"[iter {iteration + 1}][{dim}] {issue.description} → SỬA: {issue.suggestion}"
+                f"[iter {iteration + 1}][{dim}] {issue.description} → FIX: {issue.suggestion}"
             )
         feedback_text = "\n".join(accumulated_feedback)
 
@@ -367,6 +378,107 @@ def _verify_chapter_loop(session: Session, story: Story, chapter: Chapter) -> in
     return rewrites, last_rewrite_output
 
 
+def _json_or_raw(s: str | None):
+    """Parse a JSON string (plot_outline/world_bible/blueprint are JSON now); fall
+    back to the raw string for legacy markdown data so a trace never fails."""
+    if not s:
+        return None
+    try:
+        return json.loads(s)
+    except (ValueError, TypeError):
+        return s
+
+
+def _snapshot_inputs(session: Session, story: Story, chapter: Chapter) -> dict:
+    """Every input the writer sees for THIS chapter, captured as structured data.
+    MUST run BEFORE the summarizer, because world-state / continuity / smart-planner
+    / CSV graph are live snapshots overwritten each chapter — after the summarizer
+    they'd reflect the post-chapter state, not what was used to write it."""
+    from . import csv_graph
+    world_state = [
+        {"entity_type": r.entity_type, "entity_key": r.entity_key,
+         "field": r.field, "value": r.value, "updated_at_chapter": r.updated_at_chapter}
+        for r in session.query(WorldState).filter_by(story_id=story.id).all()
+    ]
+    cont = session.query(ContinuityLog).filter_by(story_id=story.id).first()
+    sp = session.query(SmartPlannerState).filter_by(story_id=story.id).first()
+    characters = [
+        {"name": c.name, "tier": c.tier, "aliases": c.aliases, "profile_md": c.profile_md}
+        for c in session.query(Character).filter_by(story_id=story.id).all()
+    ]
+    csv_snapshot = None
+    if csv_graph.graph_exists(story.id):
+        csv_snapshot = {
+            "characters": csv_graph.get_characters(story.id),
+            "relationships": csv_graph.get_relationships(story.id),
+            "open_threads": csv_graph.get_open_plot_threads(story.id),
+            "voices": csv_graph.get_character_voices(story.id),
+        }
+    return {
+        "blueprint": _json_or_raw(chapter.blueprint),
+        "plot_outline": _json_or_raw(story.plot_outline),
+        "world_bible": _json_or_raw(story.world_bible),
+        "story_bible": story.story_bible,
+        "source_spirit": story.source_spirit,
+        "world_state": world_state,
+        "continuity_log": (
+            {"checkpoint_chapter": cont.checkpoint_chapter,
+             "critical_issues": cont.critical_issues, "minor_issues": cont.minor_issues,
+             "batch_note": cont.batch_note} if cont else None
+        ),
+        "smart_planner": (
+            {"checkpoint_chapter": sp.checkpoint_chapter, "pacing_note": sp.pacing_note,
+             "characters_to_watch": sp.characters_to_watch,
+             "threads_to_resolve": sp.threads_to_resolve,
+             "outline_adjustments": sp.outline_adjustments} if sp else None
+        ),
+        "characters": characters,
+        "csv_graph": csv_snapshot,
+    }
+
+
+def _persist_chapter_trace(session: Session, story: Story, chapter: Chapter,
+                           inputs_snapshot: dict, final_output, rewrites: int) -> None:
+    """Store the reproducibility record (inputs snapshot + produced output) for a
+    chapter. Best-effort — a trace failure must never break generation."""
+    try:
+        summary = (
+            session.query(ChapterSummary)
+            .filter_by(story_id=story.id, chapter_number=chapter.number)
+            .one_or_none()
+        )
+        trace = {
+            "meta": {
+                "chapter_number": chapter.number,
+                "model": AGENT_MODELS.get("chapter_writer"),
+                "words_per_chapter": story.words_per_chapter,
+                "language": story.language,
+                "rewrites": rewrites,
+            },
+            "inputs": inputs_snapshot,
+            "output": {
+                "title": chapter.title,
+                "content": chapter.content,
+                "word_count": chapter.word_count,
+                "hook": (final_output.hook if final_output else None)
+                        or (summary.hook if summary else None),
+                "short_summary": summary.short_summary if summary else None,
+            },
+        }
+        row = (
+            session.query(ChapterTrace)
+            .filter_by(story_id=story.id, chapter_number=chapter.number)
+            .one_or_none()
+        )
+        if row is None:
+            row = ChapterTrace(story_id=story.id, chapter_number=chapter.number)
+            session.add(row)
+        row.trace = trace
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("[%s] chapter trace failed for ch%d: %s",
+                       story.slug, chapter.number, exc)
+
+
 def run_write_chapter_step(session: Session, story: Story) -> dict:
     logger.info("[%s] START write_chapter", story.slug)
     next_chapter = (
@@ -376,6 +488,10 @@ def run_write_chapter_step(session: Session, story: Story) -> dict:
         .first()
     )
     logger.info("[%s] write_chapter ch%d/%d", story.slug, next_chapter.number, story.total_chapters)
+    # Snapshot inputs BEFORE writing/summarizing — the live state (world-state,
+    # continuity, smart-planner, CSV graph) is what the writer sees now and gets
+    # overwritten by this chapter's summarizer.
+    inputs_snapshot = _snapshot_inputs(session, story, next_chapter)
     initial_output = chapter_writer.run(session, story, next_chapter)
     session.commit()
 
@@ -402,6 +518,9 @@ def run_write_chapter_step(session: Session, story: Story) -> dict:
     if summary_row:
         summary_row.hook = final_output.hook
 
+    # Reproducibility record: the pre-write input snapshot + the produced output.
+    _persist_chapter_trace(session, story, next_chapter, inputs_snapshot, final_output, rewrites)
+
     story.current_words = (story.current_words or 0) + next_chapter.word_count
     session.commit()
 
@@ -416,6 +535,9 @@ def run_write_chapter_step(session: Session, story: Story) -> dict:
     }
 
 
+_CAST_TIER_ORDER = {"core": 0, "important": 1, "secondary": 2, "minor": 3}
+
+
 def _length_type(word_count: int) -> str:
     """Standard length category from word count."""
     if word_count < 7500:
@@ -427,17 +549,55 @@ def _length_type(word_count: int) -> str:
     return "Novel"
 
 
-def _generate_novel_metadata(story: Story) -> NovelMetadataOut | None:
-    """LLM front-matter (author / tags / logline / blurb) for the export header.
+def _main_cast(session: Session, story_id: int) -> list[tuple[str, str]]:
+    """(name, role) for the characters worth listing, most important first.
+
+    `minor` is dropped on purpose: a finished story carries 17-24 characters and
+    around half are walk-ons with a single edge, so listing everyone would bury the
+    four or five people the book is actually about.
+    """
+    rows = (
+        session.query(Character)
+        .filter_by(story_id=story_id)
+        .all()
+    )
+    out = []
+    for c in sorted(rows, key=lambda c: _CAST_TIER_ORDER.get(c.tier or "minor", 9)):
+        role = ""
+        m = re.search(r"\*\*Role\*\*:\s*(.+)", c.profile_md or "")
+        if m:
+            role = m.group(1).strip()
+        if role and role != "minor":
+            out.append((c.name, role))
+    return out
+
+
+def _generate_novel_metadata(story: Story, cast: list[tuple[str, str]] | None = None) -> NovelMetadataOut | None:
+    """LLM front-matter (author / tags / logline / blurb / cast blurbs) for the export.
+
+    Reuses what is already stored on the story rather than paying for it again: this
+    used to run on every export and be discarded with the file, so the same book could
+    come back with a different logline each time. The caller persists the result.
 
     Best-effort: on any failure the export still proceeds without the block."""
+    if story.logline and story.summary:
+        return NovelMetadataOut(
+            author=story.author or "",
+            tags=list(story.tags or []),
+            logline=story.logline,
+            summary=story.summary,
+            characters=[CharacterBlurbOut(**c) for c in (story.cast_blurbs or [])],
+        )
     try:
         system = load_prompt("novel_metadata")
+        cast_block = "\n".join(f"- {name} | {role}" for name, role in (cast or [])) or "(none)"
         user_content = (
             f"language: {story.language}\n"
             f"title: {story.title}\n"
             f"genre: {story.genre or '(derive from the story)'}\n"
             f"word_count: {story.current_words or 0}\n\n"
+            f"## cast (write one `characters` entry for each, names and roles copied exactly)\n"
+            f"{cast_block}\n\n"
             f"## story-bible\n{story.story_bible or ''}\n\n"
             f"## plot-outline\n{story.plot_outline or ''}\n"
         )
@@ -474,10 +634,10 @@ def _frontmatter_labels(language: str) -> dict:
     if _is_vietnamese(language):
         return {"author": "Tác giả", "genre": "Thể loại", "length": "Độ dài",
                 "plot": "Cốt truyện", "summary": "Tóm tắt", "toc": "Mục lục",
-                "chapters": "chương", "words": "từ"}
+                "chapters": "chương", "words": "từ", "characters": "Nhân vật"}
     return {"author": "Author", "genre": "Genre", "length": "Length",
             "plot": "Plot", "summary": "Summary", "toc": "Table of Contents",
-            "chapters": "chapters", "words": "words"}
+            "chapters": "chapters", "words": "words", "characters": "Characters"}
 
 
 def _clean_chapter_title(title: str) -> str:
@@ -516,7 +676,15 @@ def _compile_manuscript_to_file(session: Session, story: Story) -> Path:
     # leaks Vietnamese label words.
     lbl = _frontmatter_labels(story.language)
     words = story.current_words or 0
-    meta_info = _generate_novel_metadata(story)
+    meta_info = _generate_novel_metadata(story, _main_cast(session, story.id))
+    if meta_info:
+        # Persist it. The poster designer reads `summary` to know what the plot
+        # contains, and a regenerate-images run has no export step to produce it.
+        story.author = meta_info.author
+        story.tags = list(meta_info.tags or [])
+        story.logline = meta_info.logline
+        story.summary = meta_info.summary
+        story.cast_blurbs = [c.model_dump() for c in (meta_info.characters or [])]
     header_lines = [f"# {story.title}", ""]
     summ_lines = [story.title]
     if meta_info:
@@ -551,8 +719,13 @@ def _compile_manuscript_to_file(session: Session, story: Story) -> Path:
         meta_parts += [f"{len(chapters)} {lbl['chapters']}", f"{words:,} {lbl['words']}"]
         header_lines.append(f"*{' · '.join(meta_parts)}*")
         summ_lines += ["", " · ".join(meta_parts)]
-    # summarize.txt also carries the table of contents.
+    # summarize.txt also carries the table of contents, then the cast last — it is a
+    # reference block rather than part of the pitch, so it sits below everything else.
     summ_lines += ["", "", lbl['toc'], "", toc]
+    if meta_info and meta_info.characters:
+        summ_lines += ["", "", lbl['characters'], ""]
+        for c in meta_info.characters:
+            summ_lines += [f"{c.name} — {c.role}", f"  {c.blurb}", ""]
     header = "\n".join(header_lines)
     manuscript = f"{header}\n\n---\n\n## {lbl['toc']}\n\n{toc}\n\n---\n\n{chapters_text}\n"
     summarize_text = "\n".join(summ_lines) + "\n"
@@ -577,8 +750,21 @@ def _compile_manuscript_to_file(session: Session, story: Story) -> Path:
             f"{chapter_writer.normalize_paragraphs(c.content or '')}\n"
         )
         (out_dir / f"ch-{c.number:03d}.txt").write_text(ch_txt, encoding="utf-8")
-    logger.info("[%s] compiled → %s + summarize.txt + %d chapter .txt files",
-                story.slug, out_path, len(chapters))
+
+    # 4) per-chapter reproducibility traces (inputs + output), each in trace/.
+    traces = {
+        t.chapter_number: t.trace
+        for t in session.query(ChapterTrace).filter_by(story_id=story.id).all()
+    }
+    if traces:
+        trace_dir = out_dir / "trace"
+        trace_dir.mkdir(parents=True, exist_ok=True)
+        for number, trace in traces.items():
+            (trace_dir / f"ch-{number:03d}.json").write_text(
+                json.dumps(trace, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
+    logger.info("[%s] compiled → %s + summarize.txt + %d chapter .txt + %d trace files",
+                story.slug, out_path, len(chapters), len(traces))
     return out_path
 
 

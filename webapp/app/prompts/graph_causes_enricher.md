@@ -31,18 +31,8 @@ The source mechanism is a REFERENCE for causal logic only — never a text to pa
 
 ## Output — JSON schema: CausesGroupEnrichOutput
 
-```json
-{
-  "causes": [
-    {
-      "source_key": "E003",
-      "target_key": "E007",
-      "new_mechanism": "...",
-      "new_label": "..."
-    }
-  ],
-  "note": "brief summary"
-}
+```
+{{schema:CausesGroupEnrichOutput}}
 ```
 
 Return ONLY the JSON object — no markdown fences, no preamble.

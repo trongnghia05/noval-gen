@@ -48,6 +48,13 @@ _WORK_STEPS = [
 ]
 
 
+class RunStopped(Exception):
+    """Raised inside a graph node when Story.stop_requested is set, so a user can
+    halt a background run cleanly at a step boundary. Every step commits before the
+    next node starts, so stopping here never corrupts state — resuming is just
+    another POST /run, which re-derives what's next from the DB."""
+
+
 class GraphState(TypedDict):
     story_id: int
     last_step: str | None
@@ -96,6 +103,10 @@ def _make_node(step: str):
     def node(state: GraphState) -> dict:
         with SessionLocal() as session:
             story = session.get(Story, state["story_id"])
+            # Cooperative cancellation: a POST /stop set the flag; halt before
+            # starting this step (the previous one already committed).
+            if story.stop_requested:
+                raise RunStopped()
             _run_step_with_retry(step, session, story)
         return {"last_step": step}
 

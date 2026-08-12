@@ -1,87 +1,94 @@
-import re
+import json
 
 from ..config import AGENT_MODELS, PROVIDER
+from ..llm_json import generate_structured
 from ..db.models import Story
 from ..prompts.loader import load_prompt
-
-# Matches a chapter heading in the outline, either language, any heading level:
-# "## CHƯƠNG 12: ...", "### Chapter 3 - ...", etc.
-_CHAPTER_HEADING_RE = re.compile(r"(?im)^#{1,4}\s*(?:CH\S*NG|CHAPTER)\s*(\d+)")
+from ..schemas import PlotOutlineOut
 
 # A single generation can be cut off by the output-token ceiling before all N
-# chapters are written. Rather than accept a truncated outline, keep asking the
-# model to continue from the last chapter until every chapter is covered.
+# chapters are produced. Rather than accept a short outline, keep asking the model
+# to continue from the last chapter until every chapter is covered.
 _MAX_CONTINUATIONS = 6
 
 
-def _highest_chapter(text: str) -> int:
-    nums = [int(m) for m in _CHAPTER_HEADING_RE.findall(text)]
-    return max(nums, default=0)
+def _highest_chapter(outline: PlotOutlineOut) -> int:
+    return max((c.number for c in outline.chapters), default=0)
+
+
+def _merge(base: PlotOutlineOut, more: PlotOutlineOut) -> PlotOutlineOut:
+    """Append continuation chapters, keeping one entry per chapter number, sorted."""
+    by_num = {c.number: c for c in base.chapters}
+    for c in more.chapters:
+        by_num.setdefault(c.number, c)
+    base.chapters = [by_num[n] for n in sorted(by_num)]
+    return base
 
 
 def run(story: Story, feedback: str | None = None, story_graph: str = "") -> str:
+    """Produce the plot outline as a structured JSON string (PlotOutlineOut).
+
+    Stored verbatim in story.plot_outline. Downstream agents receive this JSON
+    string as context (the creative planning logic is unchanged — only the output
+    format moved from markdown to JSON)."""
     system = load_prompt("plot_architect")
     graph_section = (
-        f"\n## Story Knowledge Graph (dùng EVENT nodes làm xương sống cho REWRITE)\n{story_graph}\n"
+        f"\n## Story Knowledge Graph (for REWRITE, use the EVENT nodes as your spine)\n{story_graph}\n"
         if story_graph else ""
     )
     base = f"""input_type: {story.input_type}
 total_chapters (N): {story.total_chapters}
 words_per_chapter: {story.words_per_chapter}
-Ngôn ngữ: {story.language}
+Language: {story.language}
 
-story-bible.md (tóm tắt ngắn):
+story-bible.md (short summary):
 ---
 {story.story_bible}
 ---
 {graph_section}"""
     if feedback:
         base += (
-            "\n## LỖI TỪ VÒNG KIỂM TRA TRƯỚC — bắt buộc khắc phục, giữ nguyên phần đã đúng\n"
+            "\n## ISSUES FROM THE PREVIOUS VERIFICATION PASS — you must fix these, and "
+            "leave everything already correct untouched\n"
             f"{feedback}\n"
         )
 
-    # A detailed per-chapter outline runs ~1200+ output tokens/chapter, and
-    # Gemini's dynamic thinking draws from the same budget — a small cap
-    # truncates long novels mid-chapter. Scale generously, but stay under the
-    # model's hard output ceiling (Gemini 2.5 Flash ~65k).
+    # A detailed per-chapter outline runs ~1200+ output tokens/chapter, and the
+    # model's dynamic thinking draws from the same budget — a small cap truncates
+    # long novels mid-chapter. Scale generously, stay under the hard output ceiling.
     max_tokens = min(60000, max(8192, story.total_chapters * 1600))
 
-    outline = PROVIDER.generate(
-        system=system,
-        user_content=base,
-        model=AGENT_MODELS["plot_architect"],
-        max_tokens=max_tokens,
-        thinking=True,
-    ).text.strip()
+    outline: PlotOutlineOut = generate_structured(
+        PROVIDER, system=system, user_content=base,
+        model=AGENT_MODELS["plot_architect"], schema=PlotOutlineOut,
+        max_tokens=max_tokens, thinking=True,
+    )
 
-    # Completeness loop: if the outline stops short of N chapters (truncation),
-    # ask the model to continue from where it left off instead of accepting a
-    # cut-off outline. Bounded so a model that never reaches N can't loop forever.
+    # Completeness loop: if fewer than N chapters came back (truncation), ask the
+    # model to continue from where it left off. Bounded so it can't spin forever.
     attempts = 0
     while _highest_chapter(outline) < story.total_chapters and attempts < _MAX_CONTINUATIONS:
         attempts += 1
         last = _highest_chapter(outline)
+        written = json.dumps(outline.model_dump(), ensure_ascii=False)
         continuation_prompt = base + f"""
-## OUTLINE ĐÃ VIẾT (đã tới hết Chương {last}) — cần VIẾT TIẾP, KHÔNG lặp lại phần đã có
+## THE OUTLINE SO FAR (complete through chapter {last}) — CONTINUE it, do NOT repeat what is here
 ---
-{outline}
+{written}
 ---
 
-Outline trên bị dừng ở Chương {last}, CHƯA đủ {story.total_chapters} chương. Hãy viết TIẾP
-từ **Chương {last + 1}** cho đến hết **Chương {story.total_chapters}**, đúng định dạng đã dùng,
-giữ nguyên mạch và bản đồ cốt truyện. CHỈ xuất phần từ Chương {last + 1} trở đi, KHÔNG lặp lại
-các chương đã viết, KHÔNG thêm lời dẫn.
+The outline above stops at chapter {last}, short of the required {story.total_chapters}.
+CONTINUE from **chapter {last + 1}** through **chapter {story.total_chapters}**, in the same
+JSON structure. Return ONLY chapters {last + 1} onward in `chapters` (title/arc_overview may
+be left empty), and do NOT repeat the chapters already written.
 """
-        more = PROVIDER.generate(
-            system=system,
-            user_content=continuation_prompt,
-            model=AGENT_MODELS["plot_architect"],
-            max_tokens=max_tokens,
-            thinking=True,
-        ).text.strip()
+        more: PlotOutlineOut = generate_structured(
+            PROVIDER, system=system, user_content=continuation_prompt,
+            model=AGENT_MODELS["plot_architect"], schema=PlotOutlineOut,
+            max_tokens=max_tokens, thinking=True,
+        )
         if _highest_chapter(more) <= last:
             break  # continuation added no new chapter — stop rather than spin
-        outline = f"{outline}\n\n{more}"
+        outline = _merge(outline, more)
 
-    return outline
+    return json.dumps(outline.model_dump(), ensure_ascii=False, indent=2)

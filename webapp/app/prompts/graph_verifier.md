@@ -80,6 +80,26 @@ Check that Phase 3 additions don't violate constraints:
 
 ---
 
+## AXIS 4 — CAST ROLES (always) — `check_type: "cast_role"`
+
+Every character node carries a `role`. Check the cast as a whole:
+
+- **Exactly one `protagonist`.** None at all, or several, is critical — the roles
+  decide which characters reach the cover art and the per-chapter writing context,
+  so a cast with no lead quietly demotes the people the book is about.
+- **Every role is one of** `protagonist`, `antagonist`, `love_interest`,
+  `supporting`, `minor`. A blank role, or an invented variant like `male_lead` or
+  `minor_antagonist`, is critical — name the node and the offending value.
+- **The role matches what the graph shows.** A character in many RELATION edges,
+  present across most of the story, marked `minor` is critical. Someone appearing in
+  a single chapter marked `protagonist` is likewise critical.
+- **A romance needs a `love_interest`;** an opposing force should be `antagonist`.
+  Missing either is minor unless the story clearly has one.
+
+Report the correct role in `suggestion` (e.g. "should be `antagonist`").
+
+---
+
 ## Severity guidelines
 
 **CRITICAL** — triggers automatic repair:
@@ -104,6 +124,8 @@ Your output just lists issues. The orchestrator routes:
 - `narrative_logic` CRITICAL → `graph_surface_rewriter` (targeted fix of specific node/edge text)
 - `reskin` CRITICAL → deterministic Python name substitution (leaked source names → new names)
 - `enrichment` CRITICAL → enrichment node/edge removed
+- `cast_role` → deterministic Python repair (invalid roles remapped; the
+  best-connected character made protagonist when the cast has none or several)
 
 ---
 
@@ -113,36 +135,8 @@ Return ONLY a single valid JSON object (no markdown fences, no preamble):
 
 **CRITICAL — `edge_desc` format**: Always use **node_key identifiers** (e.g. `C001→C002 RELATION Ch.3-15`, `E006→E007 CAUSES`), never character names or labels. Node keys are the bracketed IDs like `C001`, `E006`, `L002` shown in the graph.
 
-```json
-{
-  "issues": [
-    {
-      "check_type": "narrative_logic",
-      "node_key": "E007",
-      "edge_desc": "E006→E007 CAUSES",
-      "description": "The mechanism 'the cake caused the arrest' does not logically connect E006 (birthday party) to E007 (Mira's mother is detained). No causal link exists.",
-      "suggestion": "Rewrite mechanism: explain what specific action or information from E006 directly led to the detention in E007.",
-      "severity": "critical"
-    },
-    {
-      "check_type": "reskin",
-      "node_key": "C003",
-      "edge_desc": null,
-      "description": "NEW graph character C003 label='Aria' is 1 character away from SOURCE character 'Arya'.",
-      "suggestion": "Rename to a completely different name with no phonetic or visual similarity to source.",
-      "severity": "critical"
-    },
-    {
-      "check_type": "enrichment",
-      "node_key": "E101",
-      "edge_desc": null,
-      "description": "Enrichment added an EVENT node (E101) which is forbidden — events are fixed by the source structure.",
-      "suggestion": "Remove E101 and any edges referencing it.",
-      "severity": "critical"
-    }
-  ],
-  "verdict_note": "1-2 sentence summary covering all three axes: narrative logic quality, reskin originality, enrichment validity."
-}
+```
+{{schema:GraphVerifierOutput}}
 ```
 
 If no issues found: `"issues": []` with a positive verdict_note.

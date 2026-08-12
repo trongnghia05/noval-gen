@@ -29,10 +29,7 @@ User message contains:
 - `CANDIDATES` — existing nodes it might duplicate: each with node_key, label, properties
 
 ## Output — JSON schema: EntityResolveOutput
-```json
-{
-  "same_as": "C008",   // node_key of the candidate it IS; or null if genuinely new
-  "note": "one short sentence: why same, or why distinct"
-}
+```
+{{schema:EntityResolveOutput}}
 ```
 Return ONLY the JSON object.

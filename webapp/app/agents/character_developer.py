@@ -10,7 +10,7 @@ from ..schemas import CharacterDeveloperOutput
 
 def run(session: Session, story: Story, feedback: str | None = None) -> None:
     system = load_prompt("character_developer")
-    user_content = f"""Ngôn ngữ: {story.language}
+    user_content = f"""Language: {story.language}
 
 story-bible.md:
 ---
@@ -24,7 +24,8 @@ plot-outline.md:
 """
     if feedback:
         user_content += (
-            "\n## LỖI TỪ VÒNG KIỂM TRA TRƯỚC — bắt buộc khắc phục, giữ nguyên phần đã đúng\n"
+            "\n## ISSUES FROM THE PREVIOUS VERIFICATION PASS — you must fix these, and "
+            "leave everything already correct untouched\n"
             f"{feedback}\n"
         )
     output = generate_structured(

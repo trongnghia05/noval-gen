@@ -243,7 +243,7 @@ def _build_shared_context(session: Session, story: Story, chapter: "Chapter") ->
 
     return (
         f"{gender_section}"
-        f"## chapter-list (bức tranh toàn cảnh — Ch.{chapter.number} là chương đang viết)\n"
+        f"## chapter-list (the whole picture — Ch.{chapter.number} is the one being written)\n"
         f"{context_builder.format_chapter_list(session, story.id, chapter.number)}\n\n"
         f"## world-state.md\n{context_builder.format_world_state(session, story.id)}\n\n"
         f"## continuity-log.md\n{context_builder.format_continuity_log(session, story.id)}\n\n"
@@ -296,15 +296,15 @@ def _build_context(session: Session, story: Story, chapter: Chapter) -> str:
         f"## CHAPTER BLUEPRINT (follow this structure)\n{_format_blueprint(chapter)}\n"
         f"{graph_section}\n"
         f"{db_graph_section}"
-        f"## chapter-list (bức tranh toàn cảnh — Ch.{chapter.number} là chương đang viết)\n"
+        f"## chapter-list (the whole picture — Ch.{chapter.number} is the one being written)\n"
         f"{context_builder.format_chapter_list(session, story.id, chapter.number)}\n\n"
-        f"## world-state.md (snapshot hiện tại)\n{context_builder.format_world_state(session, story.id)}\n\n"
+        f"## world-state.md (current snapshot)\n{context_builder.format_world_state(session, story.id)}\n\n"
         f"## continuity-log.md\n{context_builder.format_continuity_log(session, story.id)}\n\n"
-        f"## Điều chỉnh outline từ smart-planner (nếu có)\n{context_builder.format_smart_planner_adjustments(session, story.id)}\n\n"
+        f"## Smart-planner outline adjustments (if any)\n{context_builder.format_smart_planner_adjustments(session, story.id)}\n\n"
         f"## plot-outline.md\n{story.plot_outline}\n\n"
         f"## characters.md (full profiles)\n{context_builder.format_characters(session, story.id)}\n\n"
         f"## world.md\n{story.world_bible}\n\n"
-        f"## story-bible.md (tone, chủ đề)\n{story.story_bible}\n"
+        f"## story-bible.md (tone, theme)\n{story.story_bible}\n"
         f"{source_section}"
     )
 
@@ -526,7 +526,7 @@ def _finalize_chapter(story: "Story", chapter: "Chapter", full_text: str) -> Cha
 
 
 _FEEDBACK_HEADER = (
-    "## LỖI CONTINUITY CẦN SỬA KHI VIẾT LẠI (từ verifier) — bắt buộc khắc phục\n"
+    "## CONTINUITY ERRORS TO FIX IN THIS REWRITE (from the verifier) — required\n"
 )
 
 

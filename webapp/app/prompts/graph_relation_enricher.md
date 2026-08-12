@@ -27,19 +27,8 @@ For each RELATION edge, produce:
 
 ## Output — JSON schema: RelationGroupEnrichOutput
 
-```json
-{
-  "relations": [
-    {
-      "source_key": "C001",
-      "target_key": "C004",
-      "chapter_from": null,
-      "new_rel_type": "love",
-      "new_label": "husband concealing a double life"
-    }
-  ],
-  "note": "brief summary"
-}
+```
+{{schema:RelationGroupEnrichOutput}}
 ```
 
 Return ONLY the JSON object — no markdown fences, no preamble.

@@ -29,6 +29,7 @@ class Story(Base):
     language = Column(String, nullable=False)
     input_type = Column(String, nullable=False)  # IDEA | PREMISE | REWRITE
     genre = Column(String)
+    source_title = Column(String)  # REWRITE only: title of the ORIGINAL story (story.title is the new, reskinned one)
     source_content = Column(Text)  # raw user input, kept for reference
 
     total_chapters = Column(Integer, nullable=False)
@@ -39,6 +40,7 @@ class Story(Base):
     phase = Column(String, default="PLANNING")  # PLANNING | WRITING | COMPLETE
     last_checkpoint_chapter = Column(Integer, default=0)  # last chapter continuity_editor/smart_planner actually ran for
     is_running = Column(Boolean, default=False)  # True while a graph.run_story_to_completion() background run is active
+    stop_requested = Column(Boolean, default=False)  # set by POST /stop; the graph loop checks it between steps and halts cleanly
     planning_verified = Column(Boolean, default=False)  # True once planning_verifier has gated the 4 planning artifacts before WRITING
     new_graph_built = Column(Boolean, default=False)    # True once new_graph_builder has built graph_type="new" nodes/edges
     new_graph_verified = Column(Boolean, default=False)  # True once graph_verifier has checked the new graph
@@ -53,7 +55,26 @@ class Story(Base):
     source_chapter_count = Column(Integer)   # REWRITE only: number of source chapters to graph-extract
     source_spirit = Column(Text)             # REWRITE only: overall tone + excerpts, passed to chapter_writer
 
+    # Front matter, written once when the book completes. It used to be generated on
+    # every export and thrown away with the file, so the same book could get a
+    # different logline each time, the API could not serve either without reading a
+    # file, and image regeneration — which has no export step — lost them entirely.
+    # `summary` is what tells the poster designer what the plot actually contains.
+    author = Column(String)
+    tags = Column(JSON, default=list)     # 3-6 genre/theme tags
+    logline = Column(Text)                # 1-2 sentence premise
+    summary = Column(Text)                # back-cover blurb, 120-180 words
+    cast_blurbs = Column(JSON, default=list)  # [{name, role, blurb}] for the export
+
     created_at = Column(DateTime, default=_utcnow)
+    updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
+
+
+class AppSetting(Base):
+    __tablename__ = "app_settings"
+
+    key = Column(String, primary_key=True)
+    value = Column(Text)
     updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
 
 
@@ -148,6 +169,23 @@ class ChapterSummary(Base):
     hook = Column(Text)           # exact last sentence / cliffhanger, dùng cho chapter_list
 
     __table_args__ = (UniqueConstraint("story_id", "chapter_number", name="uq_chapter_summary"),)
+
+
+class ChapterTrace(Base):
+    """Full reproducibility record for one written chapter: every input the writer
+    saw, SNAPSHOTTED at write time (world-state / continuity / smart-planner / CSV
+    graph are live and overwritten each chapter, so they can only be captured then),
+    plus the produced output. One row per chapter."""
+
+    __tablename__ = "chapter_traces"
+
+    id = Column(Integer, primary_key=True)
+    story_id = Column(Integer, ForeignKey("stories.id"), nullable=False)
+    chapter_number = Column(Integer, nullable=False)
+    trace = Column(JSON)  # {meta, inputs, output} — see orchestrator.build_chapter_trace
+    created_at = Column(DateTime, default=_utcnow)
+
+    __table_args__ = (UniqueConstraint("story_id", "chapter_number", name="uq_chapter_trace"),)
 
 
 class ContinuityLog(Base):

@@ -21,7 +21,7 @@ from .db.models import (
 def format_world_state(session: Session, story_id: int) -> str:
     rows = session.query(WorldState).filter_by(story_id=story_id).order_by(WorldState.entity_type, WorldState.entity_key).all()
     if not rows:
-        return "(chưa có dữ liệu — đây là chương đầu tiên)"
+        return "(no data yet — this is the first chapter)"
     lines = []
     current_key = None
     for row in rows:
@@ -36,7 +36,7 @@ def format_world_state(session: Session, story_id: int) -> str:
         lines.append("\n### foreshadowing")
         for f in foreshadow:
             lines.append(
-                f"- {f.fid}: {f.detail} (gieo Ch.{f.planted_chapter}, trạng thái: {f.status}"
+                f"- {f.fid}: {f.detail} (planted Ch.{f.planted_chapter}, status: {f.status}"
                 + (f", payoff Ch.{f.payoff_chapter}" if f.payoff_chapter else "")
                 + ")"
             )
@@ -59,7 +59,7 @@ def format_chapter_list(session: Session, story_id: int, current_chapter: int) -
     title_map = {c.number: c.title for c in chapters if c.title}
     total = max((c.number for c in chapters), default=current_chapter)
 
-    lines = [f"(Đang viết Ch.{current_chapter}/{total})\n"]
+    lines = [f"(Now writing Ch.{current_chapter}/{total})\n"]
     for row in rows:
         title = title_map.get(row.chapter_number, "")
         title_part = f' "{title}"' if title else ""
@@ -67,7 +67,7 @@ def format_chapter_list(session: Session, story_id: int, current_chapter: int) -
         hook_part = f" | Hook: {row.hook}" if row.hook else ""
         lines.append(f"Ch{row.chapter_number:02d}{title_part}: {short}{hook_part}")
     if not rows:
-        lines.append("(chưa có chương nào được viết)")
+        lines.append("(no chapters written yet)")
     return "\n".join(lines)
 
 
@@ -79,7 +79,7 @@ def format_chapter_summaries(session: Session, story_id: int) -> str:
         .all()
     )
     if not rows:
-        return "(chưa có chương nào được viết)"
+        return "(no chapters written yet)"
 
     # Build title lookup from Chapter table
     chapters = (
@@ -92,7 +92,7 @@ def format_chapter_summaries(session: Session, story_id: int) -> str:
     parts = []
     for row in rows:
         title = title_map.get(row.chapter_number, "")
-        heading = f"## Chương {row.chapter_number}" + (f": {title}" if title else "")
+        heading = f"## Chapter {row.chapter_number}" + (f": {title}" if title else "")
         parts.append(f"{heading}\n{row.summary_text}")
     return "\n\n".join(parts)
 
@@ -100,7 +100,7 @@ def format_chapter_summaries(session: Session, story_id: int) -> str:
 def format_continuity_log(session: Session, story_id: int) -> str:
     log = session.query(ContinuityLog).filter_by(story_id=story_id).first()
     if not log or (not log.critical_issues and not log.minor_issues):
-        return "Không có vấn đề continuity nào đang mở."
+        return "No open continuity problems."
     lines = []
     if log.critical_issues:
         lines.append("CRITICAL:")
@@ -144,7 +144,7 @@ def format_gender_roster(session: Session, story_id: int) -> str:
 def format_smart_planner_adjustments(session: Session, story_id: int) -> str:
     state = session.query(SmartPlannerState).filter_by(story_id=story_id).first()
     if not state or not state.outline_adjustments:
-        return "(chưa có điều chỉnh nào)"
+        return "(no adjustments yet)"
     return state.outline_adjustments
 
 
@@ -164,7 +164,7 @@ def format_story_graph(session: Session, story_id: int, chapter_limit: int | Non
     nodes = node_q.order_by(StoryGraphNode.node_type, StoryGraphNode.chapter_introduced).all()
 
     if not nodes:
-        return f"(story graph [{graph_type}] chưa được khởi tạo)"
+        return f"(story graph [{graph_type}] has not been initialised)"
 
     node_map = {n.node_key: n for n in nodes}
     valid_keys = set(node_map)
@@ -185,19 +185,22 @@ def format_story_graph(session: Session, story_id: int, chapter_limit: int | Non
     # ── Characters ────────────────────────────────────────────────────
     chars = [n for n in nodes if n.node_type == "character"]
     if chars:
-        lines.append("### NHÂN VẬT")
+        lines.append("### CHARACTERS")
         for n in chars:
             p = n.properties or {}
             arc = p.get("arc_stage", "")
             wants = p.get("wants", "")
             fears = p.get("fears", "")
-            role = p.get("role", "")
+            # Spell out a missing role instead of omitting it: an empty string used to
+            # be filtered away, leaving the graph verifier with nothing to notice and a
+            # role-less protagonist looking exactly like a correctly-tagged one.
+            role = p.get("role") or "role: MISSING"
             detail = " | ".join(filter(None, [role, f"wants: {wants}" if wants else "", f"fears: {fears}" if fears else "", f"arc: {arc}" if arc else ""]))
             ch = f" [Ch.{n.chapter_introduced}]" if n.chapter_introduced else ""
             lines.append(f"  {n.node_key}{ch} {n.label}: {detail}")
 
     # ── Factions & Locations ──────────────────────────────────────────
-    for ntype, header in [("faction", "PHE PHÁI"), ("location", "ĐỊA ĐIỂM")]:
+    for ntype, header in [("faction", "FACTIONS"), ("location", "LOCATIONS")]:
         grp = [n for n in nodes if n.node_type == ntype]
         if grp:
             lines.append(f"\n### {header}")
@@ -210,7 +213,7 @@ def format_story_graph(session: Session, story_id: int, chapter_limit: int | Non
     # ── Events (ordered by chapter) ───────────────────────────────────
     events = sorted([n for n in nodes if n.node_type == "event"], key=lambda n: (n.chapter_introduced or 0))
     if events:
-        lines.append("\n### SỰ KIỆN (theo thứ tự chương)")
+        lines.append("\n### EVENTS (in chapter order)")
         for n in events:
             p = n.properties or {}
             ch = f"Ch.{n.chapter_introduced}" if n.chapter_introduced else "pre"
@@ -222,7 +225,7 @@ def format_story_graph(session: Session, story_id: int, chapter_limit: int | Non
                 lines.append(f"    → {summary}")
 
     # ── Objects & Themes ──────────────────────────────────────────────
-    for ntype, header in [("object", "VẬT THỂ QUAN TRỌNG"), ("theme", "CHỦ ĐỀ")]:
+    for ntype, header in [("object", "KEY OBJECTS"), ("theme", "THEMES")]:
         grp = [n for n in nodes if n.node_type == ntype]
         if grp:
             lines.append(f"\n### {header}")
@@ -234,7 +237,7 @@ def format_story_graph(session: Session, story_id: int, chapter_limit: int | Non
     # ── Relations (temporal, grouped by pair) ─────────────────────────
     rel_edges = [e for e in edges if e.edge_type == "RELATION"]
     if rel_edges:
-        lines.append("\n### QUAN HỆ NHÂN VẬT (theo thời gian)")
+        lines.append("\n### CHARACTER RELATIONSHIPS (over time)")
         for e in rel_edges:
             src = node_map.get(e.source_key)
             tgt = node_map.get(e.target_key)
@@ -259,7 +262,7 @@ def format_story_graph(session: Session, story_id: int, chapter_limit: int | Non
     # ── Causal chains ─────────────────────────────────────────────────
     causal = [e for e in edges if e.edge_type == "CAUSES"]
     if causal:
-        lines.append("\n### NHÂN QUẢ")
+        lines.append("\n### CAUSALITY")
         for e in causal:
             src = node_map.get(e.source_key)
             tgt = node_map.get(e.target_key)
@@ -272,7 +275,7 @@ def format_story_graph(session: Session, story_id: int, chapter_limit: int | Non
     # ── Participates (character ↔ event) ──────────────────────────────
     part_edges = [e for e in edges if e.edge_type == "PARTICIPATES"]
     if part_edges:
-        lines.append("\n### NHÂN VẬT THAM GIA SỰ KIỆN")
+        lines.append("\n### CHARACTERS PARTICIPATING IN EVENTS")
         for e in part_edges:
             src = node_map.get(e.source_key)
             tgt = node_map.get(e.target_key)
@@ -286,7 +289,7 @@ def format_story_graph(session: Session, story_id: int, chapter_limit: int | Non
     # ── Foreshadowing ─────────────────────────────────────────────────
     foreshadow_edges = [e for e in edges if e.edge_type == "FORESHADOWS"]
     if foreshadow_edges:
-        lines.append("\n### DỰ BÁO (FORESHADOWS)")
+        lines.append("\n### FORESHADOWS")
         for e in foreshadow_edges:
             src = node_map.get(e.source_key)
             tgt = node_map.get(e.target_key)
@@ -299,7 +302,7 @@ def format_story_graph(session: Session, story_id: int, chapter_limit: int | Non
     # ── Arc changes ───────────────────────────────────────────────────
     arc_edges = [e for e in edges if e.edge_type == "ARC_CHANGE"]
     if arc_edges:
-        lines.append("\n### ARC THAY ĐỔI")
+        lines.append("\n### ARC CHANGES")
         for e in arc_edges:
             src = node_map.get(e.source_key)
             if not src:
@@ -402,9 +405,9 @@ def format_chapter_subgraph(
     lines: list[str] = [f"## Subgraph for Chapter {chapter_number} (depth={max_depth})"]
 
     for ntype, header in [
-        ("event", "SỰ KIỆN"), ("character", "NHÂN VẬT"),
-        ("location", "ĐỊA ĐIỂM"), ("faction", "PHE PHÁI"),
-        ("object", "VẬT THỂ"), ("theme", "CHỦ ĐỀ"),
+        ("event", "EVENTS"), ("character", "CHARACTERS"),
+        ("location", "LOCATIONS"), ("faction", "FACTIONS"),
+        ("object", "OBJECTS"), ("theme", "THEMES"),
     ]:
         grp = [n for n in nodes if n.node_type == ntype]
         if not grp:
@@ -422,7 +425,7 @@ def format_chapter_subgraph(
                          (f" — {' | '.join(detail_parts)}" if detail_parts else ""))
 
     if unique_edges:
-        lines.append("\n### QUAN HỆ & NHÂN QUẢ")
+        lines.append("\n### RELATIONSHIPS & CAUSALITY")
         for e in sorted(unique_edges, key=lambda x: (x.edge_type, x.chapter_from or 0)):
             src = node_map.get(e.source_key)
             tgt = node_map.get(e.target_key)
@@ -504,9 +507,9 @@ def format_node_subgraph(
 
     lines: list[str] = [f"## Subgraph around {node_key} ({graph_type}, depth={max_depth})"]
     for ntype, header in [
-        ("event", "SỰ KIỆN"), ("character", "NHÂN VẬT"),
-        ("location", "ĐỊA ĐIỂM"), ("faction", "PHE PHÁI"),
-        ("object", "VẬT THỂ"), ("theme", "CHỦ ĐỀ"),
+        ("event", "EVENTS"), ("character", "CHARACTERS"),
+        ("location", "LOCATIONS"), ("faction", "FACTIONS"),
+        ("object", "OBJECTS"), ("theme", "THEMES"),
     ]:
         grp = [n for n in nodes if n.node_type == ntype]
         if not grp:
@@ -555,15 +558,15 @@ def format_chapter_context_from_graph(session: Session, story_id: int, chapter_n
         .first()
     )
     if not event_node:
-        return f"(new graph chưa có EVENT node {event_key})"
+        return f"(the new graph has no EVENT node {event_key})"
 
     lines: list[str] = []
     ep = event_node.properties or {}
-    lines.append(f"## Kế hoạch chương {chapter_number}: {event_node.label}")
+    lines.append(f"## Plan for chapter {chapter_number}: {event_node.label}")
     if ep.get("summary"):
         lines.append(ep["summary"])
     if ep.get("event_type"):
-        lines.append(f"Loại: {ep['event_type']} | Cảm xúc: {ep.get('emotional_weight', '')}")
+        lines.append(f"Type: {ep['event_type']} | Emotional weight: {ep.get('emotional_weight', '')}")
     lines.append("")
 
     # Characters participating in this event via PARTICIPATES edges
@@ -574,7 +577,7 @@ def format_chapter_context_from_graph(session: Session, story_id: int, chapter_n
     )
     char_keys = [e.source_key for e in part_edges]
     if char_keys:
-        lines.append("### Nhân vật tham gia")
+        lines.append("### Participating characters")
         for e in part_edges:
             char = (
                 session.query(StoryGraphNode)
@@ -594,7 +597,7 @@ def format_chapter_context_from_graph(session: Session, story_id: int, chapter_n
             if arc:
                 line += f" — arc: {arc}"
             if wants:
-                line += f" | muốn: {wants}"
+                line += f" | wants: {wants}"
             lines.append(line)
             if profile:
                 # Include brief profile excerpt (first 200 chars)
@@ -606,7 +609,7 @@ def format_chapter_context_from_graph(session: Session, story_id: int, chapter_n
         # Active RELATION edges between participating characters at this chapter
         if len(char_keys) > 1:
             lines.append("")
-            lines.append("### Quan hệ giữa các nhân vật (đang hoạt động)")
+            lines.append("### Active relationships between characters")
             active_rels = (
                 session.query(StoryGraphEdge)
                 .filter(
@@ -653,7 +656,7 @@ def format_chapter_context_from_graph(session: Session, story_id: int, chapter_n
         )
         if loc_node:
             lp = loc_node.properties or {}
-            lines.append(f"### Địa điểm: {loc_node.label}")
+            lines.append(f"### Location: {loc_node.label}")
             if lp.get("description"):
                 lines.append(lp["description"])
             lines.append("")
@@ -673,10 +676,10 @@ def format_source_spirit_for_chapter(session, story, chapter_number: int) -> str
     if story.input_type != "REWRITE":
         return ""
 
-    lines: list[str] = ["## Tinh thần truyện gốc (dùng làm chuẩn về tone, nhịp điệu, cảm xúc)"]
+    lines: list[str] = ["## Source spirit (the standard for tone, rhythm and emotion)"]
 
     if story.source_spirit:
-        lines.append("\n### Tổng quan tone & phong cách (kèm trích đoạn mẫu)")
+        lines.append("\n### Overall tone & style (with sample passages)")
         lines.append(story.source_spirit)
 
     # Per-chapter spirit from source EVENT node
@@ -691,7 +694,7 @@ def format_source_spirit_for_chapter(session, story, chapter_number: int) -> str
         chapter_spirit = p.get("chapter_spirit", "")
         chapter_excerpts = p.get("chapter_excerpts", [])
         if chapter_spirit or chapter_excerpts:
-            lines.append(f"\n### Tinh thần chương {chapter_number} (từ bản gốc — phải tái tạo cảm xúc này, không sao chép nội dung)")
+            lines.append(f"\n### Spirit of chapter {chapter_number} (from the source — reproduce this feeling, never copy the content)")
             if chapter_spirit:
                 lines.append(chapter_spirit)
             for excerpt in chapter_excerpts:
@@ -715,4 +718,4 @@ def last_n_chapters_text(session: Session, story_id: int, up_to_chapter: int, n:
         .order_by(Chapter.number)
         .all()
     )
-    return "\n\n---\n\n".join(f"# Chương {row.number}: {row.title}\n\n{row.content}" for row in rows)
+    return "\n\n---\n\n".join(f"# Chapter {row.number}: {row.title}\n\n{row.content}" for row in rows)

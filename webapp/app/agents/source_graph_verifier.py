@@ -36,7 +36,7 @@ def _format_chapter_additions(session: Session, story_id: int, chapter_number: i
         .first()
     )
     if not event_node:
-        return f"(EVENT node {event_key} không tồn tại)"
+        return f"(EVENT node {event_key} does not exist)"
 
     lines = [f"EVENT {event_node.node_key} [Ch.{chapter_number}]: {event_node.label}"]
     p = event_node.properties or {}
@@ -128,9 +128,10 @@ def _format_chapter_context(session: Session, story_id: int, chapter_number: int
             referenced_keys.add(e.source_key)
 
     if not referenced_keys:
-        return "(không có node liên quan trong CONTEXT)"
+        return "(no related nodes in CONTEXT)"
 
-    lines = ["## CONTEXT — các node đã tồn tại (TRƯỚC hoặc từ chương khác, không cần redefine trong NEW NODES)"]
+    lines = ["## CONTEXT — nodes that already exist (from before, or from another chapter; "
+             "they need no redefinition in NEW NODES)"]
 
     # Show all referenced non-event nodes grouped by type
     nodes_found = (
@@ -161,7 +162,7 @@ def _format_chapter_context(session: Session, story_id: int, chapter_number: int
             detail = ""
         lines.append(f"  {node.node_key}: {node.label}{detail}")
 
-    # Active RELATION edges for involved characters (trước chương này)
+    # Active RELATION edges for the characters involved, as of before this chapter
     if char_keys:
         active = (
             session.query(StoryGraphEdge)
@@ -176,13 +177,13 @@ def _format_chapter_context(session: Session, story_id: int, chapter_number: int
             .all()
         )
         if active:
-            lines.append("\n## QUAN HỆ ĐANG HOẠT ĐỘNG (active trước chương này)")
+            lines.append("\n## ACTIVE RELATIONSHIPS (in force before this chapter)")
             for e in active:
                 ep = e.properties or {}
                 rel = ep.get("rel_type", "")
                 strength = ep.get("strength", "")
                 lines.append(
-                    f"  {e.source_key}↔{e.target_key}: {rel} strength={strength} [từ Ch.{e.chapter_from}→∞]"
+                    f"  {e.source_key}↔{e.target_key}: {rel} strength={strength} [from Ch.{e.chapter_from}→∞]"
                 )
 
     return "\n".join(lines)

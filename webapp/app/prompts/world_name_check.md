@@ -6,7 +6,7 @@ be referred to by ROLE or DESCRIPTION only (e.g. "the protagonist", "the rival
 clan", "the riverside teahouse"). Your job: find every proper name that slipped in.
 
 ## What COUNTS as a proper name to report
-- A person's given name or full name (e.g. "Kaito", "Mei Lin", "Lord Ashworth").
+- A person's given name or full name, with or without a title in front of it.
 - A named place, building, or region invented for the story (e.g. "The Crimson
   Lotus Pavilion", "Obsidian Spire").
 - A named family / clan / house / faction / organization (e.g. "the Mercer Clan",
@@ -25,11 +25,8 @@ User message contains the world-design fields (setting, archetypes, location
 concepts, narrative summary, etc.) as plain text.
 
 ## Output — JSON schema: WorldNameCheckOutput
-```json
-{
-  "proper_names": ["every invented proper name found; empty list if the text is fully role-based"],
-  "note": "one short sentence: clean, or which kinds of names leaked"
-}
+```
+{{schema:WorldNameCheckOutput}}
 ```
 Be thorough — list EVERY occurrence type once. If the text is genuinely name-free,
 return an empty `proper_names` list. Return ONLY the JSON object.

@@ -42,7 +42,7 @@ def _recent_beats(session: Session, story_id: int, before_chapter: int, n: int =
             f"- Ch{c.number}: beat_type={bp.get('beat_type', '?')} | "
             f"state_delta={bp.get('state_delta', '?')}"
         )
-    return "\n".join(lines) or "(chưa có chương trước)"
+    return "\n".join(lines) or "(no previous chapters)"
 
 
 MOTIF_CAP = 3  # a motif tag may recur at most this many times before it must be dropped/escalated
@@ -83,10 +83,11 @@ def _motif_ledger(session: Session, story_id: int, before_chapter: int) -> tuple
             else:
                 tally[key] = [tag.strip(), 1, [c.number]]
     if not tally:
-        return "(chưa có motif nào — chương đầu)", tally
+        return "(no motifs yet — this is the first chapter)", tally
     lines = []
     for _, (disp, cnt, chaps) in sorted(tally.items(), key=lambda kv: -kv[1][1]):
-        flag = "  ← ĐÃ CHẠM TRẦN: cấm lặp, phải BỎ hoặc LEO chất mới" if cnt >= MOTIF_CAP else ""
+        flag = ("  ← AT ITS CEILING: no flat repeat — DROP it or ESCALATE into a "
+                "different kind of expression") if cnt >= MOTIF_CAP else ""
         lines.append(f"  - {disp} ({cnt}×: ch{','.join(map(str, chaps))}){flag}")
     return "\n".join(lines), tally
 
@@ -156,7 +157,7 @@ def run(session: Session, story: Story, chapter: Chapter) -> None:
     spirit_section = ""
     if story.input_type == "REWRITE" and story.source_spirit:
         spirit_section = (
-            "\n## Tinh thần truyện gốc — POV & tone (dùng để gán pov_character)\n"
+            "\n## Source spirit — POV & tone (use this to assign pov_character)\n"
             + story.source_spirit
             + "\n"
         )
@@ -182,8 +183,8 @@ language: {story.language}
 ## recent chapters' beat_type + state_delta (DO NOT repeat these — advance beyond them)
 {_recent_beats(session, story.id, chapter.number)}
 
-## motif ledger — tag đã dùng tích luỹ (KHỚP-LẠI, đừng đẻ biến thể mới)
-Với mỗi beat/motif lặp lại của chương này: nếu trùng NGHĨA một tag dưới đây, chép Y NGUYÊN chuỗi tag đó vào `motifs_used` (để đếm gom được); chỉ tạo tag MỚI khi là motif thật sự mới. Tag chạm trần ({MOTIF_CAP}×) thì CẤM lặp — bỏ hoặc leo sang biểu hiện khác chất.
+## motif ledger — tags used so far (REUSE them, don't spawn variants)
+For each repeatable beat/motif in this chapter: if it means the same as a tag below, copy that tag string EXACTLY into `motifs_used` (so the counts aggregate); coin a NEW tag only for a genuinely new motif. A tag at its ceiling ({MOTIF_CAP}×) must NOT be repeated flat — drop it, or escalate it into a different kind of expression.
 {ledger_block}
 
 ## chapter-summaries (story so far)
