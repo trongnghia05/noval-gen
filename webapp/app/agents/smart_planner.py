@@ -22,7 +22,7 @@ current_words: {story.current_words}
 ## world-state.md
 {context_builder.format_world_state(session, story.id)}
 
-## plot-outline.md (gốc)
+## plot-outline.md (the original)
 {story.plot_outline}
 """
     output = generate_structured(

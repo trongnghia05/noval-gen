@@ -12,8 +12,8 @@ def run(story: Story, feedback: str | None = None, story_graph: str = "") -> str
     verbatim in story.world_bible. Only the output format changed (markdown → JSON);
     the world-building guidance in the prompt is unchanged."""
     system = load_prompt("worldbuilder")
-    user_content = f"""Thể loại: {story.genre or "(xem story-bible)"}
-Ngôn ngữ: {story.language}
+    user_content = f"""Genre: {story.genre or "(see the story bible)"}
+Language: {story.language}
 
 story-bible.md:
 ---
@@ -22,12 +22,13 @@ story-bible.md:
 """
     if story_graph:
         user_content += (
-            "\n## Story Knowledge Graph (dùng location/faction/theme nodes làm anchor)\n"
+            "\n## Story Knowledge Graph (anchor on its location/faction/theme nodes)\n"
             f"{story_graph}\n"
         )
     if feedback:
         user_content += (
-            "\n## LỖI TỪ VÒNG KIỂM TRA TRƯỚC — bắt buộc khắc phục, giữ nguyên phần đã đúng\n"
+            "\n## ISSUES FROM THE PREVIOUS VERIFICATION PASS — you must fix these, and "
+            "leave everything already correct untouched\n"
             f"{feedback}\n"
         )
     world: WorldBibleOut = generate_structured(

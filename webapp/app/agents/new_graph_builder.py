@@ -182,7 +182,7 @@ def build_characters_from_graph(session: Session, story: Story) -> None:
         if vp:
             voice_lines.append(f"## {n.label}\n{vp}")
 
-    voices_md = "\n\n".join(voice_lines) if voice_lines else "(chưa có dữ liệu giọng nói)"
+    voices_md = "\n\n".join(voice_lines) if voice_lines else "(no voice data yet)"
 
     # ── Initial relationships (RELATION edges active before chapter 1) ──────
     rel_edges = (

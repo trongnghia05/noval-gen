@@ -33,22 +33,23 @@ def run(story: Story, feedback: str | None = None, story_graph: str = "") -> str
     format moved from markdown to JSON)."""
     system = load_prompt("plot_architect")
     graph_section = (
-        f"\n## Story Knowledge Graph (dùng EVENT nodes làm xương sống cho REWRITE)\n{story_graph}\n"
+        f"\n## Story Knowledge Graph (for REWRITE, use the EVENT nodes as your spine)\n{story_graph}\n"
         if story_graph else ""
     )
     base = f"""input_type: {story.input_type}
 total_chapters (N): {story.total_chapters}
 words_per_chapter: {story.words_per_chapter}
-Ngôn ngữ: {story.language}
+Language: {story.language}
 
-story-bible.md (tóm tắt ngắn):
+story-bible.md (short summary):
 ---
 {story.story_bible}
 ---
 {graph_section}"""
     if feedback:
         base += (
-            "\n## LỖI TỪ VÒNG KIỂM TRA TRƯỚC — bắt buộc khắc phục, giữ nguyên phần đã đúng\n"
+            "\n## ISSUES FROM THE PREVIOUS VERIFICATION PASS — you must fix these, and "
+            "leave everything already correct untouched\n"
             f"{feedback}\n"
         )
 
@@ -71,15 +72,15 @@ story-bible.md (tóm tắt ngắn):
         last = _highest_chapter(outline)
         written = json.dumps(outline.model_dump(), ensure_ascii=False)
         continuation_prompt = base + f"""
-## OUTLINE ĐÃ VIẾT (đã tới hết Chương {last}) — cần VIẾT TIẾP, KHÔNG lặp lại phần đã có
+## THE OUTLINE SO FAR (complete through chapter {last}) — CONTINUE it, do NOT repeat what is here
 ---
 {written}
 ---
 
-Outline trên bị dừng ở Chương {last}, CHƯA đủ {story.total_chapters} chương. Hãy viết TIẾP
-từ **Chương {last + 1}** cho đến hết **Chương {story.total_chapters}**, cùng cấu trúc JSON.
-CHỈ trả về các chương từ {last + 1} trở đi trong `chapters` (title/arc_overview có thể để trống),
-KHÔNG lặp lại các chương đã viết.
+The outline above stops at chapter {last}, short of the required {story.total_chapters}.
+CONTINUE from **chapter {last + 1}** through **chapter {story.total_chapters}**, in the same
+JSON structure. Return ONLY chapters {last + 1} onward in `chapters` (title/arc_overview may
+be left empty), and do NOT repeat the chapters already written.
 """
         more: PlotOutlineOut = generate_structured(
             PROVIDER, system=system, user_content=continuation_prompt,

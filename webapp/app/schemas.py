@@ -19,56 +19,56 @@ class GraphNodeOut(BaseModel):
 
 
 class GraphEdgeOut(BaseModel):
-    source_id: str = Field(description="node_key của node nguồn")
-    target_id: str = Field(description="node_key của node đích. LOCATED_AT: source=EVENT(E###), target=LOCATION(L###)")
+    source_id: str = Field(description="node_key of the source node")
+    target_id: str = Field(description="node_key of the target node. LOCATED_AT: source=EVENT(E###), target=LOCATION(L###)")
     edge_type: str = Field(description="RELATION | ARC_CHANGE | PARTICIPATES | LOCATED_AT | CAUSES | MEMBER_OF | EMBODIES | FORESHADOWS | INVOLVES | OWNS")
-    label: str = Field(default="", description="mô tả ngắn về cạnh này")
+    label: str = Field(default="", description="a short description of this edge")
     chapter_from: int | None = Field(default=None)
     chapter_to: int | None = Field(default=None)
     trigger_event_id: str | None = Field(default=None)
     condition: str | None = Field(default=None)
 
-    # ── Typed fields — bắt buộc tùy edge_type ──────────────────────────────
-    # [RELATION] loại quan hệ giữa hai nhân vật
+    # ── Typed fields — required depending on edge_type ─────────────────────
+    # [RELATION] the kind of relationship between two characters
     rel_type: str | None = Field(
         default=None,
-        description="[RELATION — BẮT BUỘC] loại quan hệ: friendship|rivalry|romantic|mentor_student|family|distrust|alliance|betrayal|professional|..."
+        description="[RELATION — REQUIRED] relationship type: friendship|rivalry|romantic|mentor_student|family|distrust|alliance|betrayal|professional|..."
     )
     strength: str = Field(
         default="medium",
-        description="[RELATION] mức độ quan hệ: weak|medium|strong"
+        description="[RELATION] relationship strength: weak|medium|strong"
     )
 
-    # [ARC_CHANGE] thay đổi trạng thái nội tâm nhân vật
+    # [ARC_CHANGE] a change in a character's inner state
     old_val: str | None = Field(
         default=None,
-        description="[ARC_CHANGE — BẮT BUỘC] arc_stage HIỆN TẠI của nhân vật TRƯỚC chương này. Lấy từ 'arc=' trong ENTITY LIST. Nếu nhân vật mới ra mắt lần đầu thì dùng 'introduction'"
+        description="[ARC_CHANGE — REQUIRED] the character's CURRENT arc_stage BEFORE this chapter. Take it from 'arc=' in the ENTITY LIST. For a character appearing for the first time, use 'introduction'"
     )
     new_val: str | None = Field(
         default=None,
-        description="[ARC_CHANGE — BẮT BUỘC] arc_stage MỚI sau sự kiện chương này — mô tả trạng thái nội tâm thay đổi"
+        description="[ARC_CHANGE — REQUIRED] the NEW arc_stage after this chapter's event — describe the changed inner state"
     )
     arc_field: str = Field(
         default="arc_stage",
-        description="[ARC_CHANGE] trường đang thay đổi, luôn là 'arc_stage'"
+        description="[ARC_CHANGE] the field being changed; always 'arc_stage'"
     )
 
-    # [PARTICIPATES] vai trò nhân vật trong sự kiện
+    # [PARTICIPATES] the character's role in the event
     role: str | None = Field(
         default=None,
-        description="[PARTICIPATES — BẮT BUỘC] vai trò: cause (kẻ gây ra) | victim (nạn nhân) | witness (chứng kiến) | ally (hỗ trợ) | bystander (ngoại vi)"
+        description="[PARTICIPATES — REQUIRED] role: cause | victim | witness | ally | bystander"
     )
 
-    # [CAUSES] cơ chế nhân quả giữa hai sự kiện
+    # [CAUSES] the causal mechanism between two events
     mechanism: str | None = Field(
         default=None,
-        description="[CAUSES — BẮT BUỘC] giải thích nhân quả: tại sao event trước trực tiếp dẫn đến event này"
+        description="[CAUSES — REQUIRED] explain the causality: why the earlier event leads directly to this one"
     )
 
     # Fallback cho MEMBER_OF, EMBODIES, FORESHADOWS, v.v.
     properties: dict[str, Any] = Field(
         default={},
-        description="[MEMBER_OF|EMBODIES|FORESHADOWS|INVOLVES|OWNS] thông tin bổ sung; không dùng cho RELATION/ARC_CHANGE/PARTICIPATES/CAUSES — dùng các field riêng ở trên"
+        description="[MEMBER_OF|EMBODIES|FORESHADOWS|INVOLVES|OWNS] extra information; not for RELATION/ARC_CHANGE/PARTICIPATES/CAUSES — use their dedicated fields above"
     )
 
     @model_validator(mode="after")
@@ -77,27 +77,27 @@ class GraphEdgeOut(BaseModel):
         if t == "ARC_CHANGE":
             if not self.old_val:
                 raise ValueError(
-                    "ARC_CHANGE edge PHẢI có 'old_val' (arc_stage trước thay đổi — lấy từ ENTITY LIST). "
-                    "Ví dụ: old_val='introduction'"
+                    "an ARC_CHANGE edge MUST carry 'old_val' (the arc_stage before the change — take it from the ENTITY LIST). "
+                    "Example: old_val='introduction'"
                 )
             if not self.new_val:
                 raise ValueError(
-                    "ARC_CHANGE edge PHẢI có 'new_val' (arc_stage sau thay đổi)"
+                    "an ARC_CHANGE edge MUST carry 'new_val' (the arc_stage after the change)"
                 )
         elif t == "RELATION":
             if not self.rel_type:
                 raise ValueError(
-                    "RELATION edge PHẢI có 'rel_type' (friendship|rivalry|romantic|mentor_student|family|distrust|alliance|betrayal|...)"
+                    "a RELATION edge MUST carry 'rel_type' (friendship|rivalry|romantic|mentor_student|family|distrust|alliance|betrayal|...)"
                 )
         elif t == "PARTICIPATES":
             if not self.role:
                 raise ValueError(
-                    "PARTICIPATES edge PHẢI có 'role' (cause|victim|witness|ally|bystander)"
+                    "a PARTICIPATES edge MUST carry 'role' (cause|victim|witness|ally|bystander)"
                 )
         elif t == "CAUSES":
             if not self.mechanism:
                 raise ValueError(
-                    "CAUSES edge PHẢI có 'mechanism' (giải thích tại sao event trước dẫn đến event này)"
+                    "a CAUSES edge MUST carry 'mechanism' (why the earlier event leads to this one)"
                 )
         elif t == "LOCATED_AT":
             src = (self.source_id or "")
@@ -142,28 +142,28 @@ class ChapterGraphOutput(BaseModel):
 # ── character_developer ────────────────────────────────────────────────────────
 
 class CharacterOut(BaseModel):
-    name: str = Field(description="tên nhân vật")
-    aliases: list[str] = Field(default=[], description="các cách gọi khác/biệt danh")
+    name: str = Field(description="the character's name")
+    aliases: list[str] = Field(default=[], description="other forms of address / nicknames")
     tier: str = Field(description="core | important | secondary")
-    profile_md: str = Field(description="hồ sơ markdown đầy đủ: Thông tin cơ bản (tuổi, ngoại hình, nghề/vai); Tâm lý & Tính cách (điểm mạnh, điểm yếu/vết thương, nỗi sợ lớn nhất, khao khát sâu nhất, niềm tin sai lầm); Backstory (2-3 đoạn core/important, 1 đoạn secondary); Arc (bắt đầu/midpoint/kết/bài học — bỏ nếu secondary); Quan hệ với nhân vật khác")
+    profile_md: str = Field(description="the full markdown dossier: Basics (age, appearance, job/role); Psychology & Personality (strengths, flaw/wound, deepest fear, deepest want, false belief); Backstory (2-3 paragraphs for core/important, 1 for secondary); Arc (start/midpoint/end/lesson — omit for secondary); Relationships with other characters")
 
 
 class CharacterGraphInitOut(BaseModel):
     """CSV-ready initial state for one character."""
-    id: str = Field(description="C001, C002, … do model gán")
-    name: str = Field(description="phải khớp CharacterOut.name chính xác")
+    id: str = Field(description="C001, C002, … assigned by you")
+    name: str = Field(description="must match CharacterOut.name exactly")
     role: str = Field(description="protagonist | antagonist | supporting | minor")
-    initial_location: str = Field(description="vị trí ban đầu")
-    initial_emotional_state: str = Field(description="trạng thái cảm xúc ban đầu")
-    initial_goals: str = Field(description="mục tiêu, ngăn bằng dấu phẩy")
-    initial_secrets: str = Field(description="bí mật, ngăn bằng dấu phẩy")
-    speech_pattern: str = Field(description="1-3 câu mô tả cách nói")
+    initial_location: str = Field(description="starting location")
+    initial_emotional_state: str = Field(description="starting emotional state")
+    initial_goals: str = Field(description="goals, comma-separated")
+    initial_secrets: str = Field(description="secrets, comma-separated")
+    speech_pattern: str = Field(description="1-3 sentences on how they speak")
 
 
 class CharacterDeveloperOutput(BaseModel):
-    characters: list[CharacterOut] = Field(description="danh sách nhân vật với hồ sơ")
-    character_graph: list[CharacterGraphInitOut] = Field(description="trạng thái CSV ban đầu mỗi nhân vật")
-    character_voices_md: str = Field(description="hướng dẫn giọng markdown đầy đủ, mỗi nhân vật một section ## Tên")
+    characters: list[CharacterOut] = Field(description="the character list with dossiers")
+    character_graph: list[CharacterGraphInitOut] = Field(description="each character's initial CSV state")
+    character_voices_md: str = Field(description="the full markdown voice guide, one ## Name section per character")
 
 
 # ── novel metadata (front matter for the exported file) ─────────────────────────
@@ -178,7 +178,7 @@ class CharacterBlurbOut(BaseModel):
 class NovelMetadataOut(BaseModel):
     author: str = Field(description="a fitting pen name (invented), in the story's language/culture")
     tags: list[str] = Field(default=[], description='3-6 genre/theme tags, e.g. ["Dark Fantasy", "Gothic Romance"]')
-    logline: str = Field(description="cốt truyện — 1-2 sentence premise/hook")
+    logline: str = Field(description="the plot — a 1-2 sentence premise/hook")
     summary: str = Field(description="back-cover blurb, 120-180 words, no ending spoilers")
     characters: list[CharacterBlurbOut] = Field(default=[], description="main cast, minor walk-ons excluded")
 
@@ -186,23 +186,23 @@ class NovelMetadataOut(BaseModel):
 class ImagePromptIssueOut(BaseModel):
     """One fault found in a drafted poster prompt, phrased so it can be fixed."""
     image: str = Field(description="cover | thumb1 | thumb2 | all")
-    check: str = Field(description="era | protagonist | age | dynamic | title | wardrobe | variety | colour | cast — rule bị vi phạm")
-    description: str = Field(description="prompt hiện đang sai chỗ nào — trích dẫn")
-    fix: str = Field(description="cách sửa cụ thể")
+    check: str = Field(description="era | protagonist | age | dynamic | title | wardrobe | variety | colour | cast — the rule that was broken")
+    description: str = Field(description="where the prompt is currently wrong — quote it")
+    fix: str = Field(description="the specific fix")
 
 
 class ImagePromptVerifyOut(BaseModel):
-    issues: list[ImagePromptIssueOut] = Field(default=[], description="rỗng ⇒ đạt")
-    verdict_note: str = Field("", description="kết luận ngắn")
+    issues: list[ImagePromptIssueOut] = Field(default=[], description="empty ⇒ passes")
+    verdict_note: str = Field("", description="a short verdict")
 
 
 class ImagePromptSetOut(BaseModel):
     """Three text-to-image prompts (English) for the poster art. Each describes a
     cinematic, photorealistic drama-poster composition in the STORY'S world, with
     NO text/letters/watermarks (the title is overlaid separately by Pillow)."""
-    cover: str = Field(description="wide: montage các nhân vật chính trong thế giới truyện")
-    thumb1: str = Field(description="portrait: nhân vật chính (tuỳ chọn + một nhân vật phụ)")
-    thumb2: str = Field(description="portrait: cặp đôi trung tâm / quan hệ then chốt")
+    cover: str = Field(description="wide: a montage of the main characters in the story's world")
+    thumb1: str = Field(description="portrait: the lead (optionally with one supporting character)")
+    thumb2: str = Field(description="portrait: the central pair / the pivotal relationship")
 
 
 # ── chapter_writer ─────────────────────────────────────────────────────────────
@@ -217,18 +217,18 @@ class ChapterWriterOutput(BaseModel):
 # ── chapter_summarizer ─────────────────────────────────────────────────────────
 
 class StateChangeOut(BaseModel):
-    entity: str = Field(description="tên thực thể thay đổi (nhân vật/vật thể/quan hệ)")
-    field: str = Field(description="trường thay đổi")
-    old_value: str | None = Field(None, description="giá trị cũ (null nếu mới)")
-    new_value: str = Field(description="giá trị mới")
-    reason: str = Field(description="lý do thay đổi")
+    entity: str = Field(description="the entity that changed (character/object/relationship)")
+    field: str = Field(description="the field that changed")
+    old_value: str | None = Field(None, description="the old value (null if new)")
+    new_value: str = Field(description="the new value")
+    reason: str = Field(description="why it changed")
 
 
 class WorldStateRowOut(BaseModel):
     entity_type: str = Field(description="character | relationship | plot_thread | object | timeline")
-    entity_key: str = Field(description="khóa định danh thực thể")
-    field: str = Field(description="tên trường")
-    value: str = Field(description="giá trị hiện tại (snapshot, ghi đè)")
+    entity_key: str = Field(description="the entity's identifying key")
+    field: str = Field(description="the field name")
+    value: str = Field(description="the current value (a snapshot; it overwrites)")
 
     @field_validator("value", mode="before")
     @classmethod
@@ -237,174 +237,174 @@ class WorldStateRowOut(BaseModel):
 
 
 class ForeshadowingOut(BaseModel):
-    fid: str = Field(description="mã gài cắm: F1, F2, …")
-    detail: str = Field(description="chi tiết được gài")
-    planted_chapter: int = Field(description="chương gài")
+    fid: str = Field(description="the foreshadowing id: F1, F2, …")
+    detail: str = Field(description="the detail planted")
+    planted_chapter: int = Field(description="the chapter it was planted in")
     status: str = Field(description="planted | advancing | resolved")
-    payoff_chapter: int | None = Field(None, description="chương trả (null nếu chưa)")
+    payoff_chapter: int | None = Field(None, description="the payoff chapter (null if not yet)")
 
 
 class CharacterStateUpdateOut(BaseModel):
     id: str = Field(description="character CSV id (C001, …)")
     field: str = Field(description="location | emotional_state | goals | secrets | arc_status")
-    value: str = Field(description="giá trị mới")
+    value: str = Field(description="the new value")
 
 
 class RelationshipChangeOut(BaseModel):
     char_a: str = Field(description="character CSV id")
     char_b: str = Field(description="character CSV id")
     type: str = Field(description="romantic | rivalry | friendship | family | mentor | professional")
-    strength: float = Field(description="-1.0 → 1.0, giá trị tuyệt đối mới")
+    strength: float = Field(description="-1.0 → 1.0, the new absolute value")
     status: str = Field(description="active | broken | evolving | secret")
-    event: str = Field(description="một câu mô tả điều đã thay đổi")
+    event: str = Field(description="one sentence on what changed")
 
 
 class PlotThreadOut(BaseModel):
     id: str = Field(description="PT001, PT002, …")
-    title: str = Field(description="tên tuyến truyện")
+    title: str = Field(description="the plot thread's name")
     type: str = Field(description="main | subplot | foreshadowing | mystery")
     status: str = Field(description="open | resolved | abandoned")
-    introduced_chapter: int | None = Field(None, description="chương giới thiệu")
-    involved_chars: str = Field(description='character ids ngăn bằng "|": "C001|C002"')
-    hint: str | None = Field(None, description="gợi ý (nếu là foreshadowing/mystery)")
-    resolution_note: str | None = Field(None, description="ghi chú khi giải quyết")
+    introduced_chapter: int | None = Field(None, description="the chapter it was introduced in")
+    involved_chars: str = Field(description='character ids separated by "|": "C001|C002"')
+    hint: str | None = Field(None, description="the hint (if it is foreshadowing/mystery)")
+    resolution_note: str | None = Field(None, description="a note on how it resolved")
 
 
 class TimelineEventOut(BaseModel):
-    story_time: str = Field(description='thời điểm trong truyện, VD "Day 3, late evening"')
-    location: str = Field(description="địa điểm")
-    characters: str = Field(description='character ids ngăn bằng "|"')
-    summary: str = Field(description="một câu tóm tắt")
+    story_time: str = Field(description='the moment in the story, e.g. "Day 3, late evening"')
+    location: str = Field(description="the location")
+    characters: str = Field(description='character ids separated by "|"')
+    summary: str = Field(description="a one-sentence summary")
 
 
 class ChapterSummaryOutput(BaseModel):
-    short_summary: str = Field(description="1-2 câu mô tả sự kiện chính, dùng cho chapter_writer")
-    summary: str = Field(description="200-300 từ đầy đủ, dùng cho continuity/verifier")
-    state_changes: list[StateChangeOut] = Field(default=[], description="các thay đổi trạng thái ghi vào state-log")
-    world_state_rows: list[WorldStateRowOut] = Field(default=[], description="các dòng snapshot world-state (ghi đè)")
-    foreshadowing: list[ForeshadowingOut] = Field(default=[], description="gài cắm mới/cập nhật")
-    character_updates: list[CharacterStateUpdateOut] = Field(default=[], description="cập nhật CSV nhân vật")
-    relationship_changes: list[RelationshipChangeOut] = Field(default=[], description="thay đổi quan hệ CSV")
-    plot_thread_updates: list[PlotThreadOut] = Field(default=[], description="tuyến truyện mới hoặc đổi trạng thái")
-    timeline_event: TimelineEventOut | None = Field(None, description="sự kiện dòng thời gian của chương này")
+    short_summary: str = Field(description="1-2 sentences on the main event, used by chapter_writer")
+    summary: str = Field(description="the full 200-300 words, used by continuity/verifier")
+    state_changes: list[StateChangeOut] = Field(default=[], description="the state changes to record in the state-log")
+    world_state_rows: list[WorldStateRowOut] = Field(default=[], description="the world-state snapshot rows (these overwrite)")
+    foreshadowing: list[ForeshadowingOut] = Field(default=[], description="new or updated foreshadowing")
+    character_updates: list[CharacterStateUpdateOut] = Field(default=[], description="character CSV updates")
+    relationship_changes: list[RelationshipChangeOut] = Field(default=[], description="relationship CSV changes")
+    plot_thread_updates: list[PlotThreadOut] = Field(default=[], description="new plot threads, or threads whose status changed")
+    timeline_event: TimelineEventOut | None = Field(None, description="this chapter's timeline event")
 
 
 # ── chapter_blueprinter ────────────────────────────────────────────────────────
 
 class SceneOut(BaseModel):
-    goal: str = Field(description="điều nhân vật POV muốn trong cảnh này")
-    conflict: str = Field(description="điều cản trở họ")
-    outcome: str = Field(description="họ có đạt được không? (success | failure | partial)")
-    disaster: str = Field(description="vấn đề mới nảy sinh từ cảnh này")
-    characters: list[str] = Field(default=[], description="node keys (C001…) hoặc tên — ai xuất hiện trong cảnh")
-    location: str = Field("", description="nhãn địa điểm hoặc node key từ LOCATED_AT")
-    speaking_characters: list[str] = Field(default=[], description="tên thế giới mới thực sự NÓI trong cảnh")
-    dialogue_nuance: str = Field("", description='sắc thái: tone/mood của trao đổi, VD "cold, clipped confrontation"')
-    dialogue_intent: str = Field("", description="hướng đến: thoại phải đạt được gì trong cảnh này")
+    goal: str = Field(description="what the POV character wants in this scene")
+    conflict: str = Field(description="what stands in their way")
+    outcome: str = Field(description="do they get it? (success | failure | partial)")
+    disaster: str = Field(description="the new problem this scene creates")
+    characters: list[str] = Field(default=[], description="node keys (C001…) or names — who appears in the scene")
+    location: str = Field("", description="the location label or node key from LOCATED_AT")
+    speaking_characters: list[str] = Field(default=[], description="the new-world names of those who actually SPEAK in the scene")
+    dialogue_nuance: str = Field("", description='nuance: the tone/mood of the exchange, e.g. "cold, clipped confrontation"')
+    dialogue_intent: str = Field("", description="intent: what the dialogue must achieve in this scene")
 
 
 class ChapterBlueprintOutput(BaseModel):
-    purpose: str = Field(description="một câu: vì sao chương này tồn tại?")
+    purpose: str = Field(description="one sentence: why does this chapter exist?")
     act_position: str = Field(description="Act 1 | Act 2a | Act 2b | Act 3")
-    beat_type: str = Field("", description="chức năng cấu trúc: setup | escalation | revelation | setback | turning_point | confrontation | aftermath | resolution — tránh nhiều chương cùng loại")
-    state_delta: str = Field("", description="THAY ĐỔI TRẠNG THÁI cụ thể chương phải tạo: cái gì khác biệt thực chất ở dòng cuối vs đầu (quan hệ dịch, bí mật lộ, kế hoạch tiến, ai đó quyết/hành động). Chỉ khơi lại cảm xúc cũ mà không có delta mới = chương 'rỗng'")
-    emotional_arc_start: str = Field(description="cảm xúc người đọc lúc mở chương")
-    emotional_arc_end: str = Field(description="cảm xúc người đọc lúc đóng chương")
-    pov_character: str = Field("", description="đa-POV luân phiên: nhân vật 'giữ' POV chương này (viết cả chương trong đầu họ, đúng ngôi của nguồn). Rỗng = single-POV / theo source_spirit")
-    pov_characters: list[str] = Field(default=[], description="CHỈ điền khi chương gốc kể từ >1 POV (đổi giữa chương): tập tên các POV-holder. Rỗng cho chương single-POV thường")
-    scenes: list[SceneOut] = Field(description="danh sách cảnh của chương")
-    hook: str = Field(description="bản chất chính xác của hook/cliffhanger cuối")
-    foreshadowing_to_plant: str | None = Field(None, description="hạt cần gieo (để trả về sau)")
-    characters_featured: list[str] = Field(description="character CSV ids xuất hiện trong chương")
-    dialogue_intensity: str = Field("balanced", description="heavy | balanced | sparse — chương thoại-dẫn tới đâu. Chương độc thoại-nội tâm là 'sparse' hợp lệ")
-    motifs_used: list[str] = Field(default=[], description="tag canonical ngắn (≤5 từ) cho các motif/beat lặp, VD 'possessive-claim'. PHẢI dùng lại tag cũ nguyên văn khi motif tái diễn; chỉ đặt tag mới cho motif thật sự mới")
+    beat_type: str = Field("", description="the structural function: setup | escalation | revelation | setback | turning_point | confrontation | aftermath | resolution — avoid several chapters of the same kind")
+    state_delta: str = Field("", description="the concrete STATE CHANGE this chapter must produce: what is materially different at the last line versus the first (a relationship shifts, a secret surfaces, a plan advances, someone decides or acts). Re-stirring an old emotion with no new delta means the chapter is 'empty'")
+    emotional_arc_start: str = Field(description="what the reader feels as the chapter opens")
+    emotional_arc_end: str = Field(description="what the reader feels as the chapter closes")
+    pov_character: str = Field("", description="alternating multi-POV: the character who 'holds' this chapter's POV (write the whole chapter inside their head, in the source's person). Empty = single-POV / follow source_spirit")
+    pov_characters: list[str] = Field(default=[], description="fill this ONLY when the source chapter is told from more than one POV (switching mid-chapter): the set of POV-holders' names. Empty for an ordinary single-POV chapter")
+    scenes: list[SceneOut] = Field(description="the chapter's scenes")
+    hook: str = Field(description="exactly what the closing hook/cliffhanger is")
+    foreshadowing_to_plant: str | None = Field(None, description="the seed to plant (to be paid off later)")
+    characters_featured: list[str] = Field(description="the character CSV ids appearing in this chapter")
+    dialogue_intensity: str = Field("balanced", description="heavy | balanced | sparse — how dialogue-forward the chapter is. A solitary interior chapter is legitimately 'sparse'")
+    motifs_used: list[str] = Field(default=[], description="short canonical tags (≤5 words) for repeatable motifs/beats, e.g. 'possessive-claim'. You MUST reuse an existing tag verbatim when the motif recurs; coin a new tag only for a genuinely new motif")
 
 
 # ── continuity_editor ─────────────────────────────────────────────────────────
 
 class ContinuityIssueOut(BaseModel):
-    description: str = Field(description="mô tả vấn đề continuity")
-    suggestion: str = Field(description="cách sửa đề xuất")
+    description: str = Field(description="a description of the continuity problem")
+    suggestion: str = Field(description="the suggested fix")
 
 
 class ContinuityEditorOutput(BaseModel):
-    critical_issues: list[ContinuityIssueOut] = Field(default=[], description="lỗi nghiêm trọng (mâu thuẫn thật)")
-    minor_issues: list[ContinuityIssueOut] = Field(default=[], description="lỗi nhỏ")
-    batch_note: str = Field(description="nhận xét chung cho batch 5 chương vừa rà")
+    critical_issues: list[ContinuityIssueOut] = Field(default=[], description="critical issues (real contradictions)")
+    minor_issues: list[ContinuityIssueOut] = Field(default=[], description="minor issues")
+    batch_note: str = Field(description="an overall note on the 5-chapter batch just reviewed")
 
 
 # ── smart_planner ──────────────────────────────────────────────────────────────
 
 class SmartPlannerOutput(BaseModel):
-    pacing_note: str = Field(description="Trung bình từ/chương: X | Dự báo tổng: Y / mục tiêu W | Hành động: mở rộng/giữ nguyên/cắt gọn")
-    characters_to_watch: list[str] = Field(default=[], description='mỗi mục "Tên: cần làm gì trong các chương tiếp theo"')
-    threads_to_resolve: list[str] = Field(default=[], description='mỗi mục "Thread: phải payoff trước Ch.X"')
-    outline_adjustments: str = Field("", description="điều chỉnh chi tiết cho outline các chương sắp tới (thay thế nội dung cũ, không cộng dồn) — để trống nếu không cần đổi gì")
+    pacing_note: str = Field(description="Average words/chapter: X | Projected total: Y / target W | Action: expand/hold/tighten")
+    characters_to_watch: list[str] = Field(default=[], description='each entry "Name: what must happen with them in the coming chapters"')
+    threads_to_resolve: list[str] = Field(default=[], description='each entry "Thread: must pay off before Ch.X"')
+    outline_adjustments: str = Field("", description="detailed adjustments to the outline for the coming chapters (this replaces the previous content, it does not accumulate) — leave empty if nothing needs changing")
 
 
 # ── chapter_verifier ───────────────────────────────────────────────────────────
 
 class ChapterVerifyIssueOut(BaseModel):
-    description: str = Field(description="mô tả vấn đề")
-    suggestion: str = Field(description="cách sửa đề xuất")
-    severity: Literal["critical", "minor"] = Field(description="critical = mâu thuẫn thật; minor = lỗi nhỏ")
+    description: str = Field(description="a description of the problem")
+    suggestion: str = Field(description="the suggested fix")
+    severity: Literal["critical", "minor"] = Field(description="critical = a real contradiction; minor = a small fault")
 
 
 class ChapterVerifierOutput(BaseModel):
-    issues: list[ChapterVerifyIssueOut] = Field(default=[], description="mọi vấn đề tìm thấy ở chương vừa viết")
-    verdict_note: str = Field(description="kết luận ngắn gọn")
+    issues: list[ChapterVerifyIssueOut] = Field(default=[], description="every problem found in the chapter just written")
+    verdict_note: str = Field(description="a short verdict")
 
 
 # ── planning_verifier ──────────────────────────────────────────────────────────
 
 class PlanningVerifyIssueOut(BaseModel):
     artifact: Literal["story_bible", "plot_outline", "characters", "world"] = Field(
-        description="artifact CẦN SỬA để khắc phục lỗi này")
-    description: str = Field(description="mô tả lỗi cụ thể")
-    suggestion: str = Field(description="cần sửa thành gì")
-    severity: Literal["critical", "minor"] = Field(description="critical = phá vỡ tác phẩm; minor = nên cải thiện")
+        description="the artifact that MUST BE FIXED to resolve this issue")
+    description: str = Field(description="a specific description of the fault")
+    suggestion: str = Field(description="what it must be changed to")
+    severity: Literal["critical", "minor"] = Field(description="critical = breaks the book; minor = worth improving")
 
 
 class PlanningVerifierOutput(BaseModel):
-    issues: list[PlanningVerifyIssueOut] = Field(default=[], description="mọi lỗi ở bộ kế hoạch")
-    verdict_note: str = Field(description="kết luận ngắn gọn")
+    issues: list[PlanningVerifyIssueOut] = Field(default=[], description="every fault in the planning set")
+    verdict_note: str = Field(description="a short verdict")
 
 
 # ── quality_reviewer ───────────────────────────────────────────────────────────
 
 class QualityReviewIssueOut(BaseModel):
     dimension: Literal["quality", "world_consistency", "graph_consistency", "dialogue", "pov"] = Field(
-        description="chiều đánh giá bị vi phạm")
-    description: str = Field(description="mô tả vấn đề")
-    suggestion: str = Field(description="cách sửa đề xuất")
-    severity: Literal["critical", "minor"] = Field(description="critical = phải sửa; minor = ghi nhận")
+        description="the dimension that was violated")
+    description: str = Field(description="a description of the problem")
+    suggestion: str = Field(description="the suggested fix")
+    severity: Literal["critical", "minor"] = Field(description="critical = must be fixed; minor = recorded only")
 
 
 class QualityReviewerOutput(BaseModel):
-    issues: list[QualityReviewIssueOut] = Field(default=[], description="mọi vấn đề chất lượng của chương")
-    verdict_note: str = Field(description="kết luận ngắn gọn")
+    issues: list[QualityReviewIssueOut] = Field(default=[], description="every quality problem in the chapter")
+    verdict_note: str = Field(description="a short verdict")
 
 
 # ── new_graph_builder Phase 0 (world design) ─────────────────────────────────
 
 class WorldDesignOutput(BaseModel):
-    setting: str = Field(description='bối cảnh, VD "1990s Hong Kong financial district"')
-    time_period: str = Field(description='thời kỳ, VD "1994-1997, pre-handover"')
-    genre: str = Field(description='thể loại, VD "corporate thriller with political undercurrent"')
-    tone: str = Field(description='tông, VD "tense, morally ambiguous, atmospheric"')
-    protagonist_archetype: str = Field(description="nhân vật chính THEO VAI (KHÔNG tên riêng) + tình huống họ đối mặt")
-    antagonist_archetype: str = Field(description="phản diện THEO VAI (KHÔNG tên riêng) + động cơ đối kháng")
-    location_concepts: list[str] = Field(description="3-5 địa điểm then chốt, mỗi cái mô tả THEO VAI + mục đích tự sự, TUYỆT ĐỐI KHÔNG tên riêng")
-    thematic_core: str = Field(description="câu hỏi/chân lý trung tâm truyện khám phá")
-    narrative_summary: str = Field(description="tóm tắt prose 300-400 từ về truyện MỚI, kể HOÀN TOÀN theo VAI (nhân vật chính, phe đối địch…), KHÔNG tên riêng cho người/nơi/phe, KHÔNG nhắc truyện gốc, viết bằng ngôn ngữ được yêu cầu")
+    setting: str = Field(description='the setting, e.g. "1990s Hong Kong financial district"')
+    time_period: str = Field(description='the period, e.g. "1994-1997, pre-handover"')
+    genre: str = Field(description='the genre, e.g. "corporate thriller with political undercurrent"')
+    tone: str = Field(description='the tone, e.g. "tense, morally ambiguous, atmospheric"')
+    protagonist_archetype: str = Field(description="the lead BY ROLE (NO proper names) + the situation they face")
+    antagonist_archetype: str = Field(description="the antagonist BY ROLE (NO proper names) + what drives their opposition")
+    location_concepts: list[str] = Field(description="3-5 key locations, each described BY ROLE + its narrative purpose, ABSOLUTELY NO proper names")
+    thematic_core: str = Field(description="the central question or truth the story explores")
+    narrative_summary: str = Field(description="a 300-400 word prose summary of the NEW story, told ENTIRELY by ROLE (the lead, the opposing side…), with NO proper names for people, places or factions, NO reference to the source story, written in the requested language")
 
 
 class WorldNameCheckOutput(BaseModel):
     """Verdict from the world-design name checker: which invented PROPER NAMES (of
     people / places / clans / factions / objects) still appear, so the world design
     can be regenerated until it is fully name-free (roles only)."""
-    proper_names: list[str] = Field(default=[], description="mọi tên riêng bịa còn sót (rỗng = sạch)")
-    note: str = Field("", description="ghi chú tuỳ chọn")
+    proper_names: list[str] = Field(default=[], description="any invented proper names still present (empty = clean)")
+    note: str = Field("", description="an optional note")
 
 
 class EntityResolveOutput(BaseModel):
@@ -412,8 +412,8 @@ class EntityResolveOutput(BaseModel):
     node actually the SAME real entity as one already in the graph? A code pre-filter
     finds same-name candidates; this decides if the new node should REUSE an existing
     key (`same_as`) or is genuinely distinct (`same_as` = null)."""
-    same_as: str | None = Field(None, description="node_key của thực thể đã có, hoặc null nếu là thực thể mới")
-    note: str = Field("", description="ghi chú tuỳ chọn")
+    same_as: str | None = Field(None, description="the node_key of the existing entity, or null if this is a new one")
+    note: str = Field("", description="an optional note")
 
 
 class StoryBibleLeakCheckOutput(BaseModel):
@@ -422,22 +422,22 @@ class StoryBibleLeakCheckOutput(BaseModel):
     pass judges which candidates are ACTUAL leaks — the source character re-appearing
     — vs false positives (a coincidental common word, or a name legitimately reused by
     the new world). Only confirmed real leaks should trigger a rewrite."""
-    real_leaks: list[str] = Field(default=[], description="candidates được xác nhận là rò tên nguồn thật")
-    note: str = Field("", description="ghi chú tuỳ chọn")
+    real_leaks: list[str] = Field(default=[], description="candidates confirmed as genuine source-name leaks")
+    note: str = Field("", description="an optional note")
 
 
 # ── new_graph_builder Phase 1 (name lexicon) ─────────────────────────────────
 
 class NameLexiconEntry(BaseModel):
-    node_key: str = Field(description='node_key nguồn, VD "C001"')
+    node_key: str = Field(description='the source node_key, e.g. "C001"')
     node_type: str = Field(description="character | location | faction | object")
-    source_label: str = Field(description="tên gốc, copy nguyên văn từ danh sách node")
-    new_label: str = Field(description="tên đầy đủ bạn đặt cho thế giới mới (không dùng lại từ nào của tên gốc)")
+    source_label: str = Field(description="the original name, copied verbatim from the node list")
+    new_label: str = Field(description="the full name you assign in the new world (reusing no word from the original)")
 
 
 class NameLexiconOutput(BaseModel):
-    entries: list[NameLexiconEntry] = Field(description="một entry cho mỗi node cần đổi tên")
-    world_note: str = Field(description="1-2 câu về quy ước đặt tên đã chọn")
+    entries: list[NameLexiconEntry] = Field(description="one entry per node that needs renaming")
+    world_note: str = Field(description="1-2 sentences on the naming convention you chose")
 
     @model_validator(mode="after")
     def check_unique_labels(self) -> "NameLexiconOutput":
@@ -528,147 +528,147 @@ class GraphEnrichmentOutput(BaseModel):
 # ── graph_surface_rewriter (targeted surface repair) ──────────────────────────
 
 class SurfaceNodePatchOut(BaseModel):
-    node_key: str = Field(description="node cần vá")
-    new_label: str | None = Field(None, description="tên mới (nếu đổi)")
-    new_summary: str | None = Field(None, description="EVENT: tóm tắt viết lại")
-    new_profile_md: str | None = Field(None, description="CHARACTER: profile viết lại")
-    new_description: str | None = Field(None, description="LOCATION/FACTION/THEME/OBJECT: mô tả viết lại")
-    new_arc_stage: str | None = Field(None, description="CHARACTER: trạng thái nội tâm hiện tại viết lại")
-    new_background: str | None = Field(None, description="CHARACTER: backstory viết lại")
-    new_wants: str | None = Field(None, description="CHARACTER: mục tiêu viết lại")
-    new_fears: str | None = Field(None, description="CHARACTER: nỗi sợ/điểm yếu viết lại")
+    node_key: str = Field(description="the node to patch")
+    new_label: str | None = Field(None, description="the new name (if it changes)")
+    new_summary: str | None = Field(None, description="EVENT: the rewritten summary")
+    new_profile_md: str | None = Field(None, description="CHARACTER: the rewritten profile")
+    new_description: str | None = Field(None, description="LOCATION/FACTION/THEME/OBJECT: the rewritten description")
+    new_arc_stage: str | None = Field(None, description="CHARACTER: the rewritten current inner state")
+    new_background: str | None = Field(None, description="CHARACTER: the rewritten backstory")
+    new_wants: str | None = Field(None, description="CHARACTER: the rewritten goal")
+    new_fears: str | None = Field(None, description="CHARACTER: the rewritten fear/weakness")
 
 
 class SurfaceEdgePatchOut(BaseModel):
-    source_key: str = Field(description="node nguồn của cạnh")
-    target_key: str = Field(description="node đích của cạnh")
+    source_key: str = Field(description="the edge's source node")
+    target_key: str = Field(description="the edge's target node")
     edge_type: str = Field(description="RELATION | PARTICIPATES | CAUSES | ARC_CHANGE | FORESHADOWS | LOCATED_AT | INVOLVES | OWNS | MEMBER_OF | EMBODIES")
-    new_mechanism: str | None = Field(None, description="CAUSES: cơ chế nhân quả viết lại")
-    new_label: str | None = Field(None, description="nhãn cạnh viết lại")
+    new_mechanism: str | None = Field(None, description="CAUSES: the rewritten causal mechanism")
+    new_label: str | None = Field(None, description="the rewritten edge label")
     new_rel_type: str | None = Field(None, description="RELATION: friendship|rivalry|love|family|mentor|debt|alliance|betrayal|distrust")
-    new_condition: str | None = Field(None, description="RELATION: text điều kiện/bối cảnh viết lại")
-    new_old_val: str | None = Field(None, description="ARC_CHANGE: trạng thái trước viết lại")
-    new_new_val: str | None = Field(None, description="ARC_CHANGE: trạng thái sau viết lại")
+    new_condition: str | None = Field(None, description="RELATION: the rewritten condition/context text")
+    new_old_val: str | None = Field(None, description="ARC_CHANGE: the rewritten prior state")
+    new_new_val: str | None = Field(None, description="ARC_CHANGE: the rewritten subsequent state")
 
 
 class NewEdgeForRepairOut(BaseModel):
-    source_key: str = Field(description="node nguồn")
-    target_key: str = Field(description="node đích")
+    source_key: str = Field(description="the source node")
+    target_key: str = Field(description="the target node")
     edge_type: str = Field(description="PARTICIPATES | RELATION | LOCATED_AT | INVOLVES | OWNS | MEMBER_OF | EMBODIES")
-    label: str = Field("", description="nhãn cạnh")
-    rel_type: str | None = Field(None, description="dành cho RELATION")
-    role: str | None = Field(None, description="dành cho PARTICIPATES: cause|victim|witness|ally|bystander")
-    chapter_from: int | None = Field(None, description="chương bắt đầu (nếu có)")
+    label: str = Field("", description="the edge label")
+    rel_type: str | None = Field(None, description="for RELATION")
+    role: str | None = Field(None, description="for PARTICIPATES: cause|victim|witness|ally|bystander")
+    chapter_from: int | None = Field(None, description="the starting chapter (if any)")
 
 
 class GraphSurfaceRepairOutput(BaseModel):
-    node_patches: list[SurfaceNodePatchOut] = Field(default=[], description="vá node")
-    edge_patches: list[SurfaceEdgePatchOut] = Field(default=[], description="vá cạnh")
-    add_edges: list[NewEdgeForRepairOut] = Field(default=[], description="cạnh còn thiếu cần tạo mới")
-    repair_note: str = Field(description="ghi chú ngắn về những gì đã sửa")
+    node_patches: list[SurfaceNodePatchOut] = Field(default=[], description="node patches")
+    edge_patches: list[SurfaceEdgePatchOut] = Field(default=[], description="edge patches")
+    add_edges: list[NewEdgeForRepairOut] = Field(default=[], description="missing edges that must be created")
+    repair_note: str = Field(description="a short note on what you repaired")
 
 
 # ── new_graph_builder per-group enrichment ─────────────────────────────────────
 
 class CharacterSurfaceOut(BaseModel):
-    node_key: str = Field(description="node nhân vật cần enrich")
+    node_key: str = Field(description="the character node to enrich")
     new_role: str = Field(
         default="",
-        description="ĐÚNG MỘT TRONG: protagonist | antagonist | love_interest | "
-                    "supporting | minor. Không giá trị khác, không nhãn ghép.",
+        description="EXACTLY ONE OF: protagonist | antagonist | love_interest | "
+                    "supporting | minor. No other value, no compound label.",
     )
-    new_gender: str = Field("", description="male|female|nonbinary — khớp tên mới + mọi đại từ dùng ở arc/background/voice/appearance")
-    new_arc_stage: str = Field(description="trạng thái nội tâm hiện tại (thế giới mới)")
-    new_wants: str = Field(description="mục tiêu/khao khát (thế giới mới)")
-    new_fears: str = Field(description="nỗi sợ/điểm yếu (thế giới mới)")
-    new_background: str = Field("", description="backstory (thế giới mới)")
-    new_speech_pattern: str = Field("", description="một dòng ngắn (cột CSV)")
-    new_voice_profile: str = Field("", description='hướng dẫn giọng nhiều dòng theo format "REGISTER: …\\nVOCABULARY: …\\nRHYTHM: …\\nTIC/TELL: …\\nSAMPLE LINES:\\n- \\"…\\"\\n- \\"…\\"" — thế giới mới, không lấy prose gốc')
-    new_appearance: str = Field("", description="ngoại hình vật lý ĐẶC TRƯNG cho ảnh bìa: một cá thể cụ thể (heritage, dáng mặt, tóc, màu mắt, 1-2 nét dễ nhớ) khác gương mặt mặc định")
+    new_gender: str = Field("", description="male|female|nonbinary — must match the new name and every pronoun used in arc/background/voice/appearance")
+    new_arc_stage: str = Field(description="the current inner state (new world)")
+    new_wants: str = Field(description="the goal or want (new world)")
+    new_fears: str = Field(description="the fear or weakness (new world)")
+    new_background: str = Field("", description="the backstory (new world)")
+    new_speech_pattern: str = Field("", description="one short line (a CSV column)")
+    new_voice_profile: str = Field("", description='a multi-line voice guide in the format "REGISTER: …\\nVOCABULARY: …\\nRHYTHM: …\\nTIC/TELL: …\\nSAMPLE LINES:\\n- \\"…\\"\\n- \\"…\\"" — new world only, never taken from the source prose')
+    new_appearance: str = Field("", description="DISTINCTIVE physical appearance for the cover art: a specific individual (heritage, face shape, hair, eye colour, 1-2 memorable features), not a default face")
 
 
 class CharacterGroupEnrichOutput(BaseModel):
-    characters: list[CharacterSurfaceOut] = Field(description="mỗi nhân vật một entry")
-    note: str = Field("", description="ghi chú tuỳ chọn")
+    characters: list[CharacterSurfaceOut] = Field(description="one entry per character")
+    note: str = Field("", description="an optional note")
 
 
 class EventSurfaceOut(BaseModel):
-    node_key: str = Field(description="node sự kiện")
-    new_summary: str = Field(description="tóm tắt sự kiện đọc như một beat của thế giới mới")
+    node_key: str = Field(description="the event node")
+    new_summary: str = Field(description="the event summary, reading as a beat of the new world")
 
 
 class EventGroupEnrichOutput(BaseModel):
-    events: list[EventSurfaceOut] = Field(description="mỗi sự kiện một entry")
-    note: str = Field("", description="ghi chú tuỳ chọn")
+    events: list[EventSurfaceOut] = Field(description="one entry per event")
+    note: str = Field("", description="an optional note")
 
 
 class ArcChangeSurfaceOut(BaseModel):
-    source_key: str = Field(description="node nhân vật (self-loop ARC_CHANGE)")
-    chapter_from: int | None = Field(description="chương xảy ra thay đổi")
-    new_old_val: str = Field(description="trạng thái trước (thế giới mới)")
-    new_new_val: str = Field(description="trạng thái sau (thế giới mới)")
+    source_key: str = Field(description="the character node (a self-loop ARC_CHANGE)")
+    chapter_from: int | None = Field(description="the chapter the change happens in")
+    new_old_val: str = Field(description="the prior state (new world)")
+    new_new_val: str = Field(description="the subsequent state (new world)")
 
 
 class ArcChangeGroupEnrichOutput(BaseModel):
-    arc_changes: list[ArcChangeSurfaceOut] = Field(description="mỗi arc-change một entry")
-    note: str = Field("", description="ghi chú tuỳ chọn")
+    arc_changes: list[ArcChangeSurfaceOut] = Field(description="one entry per arc-change")
+    note: str = Field("", description="an optional note")
 
 
 class RelationSurfaceOut(BaseModel):
-    source_key: str = Field(description="node nhân vật nguồn")
-    target_key: str = Field(description="node nhân vật đích")
-    chapter_from: int | None = Field(description="chương quan hệ này bắt đầu")
+    source_key: str = Field(description="the source character node")
+    target_key: str = Field(description="the target character node")
+    chapter_from: int | None = Field(description="the chapter this relationship begins")
     new_rel_type: str = Field(description="friendship|rivalry|love|family|mentor|debt|alliance|betrayal|distrust")
-    new_label: str = Field(description="mô tả ngắn quan hệ (thế giới mới)")
+    new_label: str = Field(description="a short description of the relationship (new world)")
 
 
 class RelationGroupEnrichOutput(BaseModel):
-    relations: list[RelationSurfaceOut] = Field(description="mỗi quan hệ một entry")
-    note: str = Field("", description="ghi chú tuỳ chọn")
+    relations: list[RelationSurfaceOut] = Field(description="one entry per relationship")
+    note: str = Field("", description="an optional note")
 
 
 class CausesSurfaceOut(BaseModel):
-    source_key: str = Field(description="node sự kiện nguyên nhân")
-    target_key: str = Field(description="node sự kiện kết quả")
-    new_mechanism: str = Field(description="cơ chế nhân quả (thế giới mới)")
-    new_label: str = Field("", description="nhãn ngắn cho liên kết")
+    source_key: str = Field(description="the causing event node")
+    target_key: str = Field(description="the resulting event node")
+    new_mechanism: str = Field(description="the causal mechanism (new world)")
+    new_label: str = Field("", description="a short label for the link")
 
 
 class CausesGroupEnrichOutput(BaseModel):
-    causes: list[CausesSurfaceOut] = Field(description="mỗi liên kết nhân quả một entry")
-    note: str = Field("", description="ghi chú tuỳ chọn")
+    causes: list[CausesSurfaceOut] = Field(description="one entry per causal link")
+    note: str = Field("", description="an optional note")
 
 
 # ── graph_enrich_verifier (per-enricher quality/logic/naming gate) ─────────────
 
 class GraphEnrichIssueOut(BaseModel):
     """One problem the enrich-verifier found in a group's enriched output."""
-    target: str = Field("", description='node_key/cạnh liên quan, VD "C003" hoặc "C003→C007"')
-    dimension: Literal["naming", "logic", "quality"] = Field("naming", description="loại lỗi")
-    problem: str = Field(description="lỗi là gì")
-    fix: str = Field("", description="chỉ dẫn cụ thể để re-enrich")
+    target: str = Field("", description='the node_key or edge concerned, e.g. "C003" or "C003→C007"')
+    dimension: Literal["naming", "logic", "quality"] = Field("naming", description="the kind of fault")
+    problem: str = Field(description="what the fault is")
+    fix: str = Field("", description="specific instructions for re-enriching")
 
 
 class GraphEnrichVerifyOutput(BaseModel):
     """Verdict on one enrichment group. `issues` empty ⇒ the group passed."""
-    issues: list[GraphEnrichIssueOut] = Field(default=[], description="rỗng ⇒ nhóm đạt")
-    note: str = Field("", description="ghi chú tuỳ chọn")
+    issues: list[GraphEnrichIssueOut] = Field(default=[], description="empty ⇒ the group passes")
+    note: str = Field("", description="an optional note")
 
 
 # ── graph_verifier ─────────────────────────────────────────────────────────────
 
 class GraphVerifyIssueOut(BaseModel):
-    check_type: Literal["narrative_logic", "reskin", "enrichment", "cast_role"] = Field("narrative_logic", description="loại kiểm tra bị vi phạm")
-    node_key: str | None = Field(None, description="node có vấn đề (null nếu chung)")
-    edge_desc: str | None = Field(None, description='mô tả cạnh, VD "C001→C002 CAUSES Ch.5"')
-    description: str = Field(description="mô tả vấn đề")
-    suggestion: str = Field(description="cách sửa đề xuất")
+    check_type: Literal["narrative_logic", "reskin", "enrichment", "cast_role"] = Field("narrative_logic", description="the check that was violated")
+    node_key: str | None = Field(None, description="the node with the problem (null if it is general)")
+    edge_desc: str | None = Field(None, description='a description of the edge, e.g. "C001→C002 CAUSES Ch.5"')
+    description: str = Field(description="a description of the problem")
+    suggestion: str = Field(description="the suggested fix")
     severity: Literal["critical", "minor"] = Field(description="critical | minor")
 
 
 class GraphVerifierOutput(BaseModel):
-    issues: list[GraphVerifyIssueOut] = Field(default=[], description="mọi vấn đề tìm thấy ở graph mới")
-    verdict_note: str = Field(description="kết luận ngắn")
+    issues: list[GraphVerifyIssueOut] = Field(default=[], description="every problem found in the new graph")
+    verdict_note: str = Field(description="a short verdict")
 
 
 # ── graph_repair ───────────────────────────────────────────────────────────────
@@ -709,66 +709,66 @@ class GraphRepairOutput(BaseModel):
 # template carried, just structured. Downstream agents receive the JSON string.
 
 class PlotSceneOut(BaseModel):
-    id: str = Field("", description='đánh số cảnh "1.1", "1.2"…')
-    name: str = Field("", description="tên cảnh ngắn gọn")
-    location: str = Field("", description="địa điểm diễn ra cảnh")
-    characters: list[str] = Field(default=[], description="nhân vật có mặt trong cảnh")
-    what_happens: str = Field("", description="điều xảy ra trong cảnh")
-    scene_end: str = Field("", description="kết thúc cảnh bằng gì (hook để đọc tiếp)")
+    id: str = Field("", description='the scene number: "1.1", "1.2"…')
+    name: str = Field("", description="a short scene name")
+    location: str = Field("", description="where the scene takes place")
+    characters: list[str] = Field(default=[], description="the characters present in the scene")
+    what_happens: str = Field("", description="what happens in the scene")
+    scene_end: str = Field("", description="how the scene ends (the hook that pulls the reader on)")
 
 
 class PlotChapterOut(BaseModel):
-    number: int = Field(description="số thứ tự chương (1..N), đúng thứ tự")
-    title: str = Field("", description="tiêu đề chương")
-    act: int | None = Field(None, description="Hồi: 1 | 2 | 3")
-    target_words: int | None = Field(None, description="mục tiêu số từ chương (số nguyên)")
-    arc_position: str = Field("", description="vị trí trong arc: Hook / Mở đầu / Midpoint / Climax…")
-    goals: list[str] = Field(default=[], description="điều phải được thiết lập/xảy ra trong chương")
-    scenes: list[PlotSceneOut] = Field(default=[], description="3-4 cảnh của chương")
-    character_notes: str = Field("", description="trạng thái nội tâm nhân vật chính + vai nhân vật phụ trong chương")
-    plot_threads: list[str] = Field(default=[], description='thread mở/tiến, VD "Mở: …", "Tiến: …"')
-    cliffhanger: str = Field("", description="câu hỏi/căng thẳng để lại cuối chương")
+    number: int = Field(description="the chapter number (1..N), in order")
+    title: str = Field("", description="the chapter title")
+    act: int | None = Field(None, description="Act: 1 | 2 | 3")
+    target_words: int | None = Field(None, description="the chapter's word target (an integer)")
+    arc_position: str = Field("", description="position in the arc: Hook / Setup / Midpoint / Climax…")
+    goals: list[str] = Field(default=[], description="what must be established or happen in the chapter")
+    scenes: list[PlotSceneOut] = Field(default=[], description="the chapter's 3-4 scenes")
+    character_notes: str = Field("", description="the lead's inner state + what the supporting cast does in this chapter")
+    plot_threads: list[str] = Field(default=[], description='threads opened or advanced, e.g. "Open: …", "Advance: …"')
+    cliffhanger: str = Field("", description="the question or tension left at the chapter's end")
 
 
 class PlotOutlineOut(BaseModel):
-    title: str = Field("", description="tên truyện")
-    arc_overview: str = Field("", description="2-3 câu mô tả hành trình tổng thể")
-    chapters: list[PlotChapterOut] = Field(default=[], description="đủ tất cả N chương, đúng thứ tự number 1→N")
+    title: str = Field("", description="the story title")
+    arc_overview: str = Field("", description="2-3 sentences describing the overall journey")
+    chapters: list[PlotChapterOut] = Field(default=[], description="all N chapters, numbered 1→N in order")
 
 
 class WorldLocationOut(BaseModel):
-    name: str = Field(description="tên địa điểm")
-    physical: str = Field("", description="mô tả vật lý bằng giác quan — màu sắc, âm thanh, mùi")
-    plot_significance: str = Field("", description="ý nghĩa trong plot")
-    signature: str = Field("", description="chi tiết đặc trưng dễ nhớ")
+    name: str = Field(description="the location name")
+    physical: str = Field("", description="a sensory physical description — colour, sound, smell")
+    plot_significance: str = Field("", description="its significance to the plot")
+    signature: str = Field("", description="a memorable signature detail")
 
 
 class WorldSystemOut(BaseModel):
-    name: str = Field(description="tên hệ thống: ma pháp / võ công / công nghệ / xã hội")
-    rules: str = Field("", description="làm được gì; KHÔNG làm được gì (giới hạn quan trọng)")
-    origin: str = Field("", description="nguồn gốc & lịch sử ngắn gọn")
-    role_in_plot: str = Field("", description="ảnh hưởng thế nào đến xung đột câu chuyện")
+    name: str = Field(description="the system's name: magic / martial arts / technology / social")
+    rules: str = Field("", description="what it can do; what it CANNOT do (the limits matter most)")
+    origin: str = Field("", description="its origin and a brief history")
+    role_in_plot: str = Field("", description="how it bears on the story's conflict")
 
 
 class WorldFactionOut(BaseModel):
-    name: str = Field(description="tên phe phái / tổ chức")
-    goal: str = Field("", description="mục tiêu")
-    strengths: str = Field("", description="sức mạnh")
-    weaknesses: str = Field("", description="điểm yếu")
+    name: str = Field(description="the faction or organisation's name")
+    goal: str = Field("", description="its goal")
+    strengths: str = Field("", description="its strengths")
+    weaknesses: str = Field("", description="its weaknesses")
 
 
 class GlossaryTermOut(BaseModel):
-    term: str = Field(description="tên gọi/danh hiệu/địa danh đặc biệt")
-    meaning: str = Field("", description="nghĩa / cách dùng nhất quán")
+    term: str = Field(description="a special term, title or place name")
+    meaning: str = Field("", description="its meaning and consistent usage")
 
 
 class WorldBibleOut(BaseModel):
-    title: str = Field("", description="tên truyện")
-    overview: str = Field("", description="2-3 đoạn mô tả cảm giác chung của thế giới — vibe, atmosphere")
-    locations: list[WorldLocationOut] = Field(default=[], description="các địa điểm chính sẽ xuất hiện")
-    systems: list[WorldSystemOut] = Field(default=[], description="chỉ điền nếu thể loại thực sự có hệ thống (magic/tech/võ công…); truyện hiện thực để rỗng")
-    factions: list[WorldFactionOut] = Field(default=[], description="các phe phái/tổ chức, nếu có")
-    power_structure: str = Field("", description="ai kiểm soát ai, tại sao")
-    culture: str = Field("", description="chi tiết văn hóa sẽ xuất hiện — lễ nghi, trang phục, ngôn ngữ đặc trưng")
-    history: str = Field("", description="chỉ sự kiện lịch sử ảnh hưởng trực tiếp plot — không encyclopaedia")
-    glossary: list[GlossaryTermOut] = Field(default=[], description="thuật ngữ đặc biệt để chapter-writer dùng nhất quán")
+    title: str = Field("", description="the story title")
+    overview: str = Field("", description="2-3 paragraphs on how the world feels — its vibe and atmosphere")
+    locations: list[WorldLocationOut] = Field(default=[], description="the main locations that will appear")
+    systems: list[WorldSystemOut] = Field(default=[], description="fill this only if the genre genuinely has a system (magic/tech/martial arts…); leave it empty for a realist story")
+    factions: list[WorldFactionOut] = Field(default=[], description="the factions or organisations, if any")
+    power_structure: str = Field("", description="who controls whom, and why")
+    culture: str = Field("", description="the cultural details that will appear — rituals, dress, characteristic speech")
+    history: str = Field("", description="only the history that bears directly on the plot — not an encyclopaedia")
+    glossary: list[GlossaryTermOut] = Field(default=[], description="special terminology for the chapter-writer to use consistently")

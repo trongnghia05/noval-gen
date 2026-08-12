@@ -57,7 +57,7 @@ Compare the chapter against the **new graph's planned event node** for this chap
 ## Axis 4 — DIALOGUE (all story types)
 
 Judge the chapter's dialogue against the **dialogue plan**, **valid roster**, and **character voices**. Flag if:
-- **dialogue_too_thin**: a character the plan lists as a speaker has dialogue that is cụt lủn / filler — it doesn't carry the scene's `must achieve` intent (e.g. a scene meant to expose a secret where the speaker only says a bland line).
+- **dialogue_too_thin**: a character the plan lists as a speaker has dialogue that is curt / filler — it doesn't carry the scene's `must achieve` intent (e.g. a scene meant to expose a secret where the speaker only says a bland line).
 - **content_not_conveyed**: a scene's planned `must achieve` did NOT happen through the dialogue (it was narrated indirectly, or skipped).
 - **invalid_character**: a character speaks or appears who is **not in the valid roster** (a hallucinated name, or a source name that leaked). Name the offending character.
 - **voice_mismatch**: a speaker's lines don't match their voice profile, or multiple characters all sound identical (no distinct voices).

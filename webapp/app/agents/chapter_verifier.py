@@ -34,24 +34,24 @@ def check(
         else ""
     )
     blueprint_section = (
-        f"\n## Blueprint — kế hoạch đã duyệt cho chương này\n{chapter.blueprint}\n"
+        f"\n## Blueprint — the approved plan for this chapter\n{chapter.blueprint}\n"
         if chapter.blueprint
         else ""
     )
     user_content = (
         f"language: {story.language}\n"
         f"chapter_number: {chapter.number}\n\n"
-        f"## world.md (định nghĩa thế giới — chuẩn cho world-consistency)\n"
-        f"{story.world_bible or '(chưa có)'}\n\n"
-        f"## story-bible.md (tone, thể loại, chủ đề)\n"
-        f"{story.story_bible or '(chưa có)'}\n\n"
-        f"## Nhân vật (đầy đủ)\n{context_builder.format_characters(session, story.id)}\n\n"
-        f"## world-state hiện tại\n{context_builder.format_world_state(session, story.id)}\n\n"
-        f"## Vấn đề continuity đang mở (từ lần rà soát sâu gần nhất, nếu có)\n"
+        f"## world.md (the world definition — the standard for world-consistency)\n"
+        f"{story.world_bible or '(none yet)'}\n\n"
+        f"## story-bible.md (tone, genre, theme)\n"
+        f"{story.story_bible or '(none yet)'}\n\n"
+        f"## Characters (full)\n{context_builder.format_characters(session, story.id)}\n\n"
+        f"## world-state as it stands\n{context_builder.format_world_state(session, story.id)}\n\n"
+        f"## Open continuity problems (from the last deep pass, if any)\n"
         f"{context_builder.format_continuity_log(session, story.id)}\n"
         f"{graph_section}"
         f"{blueprint_section}\n"
-        f"## 3 chương gần nhất (bao gồm chương vừa viết, "
+        f"## The last 3 chapters (including the one just written, "
         f"Ch.{max(1, chapter.number - 2)}-{chapter.number})\n"
         f"{context_builder.last_n_chapters_text(session, story.id, chapter.number, n=3)}\n"
     )

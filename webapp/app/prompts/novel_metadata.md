@@ -11,7 +11,7 @@ User message contains: `language`, `title`, `genre`, total `word_count`, the `st
 ## Task — produce
 - **author**: invent a fitting pen name for this book (a plausible author, not a real famous person). Match the story's language/cultural register.
 - **tags**: 3-6 short genre / theme / mood tags (e.g. "Dark Fantasy", "Enemies to Lovers", "Political Intrigue", "Slow Burn"). Tags only — no sentences.
-- **logline**: the *cốt truyện* in 1-2 sentences — the core premise and central conflict, hook-style. No ending spoiler.
+- **logline**: the *plot* in 1-2 sentences — the core premise and central conflict, hook-style. No ending spoiler.
 - **summary**: a back-cover blurb of **120-180 words**. Set up the protagonist, the world, the inciting situation, and the central tension. Enticing, present-tense-ish marketing voice. **Do NOT reveal the ending / final twist.**
 - **characters**: one entry for **every character in the `cast` list, and no others**.
   - `name` — copied EXACTLY from the cast list, character for character.

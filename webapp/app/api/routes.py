@@ -639,7 +639,11 @@ def get_manuscript(story_id: int):
             .order_by(Chapter.number)
             .all()
         )
+        # The heading word follows the story's language — an English novel headed
+        # "Chương" was a real leak here. orchestrator owns that mapping; the export
+        # path already uses it, this endpoint had its own hardcoded Vietnamese.
+        ch_word = orchestrator._chapter_word(story.language)
         manuscript = "\n\n---\n\n".join(
-            f"# Chương {c.number}: {c.title}\n\n{c.content}" for c in chapters
+            f"# {ch_word} {c.number}: {c.title}\n\n{c.content}" for c in chapters
         )
         return {"title": story.title, "manuscript": manuscript}

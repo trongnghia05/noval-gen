@@ -30,7 +30,10 @@ def run(session: Session, story: Story, chapter: Chapter, feedback: str) -> Chap
     logger.info("[%s] chapter_reviser ch%d/%d [local fix]",
                 story.slug, chapter.number, story.total_chapters)
 
-    heading = f"# Chương {chapter.number}: {chapter.title or ''}".rstrip()
+    # Scaffolding shown to the reviser, not part of the manuscript — the reviser is told
+    # to return content without it. Was hardcoded Vietnamese, which mislabelled every
+    # chapter of an English novel.
+    heading = f"# Chapter {chapter.number}: {chapter.title or ''}".rstrip()
     current = f"{heading}\n\n{chapter.content or ''}"
 
     system = load_prompt("chapter_reviser")

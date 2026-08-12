@@ -65,13 +65,13 @@ def run(session: Session, story: Story, chapter: Chapter) -> None:
     user_content = f"""language: {story.language}
 chapter_number: {chapter.number}
 
-## characters.md (tên chính thức + aliases)
+## characters.md (official names + aliases)
 {context_builder.format_character_aliases(session, story.id)}
 {graph_ids_section}
-## world-state.md hiện tại (trước chương này)
+## world-state.md as it stands (before this chapter)
 {context_builder.format_world_state(session, story.id)}
 
-## Nội dung chương {chapter.number}: {chapter.title}
+## Chapter {chapter.number}: {chapter.title}
 {chapter.content}
 """
     output = generate_structured(

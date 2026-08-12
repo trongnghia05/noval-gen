@@ -48,6 +48,6 @@ For `RELATION` edges: `rel_type` must be one of `friendship | rivalry | love | f
 {{schema:GraphSurfaceRepairOutput}}
 ```
 
-Chỉ điền các field cần vá cho mỗi patch; field không đổi thì bỏ qua (để null).
+For each patch, fill in only the fields that need changing; leave the unchanged ones out (null).
 
 Return ONLY the JSON object — no markdown fences, no preamble.

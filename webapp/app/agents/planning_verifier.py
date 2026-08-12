@@ -35,8 +35,8 @@ ARTIFACTS = ("story_bible", "plot_outline", "characters", "world")
 
 def _verify(session: Session, story: Story) -> PlanningVerifierOutput:
     system = load_prompt("planning_verifier")
-    user_content = f"""Ngôn ngữ: {story.language}
-Loại input: {story.input_type}
+    user_content = f"""Language: {story.language}
+Input type: {story.input_type}
 total_chapters: {story.total_chapters}
 words_per_chapter: {story.words_per_chapter}
 
@@ -50,7 +50,7 @@ words_per_chapter: {story.words_per_chapter}
 {story.plot_outline}
 ---
 
-## characters.md (hồ sơ đầy đủ)
+## characters.md (full dossiers)
 ---
 {context_builder.format_characters(session, story.id)}
 ---
@@ -62,7 +62,8 @@ words_per_chapter: {story.words_per_chapter}
 """
     if story.input_type == "REWRITE":
         user_content += (
-            "\n## Truyện gốc (đối chiếu — bản kế hoạch phải GIỮ đúng khung cốt truyện gốc)\n"
+            "\n## The source story (for comparison — the plan must PRESERVE its plot "
+            "skeleton exactly)\n"
             f"---\n{story.source_content}\n---\n"
         )
     return generate_structured(
@@ -81,7 +82,7 @@ words_per_chapter: {story.words_per_chapter}
 
 def _feedback_for(output: PlanningVerifierOutput, artifact: str) -> str:
     return "\n".join(
-        f"- {i.description} → SỬA THÀNH: {i.suggestion}"
+        f"- {i.description} → CHANGE IT TO: {i.suggestion}"
         for i in output.issues
         if i.artifact == artifact and i.severity == "critical"
     )

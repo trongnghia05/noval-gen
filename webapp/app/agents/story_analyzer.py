@@ -31,16 +31,17 @@ def run(session: Session, story: Story, feedback: str | None = None) -> None:
     """
     system = load_prompt("story_analyzer")
     user_content = (
-        f"Ngôn ngữ: {story.language}\n"
-        f"Loại input: {story.input_type}\n"
-        f"Thể loại: {story.genre or '(AI tự chọn)'}\n"
-        f"Độ dài mục tiêu: {story.total_chapters} chương, "
-        f"{story.target_words} từ tổng, ~{story.words_per_chapter} từ/chương\n\n"
-        f"Nội dung input của user:\n---\n{story.source_content}\n---\n"
+        f"Language: {story.language}\n"
+        f"Input type: {story.input_type}\n"
+        f"Genre: {story.genre or '(choose one yourself)'}\n"
+        f"Target length: {story.total_chapters} chapters, "
+        f"{story.target_words} words total, ~{story.words_per_chapter} words/chapter\n\n"
+        f"The user's input:\n---\n{story.source_content}\n---\n"
     )
     if feedback:
         user_content += (
-            "\n## LỖI TỪ VÒNG KIỂM TRA TRƯỚC — bắt buộc khắc phục, giữ nguyên phần đã đúng\n"
+            "\n## ISSUES FROM THE PREVIOUS VERIFICATION PASS — you must fix these, and "
+            "leave everything already correct untouched\n"
             f"{feedback}\n"
         )
 

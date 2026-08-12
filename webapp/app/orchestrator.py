@@ -57,7 +57,7 @@ from .db.models import (
 )
 from .llm_json import generate_structured
 from .prompts.loader import load_prompt
-from .schemas import ChapterWriterOutput, NovelMetadataOut
+from .schemas import CharacterBlurbOut, ChapterWriterOutput, NovelMetadataOut
 
 logger = logging.getLogger(__name__)
 
@@ -362,7 +362,7 @@ def _verify_chapter_loop(session: Session, story: Story, chapter: Chapter) -> in
         for issue in critical:
             dim = getattr(issue, "dimension", "continuity")
             accumulated_feedback.append(
-                f"[iter {iteration + 1}][{dim}] {issue.description} → SỬA: {issue.suggestion}"
+                f"[iter {iteration + 1}][{dim}] {issue.description} → FIX: {issue.suggestion}"
             )
         feedback_text = "\n".join(accumulated_feedback)
 
@@ -575,7 +575,19 @@ def _main_cast(session: Session, story_id: int) -> list[tuple[str, str]]:
 def _generate_novel_metadata(story: Story, cast: list[tuple[str, str]] | None = None) -> NovelMetadataOut | None:
     """LLM front-matter (author / tags / logline / blurb / cast blurbs) for the export.
 
+    Reuses what is already stored on the story rather than paying for it again: this
+    used to run on every export and be discarded with the file, so the same book could
+    come back with a different logline each time. The caller persists the result.
+
     Best-effort: on any failure the export still proceeds without the block."""
+    if story.logline and story.summary:
+        return NovelMetadataOut(
+            author=story.author or "",
+            tags=list(story.tags or []),
+            logline=story.logline,
+            summary=story.summary,
+            characters=[CharacterBlurbOut(**c) for c in (story.cast_blurbs or [])],
+        )
     try:
         system = load_prompt("novel_metadata")
         cast_block = "\n".join(f"- {name} | {role}" for name, role in (cast or [])) or "(none)"
@@ -665,6 +677,14 @@ def _compile_manuscript_to_file(session: Session, story: Story) -> Path:
     lbl = _frontmatter_labels(story.language)
     words = story.current_words or 0
     meta_info = _generate_novel_metadata(story, _main_cast(session, story.id))
+    if meta_info:
+        # Persist it. The poster designer reads `summary` to know what the plot
+        # contains, and a regenerate-images run has no export step to produce it.
+        story.author = meta_info.author
+        story.tags = list(meta_info.tags or [])
+        story.logline = meta_info.logline
+        story.summary = meta_info.summary
+        story.cast_blurbs = [c.model_dump() for c in (meta_info.characters or [])]
     header_lines = [f"# {story.title}", ""]
     summ_lines = [story.title]
     if meta_info:
