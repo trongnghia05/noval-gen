@@ -28,6 +28,7 @@ The source summary is a REFERENCE for plot function only — never a text to par
 ## Rules
 
 - Preserve story LOGIC only (causal function, participants, chapter). Everything on the surface should look different from the source.
+- **KEEP EVERY BEAT — do not condense away a transition.** A source summary often carries more than one beat (e.g. "convicted → serves time → released after three years", or "attacked → escapes → rescued by a stranger"). Reproduce ALL of them in the new summary — every state-change and time-jump (imprisonment, release, death, arrival, escape, a shift of who holds power) must survive. Losing the second half of a two-part event is what makes the outline hallucinate a bridging scene later. "1-3 sentences" is a style target, not a licence to drop a beat — write as many as the beats require.
 - **NAME = EXACT LABEL (hard rule):** refer to every character by EXACTLY the label in the CHARACTER LABEL MAP — never invent a name, add a surname, or use a different label. Any name not in the map is an ERROR.
 - NEVER use source character names
 - **OUTPUT LANGUAGE — HARD RULE:** every text value MUST be in the requested `language`. Absolute — do NOT copy the source's language, and do NOT follow the language THIS prompt is written in. If `language` is English, every value is English, even if a source field was in another language.

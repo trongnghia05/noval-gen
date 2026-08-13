@@ -236,10 +236,10 @@ def _format_source_compact(session: Session, story_id: int) -> str:
                      f" | wants: {p.get('wants', '')}"
                      f" | arc: {p.get('arc_stage', '')}")
         elif n.node_type == "event":
-            summary = (p.get("summary") or "")[:100]
+            summary = p.get("summary") or ""
             line += f" | ch{n.chapter_introduced} | {p.get('event_type', '')} | {summary}"
         elif n.node_type == "location":
-            desc = (p.get("description") or "")[:80]
+            desc = p.get("description") or ""
             line += f" | {desc}"
         lines.append(line)
     return "\n".join(lines)
@@ -269,13 +269,13 @@ def _format_source_for_surface(session: Session, story_id: int) -> str:
                      f" | arc: {p.get('arc_stage', '')}"
                      f" | role: {p.get('role', '')}")
         elif n.node_type == "event":
-            summary = (p.get("summary") or "")[:120]
+            summary = p.get("summary") or ""
             line += (f" | ch{n.chapter_introduced}"
                      f" | type: {p.get('event_type', '')}"
                      f" | weight: {p.get('emotional_weight', '')}"
                      f" | {summary}")
         elif n.node_type == "location":
-            desc = (p.get("description") or "")[:80]
+            desc = p.get("description") or ""
             line += f" | {desc}"
         node_lines.append(line)
 
@@ -283,12 +283,12 @@ def _format_source_for_surface(session: Session, story_id: int) -> str:
     for e in edges:
         p = e.properties or {}
         if e.edge_type == "CAUSES":
-            mech = (p.get("mechanism") or "")[:100]
+            mech = p.get("mechanism") or ""
             edge_lines.append(f"[{e.source_key}→{e.target_key}] CAUSES ch{e.chapter_from}: {mech}")
         elif e.edge_type == "RELATION" and e.condition:
             edge_lines.append(
                 f"[{e.source_key}↔{e.target_key}] RELATION {p.get('rel_type', '')} "
-                f"ch{e.chapter_from}-{e.chapter_to}: {e.condition[:80]}"
+                f"ch{e.chapter_from}-{e.chapter_to}: {e.condition}"
             )
         elif e.edge_type == "ARC_CHANGE":
             old_v = p.get("old_val", "")
@@ -614,7 +614,7 @@ def _style_contract(session: Session, story: Story, world_design_text: str) -> s
             if p.get(key):
                 bits.append(f"{prefix}:{p[key]}")
         if p.get("appearance"):
-            bits.append(f"looks:{p['appearance'][:120]}")
+            bits.append(f"looks:{p['appearance']}")
         cast_lines.append(" | ".join(bits))
     if cast_lines:
         parts.append(
@@ -933,7 +933,7 @@ def _enrich_events(
         p = n.properties or {}
         event_lines.append(
             f"[{n.node_key}] ch{n.chapter_introduced} {n.label} "
-            f"| type:{p.get('event_type','')} | {p.get('summary','')[:120]}"
+            f"| type:{p.get('event_type','')} | {p.get('summary','')}"
         )
 
     user_content = (
@@ -1072,7 +1072,7 @@ def _enrich_relations(
     )
     char_profiles = "\n".join(
         f"[{n.node_key}] {n.label} | role:{(n.properties or {}).get('role','')} | "
-        f"arc:{(n.properties or {}).get('arc_stage','')[:60]}"
+        f"arc:{(n.properties or {}).get('arc_stage','')}"
         for n in char_nodes
     )
 
@@ -1161,7 +1161,7 @@ def _enrich_causes(
         tgt_label = event_map.get(e.target_key, e.target_key)
         cause_lines.append(
             f"[{e.source_key}→{e.target_key}] '{src_label}' causes '{tgt_label}' "
-            f"| mechanism: {p.get('mechanism','')[:100]} | label: {e.label}"
+            f"| mechanism: {p.get('mechanism','')} | label: {e.label}"
         )
 
     user_content = (
@@ -1691,7 +1691,7 @@ def _rewrite_story_bible(
     event_block = "\n".join(
         "ch{ch}: {label} — {summary}".format(
             ch=n.chapter_introduced, label=n.label,
-            summary=((n.properties or {}).get("summary") or "")[:100],
+            summary=(n.properties or {}).get("summary") or "",
         )
         for n in event_nodes
     )
@@ -1775,7 +1775,7 @@ def _rewrite_story_bible(
     # by chapter. Derived from new graph — all names are new-world, no source leakage.
     plot_map_lines = ["## Bản đồ cốt truyện gốc (theo chương)\n"]
     for n in event_nodes:
-        summary = ((n.properties or {}).get("summary") or "")[:150]
+        summary = (n.properties or {}).get("summary") or ""
         plot_map_lines.append(f"- Chương {n.chapter_introduced}: **{n.label}** — {summary}")
     plot_map_section = "\n".join(plot_map_lines)
 
