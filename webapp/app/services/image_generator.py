@@ -630,30 +630,6 @@ def _user_direction(notes: str) -> str:
     )
 
 
-def _plot_summary(story: Story, meta: NovelMetadataOut | None) -> str:
-    """What actually happens in this book, so the drawn look can be checked against it.
-
-    Everything else in the prompt describes the world, the cast and the mood — nothing
-    said what the plot contains, so the writer had no way to reject a drawn line the
-    story rules out. That shipped a bandaged, bare-chested wound onto a fake-engagement
-    story with no violence in it.
-
-    `meta` is only present on the first generation; a regenerate from the UI has none,
-    so fall back to the Summary block already written into summarize.txt at export.
-    """
-    if meta and meta.summary:
-        return meta.summary.strip()
-    path = _story_dir(story) / "summarize.txt"
-    try:
-        text = path.read_text(encoding="utf-8")
-    except OSError:
-        return ""
-    # summarize.txt: "Summary" on its own line, the blurb, then a blank line and the
-    # next block ("Table of Contents").
-    _, sep, rest = text.partition("\nSummary\n")
-    return rest.strip().split("\n\n")[0].strip() if sep else ""
-
-
 def _build_prompts(session: Session, story: Story, meta: NovelMetadataOut | None,
                    notes: str = "", seed: int | None = None) -> ImagePromptSetOut:
     tags = ", ".join(meta.tags) if (meta and meta.tags) else (story.genre or "")
