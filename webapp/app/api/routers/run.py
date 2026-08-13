@@ -12,8 +12,6 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-
-
 @router.post("/stories/{story_id}/advance")
 def advance_story(story_id: int):
     with SessionLocal() as session:
@@ -21,7 +19,6 @@ def advance_story(story_id: int):
         if not story:
             raise HTTPException(404, "story not found")
         return orchestrator.advance(session, story)
-
 
 
 def _run_story_background(story_id: int) -> None:
@@ -40,7 +37,6 @@ def _run_story_background(story_id: int) -> None:
                 session.commit()
 
 
-
 @router.post("/stories/{story_id}/run")
 def run_story(story_id: int, background_tasks: BackgroundTasks):
     with SessionLocal() as session:
@@ -57,7 +53,6 @@ def run_story(story_id: int, background_tasks: BackgroundTasks):
 
     background_tasks.add_task(_run_story_background, story_id)
     return {"status": "started", "story_id": story_id}
-
 
 
 @router.post("/stories/{story_id}/stop")

@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 
 from . import _common
-from ..services import csv_graph
+from ..services import story_state
 from ..db.models import Character, Story
 from ..schemas import CharacterDeveloperOutput
 
@@ -63,4 +63,4 @@ plot-outline.md:
             "last_seen_chapter": "0",
         })
 
-    csv_graph.init_graph(story.id, graph_rows, output.character_voices_md)
+    story_state.init_graph(story.id, graph_rows, output.character_voices_md)

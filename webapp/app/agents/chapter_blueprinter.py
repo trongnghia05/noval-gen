@@ -3,7 +3,7 @@ import json
 from sqlalchemy.orm import Session
 
 from . import _common
-from ..services import context_builder, csv_graph
+from ..services import context_builder, story_state
 from ..core.config import AGENT_MODELS
 from ..db.models import Chapter, Story, StoryGraphNode
 from ..schemas import ChapterBlueprintOutput
@@ -137,19 +137,19 @@ def run(session: Session, story: Story, chapter: Chapter) -> None:
     act = _act_position(chapter.number, story.total_chapters)
 
     graph_section = ""
-    if csv_graph.graph_exists(story.id):
+    if story_state.graph_exists(story.id):
         graph_section = f"""
 ## character-graph (current states)
-{csv_graph.format_characters(story.id)}
+{story_state.format_characters(story.id)}
 
 ## relationships
-{csv_graph.format_relationships(story.id)}
+{story_state.format_relationships(story.id)}
 
 ## open plot threads
-{csv_graph.format_open_threads(story.id)}
+{story_state.format_open_threads(story.id)}
 
 ## recent timeline
-{csv_graph.format_recent_timeline(story.id)}
+{story_state.format_recent_timeline(story.id)}
 """
 
     spirit_section = ""

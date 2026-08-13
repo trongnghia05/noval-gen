@@ -12,7 +12,7 @@ import re
 
 from sqlalchemy.orm import Session
 
-from ..services import context_builder, csv_graph
+from ..services import context_builder, story_state
 from ..core.config import AGENT_MODELS
 from ..db.models import Chapter, Story
 from ..schemas import ChapterWriterOutput
@@ -59,7 +59,7 @@ def run(session: Session, story: Story, chapter: Chapter, feedback: str) -> Chap
         f"\n## Character genders (correct pronouns — the truth to check gender flags against)\n{gender_roster}\n"
         if gender_roster and gender_roster != "(no gender data)" else ""
     )
-    voices = csv_graph.get_character_voices(story.id) if csv_graph.graph_exists(story.id) else ""
+    voices = story_state.get_character_voices(story.id) if story_state.graph_exists(story.id) else ""
     voices_section = f"\n## Character voices (the truth to check voice/dialogue flags against)\n{voices}\n" if voices else ""
     world_section = (
         f"\n## world.md (the truth to check world/anachronism flags against)\n{(story.world_bible or '')[:2000]}\n"

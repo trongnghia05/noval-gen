@@ -18,8 +18,6 @@ from ..common import story_output_dir
 router = APIRouter()
 
 
-
-
 @router.get("/stories/{story_id}/download-zip")
 def download_zip(story_id: int):
     """Download the story as a .zip: one flat `ch-NNN.txt` per chapter (the same
@@ -100,7 +98,6 @@ def download_zip(story_id: int):
     )
 
 
-
 @router.get("/stories/{story_id}/chapters/{number}")
 def get_chapter(story_id: int, number: int):
     with SessionLocal() as session:
@@ -114,7 +111,6 @@ def get_chapter(story_id: int, number: int):
             "word_count": chapter.word_count,
             "status": chapter.status,
         }
-
 
 
 @router.get("/stories/{story_id}/chapters/{number}/trace")
@@ -131,7 +127,6 @@ def get_chapter_trace(story_id: int, number: int):
         if row is None:
             raise HTTPException(404, "no trace for this chapter yet")
         return row.trace
-
 
 
 @router.get("/stories/{story_id}/export")
@@ -153,7 +148,6 @@ def export_manuscript(story_id: int):
             media_type="text/markdown",
             filename=f"{story.slug}.md",
         )
-
 
 
 @router.get("/stories/{story_id}/manuscript")

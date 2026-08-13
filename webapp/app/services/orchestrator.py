@@ -394,7 +394,7 @@ def _snapshot_inputs(session: Session, story: Story, chapter: Chapter) -> dict:
     MUST run BEFORE the summarizer, because world-state / continuity / smart-planner
     / CSV graph are live snapshots overwritten each chapter — after the summarizer
     they'd reflect the post-chapter state, not what was used to write it."""
-    from . import csv_graph
+    from . import story_state
     world_state = [
         {"entity_type": r.entity_type, "entity_key": r.entity_key,
          "field": r.field, "value": r.value, "updated_at_chapter": r.updated_at_chapter}
@@ -407,12 +407,12 @@ def _snapshot_inputs(session: Session, story: Story, chapter: Chapter) -> dict:
         for c in session.query(Character).filter_by(story_id=story.id).all()
     ]
     csv_snapshot = None
-    if csv_graph.graph_exists(story.id):
+    if story_state.graph_exists(story.id):
         csv_snapshot = {
-            "characters": csv_graph.get_characters(story.id),
-            "relationships": csv_graph.get_relationships(story.id),
-            "open_threads": csv_graph.get_open_plot_threads(story.id),
-            "voices": csv_graph.get_character_voices(story.id),
+            "characters": story_state.get_characters(story.id),
+            "relationships": story_state.get_relationships(story.id),
+            "open_threads": story_state.get_open_plot_threads(story.id),
+            "voices": story_state.get_character_voices(story.id),
         }
     return {
         "blueprint": _json_or_raw(chapter.blueprint),
@@ -433,7 +433,7 @@ def _snapshot_inputs(session: Session, story: Story, chapter: Chapter) -> dict:
              "outline_adjustments": sp.outline_adjustments} if sp else None
         ),
         "characters": characters,
-        "csv_graph": csv_snapshot,
+        "story_state": csv_snapshot,
     }
 
 

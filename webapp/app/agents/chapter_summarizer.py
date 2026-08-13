@@ -3,7 +3,7 @@ import logging
 from sqlalchemy.orm import Session
 
 from . import _common
-from ..services import context_builder, csv_graph
+from ..services import context_builder, story_state
 from ..db.models import Chapter, ChapterSummary, Foreshadowing, StateLog, Story, WorldState
 from ..schemas import ChapterSummaryOutput
 
@@ -54,8 +54,8 @@ def _upsert_foreshadowing(session: Session, story_id: int, f) -> None:
 def run(session: Session, story: Story, chapter: Chapter) -> None:
 
     graph_ids_section = ""
-    if csv_graph.graph_exists(story.id):
-        chars = csv_graph.get_characters(story.id)
+    if story_state.graph_exists(story.id):
+        chars = story_state.get_characters(story.id)
         id_list = "\n".join(f"  {r['id']}: {r['name']}" for r in chars)
         graph_ids_section = f"\n## character-graph ids (use these ids in character_updates)\n{id_list}\n"
 
@@ -105,16 +105,16 @@ chapter_number: {chapter.number}
         _upsert_foreshadowing(session, story.id, f)
 
     # ── CSV graph updates (new) ────────────────────────────────────────────────
-    if csv_graph.graph_exists(story.id):
+    if story_state.graph_exists(story.id):
         # Group character_updates by id
         updates_by_char: dict[str, dict] = {}
         for u in output.character_updates:
             updates_by_char.setdefault(u.id, {})[u.field] = u.value
         for char_id, fields in updates_by_char.items():
-            csv_graph.update_character_fields(story.id, char_id, fields, chapter.number)
+            story_state.update_character_fields(story.id, char_id, fields, chapter.number)
 
         for rel in output.relationship_changes:
-            csv_graph.upsert_relationship(
+            story_state.upsert_relationship(
                 story.id,
                 rel.char_a, rel.char_b,
                 rel.type, rel.strength, rel.status, rel.event,
@@ -122,7 +122,7 @@ chapter_number: {chapter.number}
             )
 
         for thread in output.plot_thread_updates:
-            csv_graph.upsert_plot_thread(story.id, {
+            story_state.upsert_plot_thread(story.id, {
                 "id": thread.id,
                 "title": thread.title,
                 "type": thread.type,
@@ -136,7 +136,7 @@ chapter_number: {chapter.number}
 
         if output.timeline_event:
             e = output.timeline_event
-            csv_graph.append_timeline(
+            story_state.append_timeline(
                 story.id, chapter.number,
                 e.story_time, e.location, e.characters, e.summary,
             )

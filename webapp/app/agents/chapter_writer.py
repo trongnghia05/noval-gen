@@ -5,7 +5,7 @@ import textwrap
 
 from sqlalchemy.orm import Session
 
-from ..services import context_builder, csv_graph
+from ..services import context_builder, story_state
 from ..core.config import AGENT_MODELS, PROVIDER
 from ..db.models import Chapter, Story
 from ..llm.structured import generate_structured
@@ -205,16 +205,16 @@ def _format_blueprint(chapter: Chapter) -> str:
 def _build_shared_context(session: Session, story: Story, chapter: "Chapter") -> str:
     """Heavy reference blocks shared across all per-scene calls (no blueprint section)."""
     graph_section = ""
-    if csv_graph.graph_exists(story.id):
+    if story_state.graph_exists(story.id):
         graph_section = (
             "\n## character-graph (live states — use as ground truth)\n"
-            + csv_graph.format_characters(story.id)
+            + story_state.format_characters(story.id)
             + "\n\n## relationships\n"
-            + csv_graph.format_relationships(story.id)
+            + story_state.format_relationships(story.id)
             + "\n\n## open plot threads (advance or acknowledge at least one)\n"
-            + csv_graph.format_open_threads(story.id)
+            + story_state.format_open_threads(story.id)
             + "\n\n## character voices (follow strictly)\n"
-            + csv_graph.get_character_voices(story.id)
+            + story_state.get_character_voices(story.id)
             + "\n"
         )
 
@@ -261,16 +261,16 @@ def _build_shared_context(session: Session, story: Story, chapter: "Chapter") ->
 def _build_context(session: Session, story: Story, chapter: Chapter) -> str:
     """Full context for single-call fallback (includes blueprint)."""
     graph_section = ""
-    if csv_graph.graph_exists(story.id):
+    if story_state.graph_exists(story.id):
         graph_section = (
             "\n## character-graph (live states — use this as ground truth for where characters are)\n"
-            + csv_graph.format_characters(story.id)
+            + story_state.format_characters(story.id)
             + "\n\n## relationships (current strengths)\n"
-            + csv_graph.format_relationships(story.id)
+            + story_state.format_relationships(story.id)
             + "\n\n## open plot threads (must advance or acknowledge at least one)\n"
-            + csv_graph.format_open_threads(story.id)
+            + story_state.format_open_threads(story.id)
             + "\n\n## character voices (how each character speaks — follow strictly)\n"
-            + csv_graph.get_character_voices(story.id)
+            + story_state.get_character_voices(story.id)
             + "\n"
         )
 

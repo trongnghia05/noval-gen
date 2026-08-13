@@ -16,8 +16,6 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-
-
 class RegenImagesRequest(BaseModel):
     which: str = "all"  # all | cover | thumbnail1 | thumbnail2
     # Free-text steering for this run — "warmer, put her in red", or per-image with a
@@ -33,7 +31,6 @@ class RegenImagesRequest(BaseModel):
     # Return as soon as the work is queued instead of holding the request open for
     # the minute or two it takes. The caller watches the preview folder fill up.
     background: bool = False
-
 
 
 # Progress used to be published as marker FILES, which worked only because the
@@ -65,7 +62,6 @@ def _regen_images_job(story_id: int, which: str, notes: str, seed: int | None,
             if story:
                 story.image_job_running = False
                 session.commit()
-
 
 
 @router.post("/stories/{story_id}/regenerate-images")
@@ -126,7 +122,6 @@ def regenerate_images(story_id: int, req: RegenImagesRequest,
     return {"which": req.which, "written": written, "preview": req.preview}
 
 
-
 def _drop_preview(session, story: Story) -> int:
     """Delete the pending set — rows and objects. Returns how many went."""
     rows = session.query(StoryImage).filter_by(story_id=story.id, state="preview").all()
@@ -135,7 +130,6 @@ def _drop_preview(session, story: Story) -> int:
         session.delete(row)
     session.flush()
     return len(rows)
-
 
 
 @router.post("/stories/{story_id}/images/accept")
@@ -190,7 +184,6 @@ def accept_preview_images(story_id: int):
             storage.delete(key)
         logger.info("[%s] accepted %d preview image(s)", story.slug, len(pending))
         return {"accepted": [p.stem for p in pending]}
-
 
 
 @router.post("/stories/{story_id}/images/discard")

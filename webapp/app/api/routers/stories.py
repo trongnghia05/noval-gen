@@ -1,6 +1,7 @@
 """The story record itself: create, list, read, delete — and its title."""
 
 import logging
+import os
 import shutil
 from pathlib import Path
 
@@ -8,7 +9,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from ...core import storage
-from ...services import csv_graph, graph, length_calc
+from ...services import graph, length_calc, story_state
 from ...core.config import AGENT_MODELS, OUTPUT_BASE, PROVIDER
 from ...db.models import (
     Chapter,
@@ -16,15 +17,19 @@ from ...db.models import (
     ChapterTrace,
     ChapterVerifyLog,
     Character,
+    CharacterState,
     ContinuityLog,
     Foreshadowing,
     PlanningVerifyLog,
+    PlotThread,
+    Relationship,
     SmartPlannerState,
     StateLog,
     Story,
     StoryGraphEdge,
     StoryGraphNode,
     StoryImage,
+    TimelineEvent,
     WorldState,
 )
 from ...db.session import SessionLocal
@@ -34,6 +39,9 @@ from ..common import image_urls, story_output_dir
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
+# Where live state used to live, before 0008 moved it into the database. Only used
+# to sweep the leftover files when a pre-0008 story is deleted.
+LEGACY_GRAPH_DIR = Path(os.getenv("GRAPH_DIR", "/data/graphs"))
 
 
 # Every table that carries a story_id — deleted (children first) when a story is
@@ -42,8 +50,11 @@ _CHILD_MODELS = (
     ChapterSummary, ChapterTrace, ChapterVerifyLog, PlanningVerifyLog, WorldState,
     StateLog, Foreshadowing, Chapter, Character, StoryGraphNode, StoryGraphEdge,
     ContinuityLog, SmartPlannerState, StoryImage,
+    # Live state, moved off CSV files in 0008. A table missing from this tuple is a
+    # foreign-key violation on delete, not a silent leak — which is the good kind of
+    # failure, but the list still has to be kept honest as tables are added.
+    CharacterState, Relationship, PlotThread, TimelineEvent,
 )
-
 
 
 class CreateStoryRequest(BaseModel):
@@ -54,7 +65,6 @@ class CreateStoryRequest(BaseModel):
     content: str
     desired_chapters: int | None = None
     desired_words: int | None = None
-
 
 
 @router.post("/stories")
@@ -112,11 +122,10 @@ def create_story(req: CreateStoryRequest):
         }
 
 
-
 @router.delete("/stories/{story_id}")
 def delete_story(story_id: int):
-    """Delete a story and everything it owns: all DB rows, the CSV knowledge
-    graph, and the exported output folder. Refuses while a run is active."""
+    """Delete a story and everything it owns: its DB rows, any leftover CSV state
+    from before 0008, and the exported output folder. Refuses while a run is active."""
     with SessionLocal() as session:
         story = session.get(Story, story_id)
         if not story:
@@ -133,7 +142,10 @@ def delete_story(story_id: int):
     if storage.enabled():
         # Everything under the story's own prefix, so the preview set goes too.
         storage.delete_prefix(f"{story_id}/")
-    shutil.rmtree(csv_graph.GRAPH_BASE / str(story_id), ignore_errors=True)
+    # The story's live state is DB rows now and went with the cascade above; this
+    # only sweeps the CSV files a story generated before the move, which are kept
+    # around as the rollback and would otherwise outlive the story.
+    shutil.rmtree(LEGACY_GRAPH_DIR / str(story_id), ignore_errors=True)
     # Only remove an output folder this story actually owns (marker file), so a
     # slug collision never deletes another story's export.
     for cand in (OUTPUT_BASE / slug, OUTPUT_BASE / f"{slug}-{story_id}"):
@@ -142,15 +154,12 @@ def delete_story(story_id: int):
     return {"status": "deleted", "story_id": story_id}
 
 
-
 class SuggestTitleRequest(BaseModel):
     notes: str = ""   # optional steer: "nhấn vào yếu tố mafia", "ngắn hơn"
 
 
-
 class ApplyTitleRequest(BaseModel):
     title: str
-
 
 
 @router.post("/stories/{story_id}/suggest-title")
@@ -175,7 +184,6 @@ def suggest_title(story_id: int, req: SuggestTitleRequest):
             relationships=relationships, notes=req.notes,
         )
     return {"title": title, "current_title": story.title}
-
 
 
 def _retitle_exports(out_dir: Path, new: str) -> list[str]:
@@ -214,7 +222,6 @@ def _retitle_exports(out_dir: Path, new: str) -> list[str]:
     return changed
 
 
-
 @router.patch("/stories/{story_id}/title")
 def set_title(story_id: int, req: ApplyTitleRequest):
     """Accept a new title, and carry it into the files already exported.
@@ -240,7 +247,6 @@ def set_title(story_id: int, req: ApplyTitleRequest):
                 "download_name": slugify(story.title), "updated_files": touched}
 
 
-
 @router.get("/stories")
 def list_stories():
     with SessionLocal() as session:
@@ -251,7 +257,6 @@ def list_stories():
              "input_type": s.input_type, "source_title": s.source_title}
             for s in stories
         ]
-
 
 
 @router.get("/stories/{story_id}")

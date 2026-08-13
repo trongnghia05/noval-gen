@@ -66,6 +66,12 @@ class Story(Base):
     summary = Column(Text)                # back-cover blurb, 120-180 words
     cast_blurbs = Column(JSON, default=list)  # [{name, role, blurb}] for the export
 
+    # The whole cast's voice guide, as one document — that is the shape it is written
+    # in and the shape the writer is handed. Minted once during planning and not
+    # touched again; it lives here rather than on Character because it is a single
+    # blob about the ensemble, not a field of one person.
+    character_voices = Column(Text)
+
     # Poster-regeneration job state. It used to be published as marker files
     # (.running / .error) inside the output dir, which worked only because the
     # playground had that dir mounted and could watch it. Object storage cannot be
@@ -193,6 +199,94 @@ class ChapterTrace(Base):
     created_at = Column(DateTime, default=_utcnow)
 
     __table_args__ = (UniqueConstraint("story_id", "chapter_number", name="uq_chapter_trace"),)
+
+
+class CharacterState(Base):
+    """Where a character stands RIGHT NOW — overwritten every chapter.
+
+    Distinct from `Character`, which is the stable dossier set once during planning,
+    and from the story graph, which is the PLAN. This is the running position the
+    chapter writer is handed as "live states — use as ground truth": don't put
+    someone in a room they left, don't have them ignorant of what they just learned.
+    """
+
+    __tablename__ = "character_state"
+
+    id = Column(Integer, primary_key=True)
+    story_id = Column(Integer, ForeignKey("stories.id"), nullable=False)
+    char_id = Column(String, nullable=False)          # C001, C002 …
+    name = Column(String)
+    gender = Column(String)
+    aliases = Column(Text)
+    role = Column(String)
+    arc_status = Column(String)
+    location = Column(Text)
+    emotional_state = Column(Text)
+    goals = Column(Text)
+    secrets = Column(Text)
+    speech_pattern = Column(Text)
+    last_seen_chapter = Column(Integer)
+
+    __table_args__ = (UniqueConstraint("story_id", "char_id", name="uq_character_state"),)
+
+
+class Relationship(Base):
+    """Current state of one pair. Overwritten; the history of how it got here is
+    `state_log`."""
+
+    __tablename__ = "relationship"
+
+    id = Column(Integer, primary_key=True)
+    story_id = Column(Integer, ForeignKey("stories.id"), nullable=False)
+    char_a = Column(String, nullable=False)
+    char_b = Column(String, nullable=False)
+    type = Column(String)
+    # Text, not Float: the writer renders this verbatim, and the formatter has always
+    # carried a fallback for a non-numeric value, so the model evidently writes one
+    # sometimes. Postgres can still cast it for a query.
+    strength = Column(String)
+    status = Column(String)
+    last_event = Column(Text)
+    last_updated_chapter = Column(Integer)
+
+    __table_args__ = (UniqueConstraint("story_id", "char_a", "char_b", name="uq_relationship"),)
+
+
+class PlotThread(Base):
+    """An open or resolved storyline. The writer is told to advance or acknowledge at
+    least one open thread per chapter, which is what this table is for."""
+
+    __tablename__ = "plot_thread"
+
+    id = Column(Integer, primary_key=True)
+    story_id = Column(Integer, ForeignKey("stories.id"), nullable=False)
+    thread_id = Column(String, nullable=False)        # PT001, PT002 …
+    title = Column(Text)
+    type = Column(String)
+    status = Column(String)
+    introduced_chapter = Column(Integer)
+    resolved_chapter = Column(Integer)
+    involved_chars = Column(Text)                     # pipe-separated character ids
+    hint = Column(Text)
+    resolution_note = Column(Text)
+
+    __table_args__ = (UniqueConstraint("story_id", "thread_id", name="uq_plot_thread"),)
+
+
+class TimelineEvent(Base):
+    """One row per chapter — append-only. Only the blueprinter reads it, and only the
+    most recent handful, to keep consecutive chapters from repeating a beat."""
+
+    __tablename__ = "timeline_event"
+
+    id = Column(Integer, primary_key=True)
+    story_id = Column(Integer, ForeignKey("stories.id"), nullable=False)
+    chapter = Column(Integer, nullable=False)
+    story_time = Column(String)
+    location = Column(Text)
+    characters = Column(Text)
+    summary = Column(Text)
+    created_at = Column(DateTime, default=_utcnow)
 
 
 class StoryImage(Base):

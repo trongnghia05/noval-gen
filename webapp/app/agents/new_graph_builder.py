@@ -143,7 +143,7 @@ def build_characters_from_graph(session: Session, story: Story) -> None:
     (characters + voices + initial relationships) so chapter_writer and
     chapter_blueprinter read state consistent with the graph.
     """
-    from .. import csv_graph
+    from ..services import story_state
 
     _rebuild_characters(session, story)
 
@@ -215,7 +215,7 @@ def build_characters_from_graph(session: Session, story: Story) -> None:
             "last_updated_chapter": "0",
         })
 
-    csv_graph.init_graph(story.id, graph_rows, voices_md, relationships=rel_rows)
+    story_state.init_graph(story.id, graph_rows, voices_md, relationships=rel_rows)
 
 
 def _format_source_compact(session: Session, story_id: int) -> str:

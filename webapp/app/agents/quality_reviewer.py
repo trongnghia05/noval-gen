@@ -14,7 +14,7 @@ import logging
 from sqlalchemy.orm import Session
 
 from . import _common
-from ..services import context_builder, csv_graph
+from ..services import context_builder, story_state
 from ..db.models import Chapter, Story
 from ..schemas import QualityReviewIssueOut, QualityReviewerOutput
 
@@ -88,8 +88,8 @@ def check(session: Session, story: Story, chapter: Chapter) -> list[QualityRevie
     dialogue_plan = _dialogue_plan_block(chapter)
     valid_roster = context_builder.format_character_aliases(session, story.id)
     voices = ""
-    if csv_graph.graph_exists(story.id):
-        voices = csv_graph.get_character_voices(story.id)
+    if story_state.graph_exists(story.id):
+        voices = story_state.get_character_voices(story.id)
     dialogue_section = (
         f"\n## Dialogue plan for this chapter (from blueprint — the contract to check)\n"
         f"---\n{dialogue_plan or '(no plan)'}\n---\n"

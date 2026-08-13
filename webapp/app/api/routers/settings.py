@@ -9,15 +9,11 @@ from ...db.session import SessionLocal
 router = APIRouter()
 
 
-
-
 class SettingRequest(BaseModel):
     value: str = ""
 
 
-
 _SETTING_KEYS = {"cms_upload_url"}
-
 
 
 @router.get("/settings/{key}")
@@ -27,7 +23,6 @@ def get_setting(key: str):
     with SessionLocal() as session:
         setting = session.get(AppSetting, key)
         return {"key": key, "value": setting.value if setting else ""}
-
 
 
 @router.put("/settings/{key}")
