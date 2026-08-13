@@ -16,7 +16,7 @@ import typing
 
 from pydantic import BaseModel
 
-from .schemas import PlotOutlineOut, WorldBibleOut
+from ..schemas import PlotOutlineOut, WorldBibleOut
 
 
 def _is_model(t) -> bool:
@@ -103,7 +103,7 @@ def _resolve_schema_placeholders(text: str) -> str:
     two legacy input-hint placeholders — all render as readable JSON examples."""
     import re
 
-    from . import schemas as _schemas
+    from .. import schemas as _schemas
 
     text = text.replace("{{plot_outline_schema}}", json_schema(PlotOutlineOut))
     text = text.replace("{{world_bible_schema}}", json_schema(WorldBibleOut))

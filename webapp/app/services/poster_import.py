@@ -26,11 +26,11 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from . import image_generator
-from .config import AGENT_MODELS, PROVIDER
-from .db.models import Character, Story, StoryGraphEdge, StoryGraphNode
-from .llm_json import generate_structured
-from .prompts.loader import load_prompt
-from .schemas import NovelMetadataOut
+from ..core.config import AGENT_MODELS, PROVIDER
+from ..db.models import Character, Story, StoryGraphEdge, StoryGraphNode
+from ..llm.structured import generate_structured
+from ..prompts.loader import load_prompt
+from ..schemas import NovelMetadataOut
 
 logger = logging.getLogger(__name__)
 

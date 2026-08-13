@@ -26,10 +26,10 @@ import re
 from sqlalchemy.orm import Session
 
 from . import _common
-from .. import context_builder
-from ..config import AGENT_MODELS, PROVIDER
+from ..services import context_builder
+from ..core.config import AGENT_MODELS, PROVIDER
 from ..db.models import Character, Story, StoryGraphEdge, StoryGraphNode
-from ..slug import generate_title, slugify
+from ..core.slug import generate_title, slugify
 from ..schemas import (
     ArcChangeGroupEnrichOutput,
     ArcChangeSurfaceOut,

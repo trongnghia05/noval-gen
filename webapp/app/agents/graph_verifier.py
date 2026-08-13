@@ -27,7 +27,7 @@ from collections import defaultdict
 from sqlalchemy.orm import Session
 
 from . import _common
-from .. import context_builder
+from ..services import context_builder
 from ..db.models import PlanningVerifyLog, Story, StoryGraphEdge, StoryGraphNode
 from ..schemas import GraphVerifierOutput
 from . import graph_surface_rewriter

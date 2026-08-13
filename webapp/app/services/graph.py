@@ -23,8 +23,8 @@ except ImportError:
     GoogleServerError = None
 
 from . import orchestrator
-from .db.models import Story
-from .db.session import SessionLocal
+from ..db.models import Story
+from ..db.session import SessionLocal
 
 logger = logging.getLogger(__name__)
 

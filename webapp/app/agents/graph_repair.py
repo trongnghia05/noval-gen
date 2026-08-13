@@ -10,8 +10,8 @@ import logging
 from sqlalchemy.orm import Session
 
 from . import _common
-from .. import context_builder
-from ..config import AGENT_MODELS
+from ..services import context_builder
+from ..core.config import AGENT_MODELS
 from ..db.models import PlanningVerifyLog, Story, StoryGraphEdge, StoryGraphNode
 from ..schemas import GraphRepairOutput, GraphVerifyIssueOut
 

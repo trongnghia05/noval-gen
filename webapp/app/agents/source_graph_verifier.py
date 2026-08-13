@@ -16,7 +16,7 @@ import logging
 from sqlalchemy.orm import Session
 
 from . import _common
-from ..config import AGENT_MODELS
+from ..core.config import AGENT_MODELS
 from ..db.models import PlanningVerifyLog, Story, StoryGraphEdge, StoryGraphNode
 from ..schemas import GraphVerifierOutput
 from . import chapter_graph_extractor

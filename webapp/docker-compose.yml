@@ -35,9 +35,6 @@ services:
       db:
         condition: service_healthy
     volumes:
-      # Host-visible data dir: CSV knowledge graphs live at
-      # webapp/data/graphs/<story_id>/. (The SQLite DB is gone — Postgres now —
-      # but the graph CSVs still land here so you can inspect them directly.)
       - ./data:/data
       # Host-visible export dir: webapp/output/<story-slug>/novel.md
       - ./output:/output
@@ -48,7 +45,7 @@ services:
   playground:
     build: ./playground
     ports:
-      - "8501:8501"
+      - "8502:8501"
     environment:
       # Reach the API over the compose network (not the host port mapping).
       - API_BASE=http://api:8000/api

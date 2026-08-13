@@ -21,7 +21,7 @@ from pathlib import Path
 
 from sqlalchemy.orm import Session
 
-from .agents import (
+from ..agents import (
     chapter_blueprinter,
     chapter_graph_extractor,
     chapter_reviser,
@@ -43,8 +43,8 @@ from .agents import (
     story_analyzer,
     worldbuilder,
 )
-from .config import AGENT_MODELS, OUTPUT_BASE, PROVIDER
-from .db.models import (
+from ..core.config import AGENT_MODELS, OUTPUT_BASE, PROVIDER
+from ..db.models import (
     Chapter,
     ChapterSummary,
     ChapterTrace,
@@ -55,9 +55,9 @@ from .db.models import (
     Story,
     WorldState,
 )
-from .llm_json import generate_structured
-from .prompts.loader import load_prompt
-from .schemas import CharacterBlurbOut, ChapterWriterOutput, NovelMetadataOut
+from ..llm.structured import generate_structured
+from ..prompts.loader import load_prompt
+from ..schemas import CharacterBlurbOut, ChapterWriterOutput, NovelMetadataOut
 
 logger = logging.getLogger(__name__)
 
@@ -86,7 +86,7 @@ def _decide_next_step(session: Session, story: Story) -> str:
         # REWRITE: extract one source chapter into graph per advance call
         # until all source chapters have a source EVENT node.
         if story.input_type == "REWRITE" and story.source_chapter_count:
-            from .db.models import StoryGraphNode
+            from ..db.models import StoryGraphNode
             extracted = (
                 session.query(StoryGraphNode)
                 .filter_by(story_id=story.id, graph_type="source", node_type="event")
@@ -147,7 +147,7 @@ def _decide_next_step(session: Session, story: Story) -> str:
 def run_graph_extract_step(session: Session, story: Story) -> dict:
     chapter_number = chapter_graph_extractor.run(session, story)
     session.commit()
-    from .db.models import StoryGraphNode
+    from ..db.models import StoryGraphNode
     extracted = (
         session.query(StoryGraphNode)
         .filter_by(story_id=story.id, graph_type="source", node_type="event")
@@ -173,7 +173,7 @@ def run_new_graph_step(session: Session, story: Story) -> dict:
     logger.info("[%s] START new_graph", story.slug)
     new_graph_builder.run(session, story)
     session.commit()
-    from .db.models import StoryGraphNode
+    from ..db.models import StoryGraphNode
     new_node_count = (
         session.query(StoryGraphNode)
         .filter_by(story_id=story.id, graph_type="new")

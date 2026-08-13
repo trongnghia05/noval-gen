@@ -1,8 +1,8 @@
 import logging
 import re
 
-from .prompts.loader import load_prompt
-from .providers.base import LLMProvider
+from ..prompts.loader import load_prompt
+from ..llm.base import LLMProvider
 
 logger = logging.getLogger(__name__)
 

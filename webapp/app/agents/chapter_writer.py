@@ -5,10 +5,10 @@ import textwrap
 
 from sqlalchemy.orm import Session
 
-from .. import context_builder, csv_graph
-from ..config import AGENT_MODELS, PROVIDER
+from ..services import context_builder, csv_graph
+from ..core.config import AGENT_MODELS, PROVIDER
 from ..db.models import Chapter, Story
-from ..llm_json import generate_structured
+from ..llm.structured import generate_structured
 from ..prompts.loader import load_prompt
 from ..schemas import ChapterWriterOutput
 

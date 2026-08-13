@@ -5,7 +5,7 @@ continuity-log.md / characters.md in the CLI version.
 
 from sqlalchemy.orm import Session
 
-from .db.models import (
+from ..db.models import (
     Chapter,
     ChapterSummary,
     Character,

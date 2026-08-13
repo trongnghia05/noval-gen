@@ -1,8 +1,8 @@
 from functools import lru_cache
 from pathlib import Path
 
-from ..market import market_block
-from ..schema_hints import _resolve_schema_placeholders
+from ..core.market import market_block
+from ..core.schema_hints import _resolve_schema_placeholders
 
 PROMPTS_DIR = Path(__file__).parent
 

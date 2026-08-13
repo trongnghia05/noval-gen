@@ -17,7 +17,7 @@ from collections import defaultdict
 
 from sqlalchemy.orm import Session
 
-from .. import context_builder
+from ..services import context_builder
 from ..db.models import Character, PlanningVerifyLog, Story
 from ..schemas import PlanningVerifierOutput
 from . import _common, character_developer, plot_architect, story_analyzer, worldbuilder

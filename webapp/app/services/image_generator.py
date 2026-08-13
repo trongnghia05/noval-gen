@@ -17,12 +17,12 @@ from pathlib import Path
 from PIL import Image, ImageOps
 from sqlalchemy.orm import Session
 
-from . import storage
-from .config import AGENT_MODELS, IMAGE_MODEL, PROVIDER
-from .db.models import Character, Story, StoryImage
-from .llm_json import generate_structured
-from .prompts.loader import load_prompt
-from .schemas import ImagePromptSetOut, ImagePromptVerifyOut, NovelMetadataOut
+from ..core import storage
+from ..core.config import AGENT_MODELS, IMAGE_MODEL, PROVIDER
+from ..db.models import Character, Story, StoryImage
+from ..llm.structured import generate_structured
+from ..prompts.loader import load_prompt
+from ..schemas import ImagePromptSetOut, ImagePromptVerifyOut, NovelMetadataOut
 
 logger = logging.getLogger(__name__)
 
@@ -123,7 +123,7 @@ def _relationship_dynamics(session: Session, story_id: int) -> str:
     """The main power dynamics between top characters — who pursues/controls/is
     captive to whom — so the poster staging reflects the story instead of a random
     (possibly reversed) pose."""
-    from .db.models import StoryGraphNode, StoryGraphEdge
+    from ..db.models import StoryGraphNode, StoryGraphEdge
     nodes = {
         n.node_key: n for n in session.query(StoryGraphNode)
         .filter_by(story_id=story_id, graph_type="new", node_type="character").all()

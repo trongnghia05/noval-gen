@@ -3,7 +3,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from .providers.openrouter import OpenRouterProvider
+from ..llm.openrouter import OpenRouterProvider
 
 load_dotenv()
 
@@ -14,7 +14,7 @@ load_dotenv()
 # google-genai is only needed when actually running on Vertex.
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "openrouter").lower()
 if LLM_PROVIDER == "vertex":
-    from .providers.vertex import VertexProvider
+    from ..llm.vertex import VertexProvider
 
     PROVIDER = VertexProvider()
 else:

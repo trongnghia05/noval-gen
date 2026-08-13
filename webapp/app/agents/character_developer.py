@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 
 from . import _common
-from .. import csv_graph
+from ..services import csv_graph
 from ..db.models import Character, Story
 from ..schemas import CharacterDeveloperOutput
 

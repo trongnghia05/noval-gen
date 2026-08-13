@@ -3,7 +3,7 @@ from typing import TypeVar
 
 from pydantic import BaseModel, ValidationError
 
-from .providers.base import LLMProvider
+from .base import LLMProvider
 
 T = TypeVar("T", bound=BaseModel)
 

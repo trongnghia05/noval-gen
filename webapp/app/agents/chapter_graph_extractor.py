@@ -16,10 +16,10 @@ import logging
 
 from sqlalchemy.orm import Session
 
-from .. import length_calc
-from ..config import AGENT_MODELS, PROVIDER
+from ..services import length_calc
+from ..core.config import AGENT_MODELS, PROVIDER
 from ..db.models import Story, StoryGraphEdge, StoryGraphNode
-from ..llm_json import generate_structured
+from ..llm.structured import generate_structured
 from ..prompts.loader import load_prompt
 from ..schemas import ChapterGraphOutput, EntityResolveOutput
 

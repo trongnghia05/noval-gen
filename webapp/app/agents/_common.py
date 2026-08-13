@@ -9,8 +9,8 @@ from typing import TypeVar
 
 from pydantic import BaseModel
 
-from ..config import AGENT_MODELS, PROVIDER
-from ..llm_json import generate_structured
+from ..core.config import AGENT_MODELS, PROVIDER
+from ..llm.structured import generate_structured
 from ..prompts.loader import load_prompt
 
 T = TypeVar("T", bound=BaseModel)

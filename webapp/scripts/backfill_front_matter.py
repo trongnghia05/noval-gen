@@ -17,7 +17,7 @@ sys.path.insert(0, "/app")
 
 from app.db.session import SessionLocal          # noqa: E402
 from app.db.models import Story                  # noqa: E402
-from app.orchestrator import _generate_novel_metadata, _main_cast  # noqa: E402
+from app.services.orchestrator import _generate_novel_metadata, _main_cast  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 log = logging.getLogger("backfill")

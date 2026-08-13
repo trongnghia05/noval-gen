@@ -1,6 +1,6 @@
 """Alembic environment.
 
-The DB URL comes from app.config.DB_URL (i.e. the DATABASE_URL env var), so
+The DB URL comes from app.core.config.DB_URL (i.e. the DATABASE_URL env var), so
 migrations always target the same database the app uses. target_metadata is
 app.db.models.Base.metadata, so `alembic revision --autogenerate` diffs the
 models against the live DB.
@@ -10,7 +10,7 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
-from app.config import DB_URL
+from app.core.config import DB_URL
 from app.db.models import Base
 
 config = context.config

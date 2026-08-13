@@ -24,7 +24,7 @@ from typing import Literal
 from sqlalchemy.orm import Session
 
 from . import _common
-from ..config import AGENT_MODELS
+from ..core.config import AGENT_MODELS
 from ..db.models import Chapter, Story
 from ..schemas import QualityReviewIssueOut
 

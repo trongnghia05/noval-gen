@@ -9,7 +9,7 @@ import logging
 from sqlalchemy.orm import Session
 
 from . import _common
-from .. import context_builder
+from ..services import context_builder
 from ..db.models import Story, StoryGraphEdge, StoryGraphNode
 from ..schemas import GraphSurfaceRepairOutput, GraphVerifyIssueOut, NewEdgeForRepairOut
 

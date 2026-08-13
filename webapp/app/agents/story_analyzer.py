@@ -3,7 +3,7 @@ import logging
 from sqlalchemy.orm import Session
 
 from . import _common
-from .. import length_calc
+from ..services import length_calc
 from ..db.models import Story, StoryGraphEdge, StoryGraphNode
 from ..schemas import StoryAnalyzerOutput
 

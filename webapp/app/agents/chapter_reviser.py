@@ -12,8 +12,8 @@ import re
 
 from sqlalchemy.orm import Session
 
-from .. import context_builder, csv_graph
-from ..config import AGENT_MODELS
+from ..services import context_builder, csv_graph
+from ..core.config import AGENT_MODELS
 from ..db.models import Chapter, Story
 from ..schemas import ChapterWriterOutput
 from . import _common, chapter_writer

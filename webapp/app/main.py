@@ -3,7 +3,7 @@ import logging
 from fastapi import FastAPI
 
 from .api.routes import router
-from .auth import AuthGuard, router as auth_router
+from .api.auth import AuthGuard, router as auth_router
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s:%(name)s:%(message)s")
 

@@ -14,7 +14,7 @@ import logging
 from sqlalchemy.orm import Session
 
 from . import _common
-from .. import context_builder, csv_graph
+from ..services import context_builder, csv_graph
 from ..db.models import Chapter, Story
 from ..schemas import QualityReviewIssueOut, QualityReviewerOutput
 

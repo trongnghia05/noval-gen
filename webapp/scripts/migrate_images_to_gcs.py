@@ -13,8 +13,8 @@ from pathlib import Path
 
 sys.path.insert(0, "/app")
 
-from app import storage                       # noqa: E402
-from app.config import OUTPUT_BASE            # noqa: E402
+from app.core import storage             # noqa: E402
+from app.core.config import OUTPUT_BASE  # noqa: E402
 from app.db.models import Story, StoryImage   # noqa: E402
 from app.db.session import SessionLocal       # noqa: E402
 
