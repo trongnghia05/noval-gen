@@ -46,36 +46,100 @@ def _base() -> str:
     return st.session_state.get("api_base", DEFAULT_API).rstrip("/")
 
 
+def auth_headers() -> dict:
+    """The session token, on every call. The API is reachable on its own port, so
+    the token — not this app's login screen — is what actually protects it."""
+    tok = st.session_state.get("token", "")
+    return {"Authorization": f"Bearer {tok}"} if tok else {}
+
+
+def is_admin() -> bool:
+    """Viewers may read and download; everything that changes something is hidden
+    from them here AND refused by the API, which is the half that counts."""
+    return st.session_state.get("role", "admin") == "admin"
+
+
+def _headers(kw: dict) -> dict:
+    h = dict(auth_headers())
+    h.update(kw.pop("headers", None) or {})
+    return h
+
+
 def api_get(path: str, **kw):
-    r = requests.get(f"{_base()}{path}", timeout=kw.pop("timeout", 30), **kw)
+    r = requests.get(f"{_base()}{path}", timeout=kw.pop("timeout", 30),
+                     headers=_headers(kw), **kw)
     r.raise_for_status()
     return r.json()
 
 
 def api_post(path: str, json=None, timeout=180):
-    r = requests.post(f"{_base()}{path}", json=json, timeout=timeout)
+    r = requests.post(f"{_base()}{path}", json=json, timeout=timeout, headers=auth_headers())
     r.raise_for_status()
     return r.json()
 
 
 def api_put(path: str, json=None, timeout=30):
-    r = requests.put(f"{_base()}{path}", json=json, timeout=timeout)
+    r = requests.put(f"{_base()}{path}", json=json, timeout=timeout, headers=auth_headers())
     r.raise_for_status()
     return r.json()
 
 
 def api_patch(path: str, json=None, timeout=30):
-    r = requests.patch(f"{_base()}{path}", json=json, timeout=timeout)
+    r = requests.patch(f"{_base()}{path}", json=json, timeout=timeout, headers=auth_headers())
     r.raise_for_status()
     return r.json()
 
 
 def api_online() -> bool:
     try:
-        requests.get(f"{_base()}/stories", timeout=4).raise_for_status()
+        requests.get(f"{_base()}/stories", timeout=4, headers=auth_headers()).raise_for_status()
         return True
     except Exception:
         return False
+
+
+def login_screen() -> None:
+    """Shown instead of the app until a token is held. Returns nothing — it calls
+    st.stop(), so nothing below it in the script runs for a signed-out visitor."""
+    st.markdown("### 📖 Xưởng Gen Truyện")
+    st.caption("Đăng nhập để tiếp tục.")
+    with st.form("login"):
+        u = st.text_input("Tài khoản")
+        p = st.text_input("Mật khẩu", type="password")
+        if st.form_submit_button("Đăng nhập", use_container_width=True):
+            try:
+                r = requests.post(f"{_base()}/auth/login",
+                                  json={"username": u, "password": p}, timeout=20)
+            except Exception as e:  # noqa: BLE001
+                st.error(f"Không gọi được API: {e}")
+            else:
+                if r.status_code == 401:
+                    st.error("Sai tài khoản hoặc mật khẩu.")
+                elif not r.ok:
+                    st.error(f"Lỗi {r.status_code}: {r.text[:200]}")
+                else:
+                    d = r.json()
+                    st.session_state.token = d.get("token", "")
+                    st.session_state.role = d.get("role", "admin")
+                    st.session_state.username = d.get("username", "")
+                    st.rerun()
+    st.stop()
+
+
+def require_login() -> None:
+    """Gate the whole app. A server with auth switched off hands back a role of
+    admin and no token, so a local run needs no login at all."""
+    if st.session_state.get("token") or st.session_state.get("role"):
+        return
+    try:
+        me = requests.get(f"{_base()}/auth/me", timeout=10).json()
+    except Exception:  # noqa: BLE001 — API down: let the app show its own error
+        return
+    if not me.get("auth_enabled", True):
+        st.session_state.role = "admin"
+        st.session_state.username = "anonymous"
+        return
+    login_screen()
 
 
 _IMG_EXTS = ("webp", "png", "jpg", "jpeg")
@@ -172,7 +236,7 @@ def cached_story_zip(story_id: int, chapters_done: int, story: dict | None = Non
     zkey = f"zip_{story_id}_{chapters_done}_{_image_stamp(story) if story else '0'}"
     if zkey not in st.session_state:
         try:
-            r = requests.get(f"{_base()}/stories/{story_id}/download-zip", timeout=180)
+            r = requests.get(f"{_base()}/stories/{story_id}/download-zip", timeout=180, headers=auth_headers())
             r.raise_for_status()
             st.session_state[zkey] = r.content
         except Exception:
@@ -738,6 +802,11 @@ st.session_state.setdefault("launch_payload", None)
 st.session_state.setdefault("cms_upload_url", "")
 st.session_state.setdefault("_settings_loaded", False)
 
+# Before any API call, including the settings load below — those go through the
+# gate too, and an un-authenticated one would 401 and paint an error over the
+# login form.
+require_login()
+
 if not st.session_state._settings_loaded:
     try:
         st.session_state.cms_upload_url = api_get("/settings/cms_upload_url").get("value", "")
@@ -766,7 +835,9 @@ with st.sidebar:
     st.caption("Bảng điều khiển pipeline tạo tiểu thuyết")
     st.divider()
 
-    if st.button("✍️  Tạo truyện mới", use_container_width=True, type="primary"):
+    # A viewer has no create page to go to — hidden rather than disabled, so the
+    # sidebar shows what they can actually do instead of what they cannot.
+    if is_admin() and st.button("✍️  Tạo truyện mới", use_container_width=True, type="primary"):
         go("create")
     if st.button("📚  Thư viện", use_container_width=True):
         go("library")
@@ -779,6 +850,15 @@ with st.sidebar:
     st.caption(_base())
     if not online:
         st.caption("Chạy backend rồi kiểm tra lại URL trong Cài đặt.")
+
+    if st.session_state.get("username"):
+        st.divider()
+        role_label = "Quản trị" if is_admin() else "Chỉ xem"
+        st.caption(f"👤 {st.session_state.username} · {role_label}")
+        if st.button("Đăng xuất", use_container_width=True):
+            for k in ("token", "role", "username"):
+                st.session_state.pop(k, None)
+            st.rerun()
 
 
 def view_create():
@@ -903,7 +983,7 @@ def view_create():
 
     st.divider()
     disabled = not content.strip() or not str(language).strip()
-    if st.button("🚀  Tạo và bắt đầu gen", type="primary", disabled=disabled, use_container_width=True):
+    if st.button("🚀  Tạo và bắt đầu gen", type="primary", disabled=disabled or not is_admin(), use_container_width=True):
         payload = {"language": language, "input_type": itype, "genre": genre or None, "content": content}
         if itype == "REWRITE" and st.session_state.get("src_title", "").strip():
             payload["source_title"] = st.session_state["src_title"].strip()
@@ -993,7 +1073,7 @@ def edit_dialog(story: dict):
         manual = st.text_input("Tiêu đề mới", value=story["title"],
                                placeholder="Nhập tiêu đề...").strip()
         if st.button("💾 Lưu tiêu đề", key=f"ed_tsave_{sid}", type="primary",
-                     use_container_width=True, disabled=not manual):
+                     use_container_width=True, disabled=not manual or not is_admin()):
             apply_title(manual)
         # Saving an unchanged title is allowed on purpose: it re-syncs the title line
         # in files exported under an older name.
@@ -1003,7 +1083,7 @@ def edit_dialog(story: dict):
             key=f"ed_tnotes_{sid}", height=70,
             placeholder="VD: nhấn vào yếu tố mafia, bớt uỷ mị, ngắn hơn",
         )
-        if st.button("✨ Gen tiêu đề mới", key=f"ed_tgen_{sid}", use_container_width=True):
+        if st.button("✨ Gen tiêu đề mới", key=f"ed_tgen_{sid}", disabled=not is_admin(), use_container_width=True):
             try:
                 with st.spinner("Đang nghĩ tiêu đề…"):
                     r = api_post(f"/stories/{sid}/suggest-title",
@@ -1016,10 +1096,10 @@ def edit_dialog(story: dict):
         if cand:
             st.success(f"Tiêu đề đề xuất: **{cand}**")
             tc = st.columns([1, 1])
-            if tc[0].button("✓ Dùng tiêu đề này", key=f"ed_tok_{sid}",
+            if tc[0].button("✓ Dùng tiêu đề này", key=f"ed_tok_{sid}", disabled=not is_admin(),
                             type="primary", use_container_width=True):
                 apply_title(cand)
-            if tc[1].button("✕ Bỏ, giữ tiêu đề cũ", key=f"ed_tno_{sid}",
+            if tc[1].button("✕ Bỏ, giữ tiêu đề cũ", key=f"ed_tno_{sid}", disabled=not is_admin(),
                             use_container_width=True):
                 st.session_state.pop(f"ed_tcand_{sid}", None)
                 st.rerun()
@@ -1053,7 +1133,7 @@ def edit_dialog(story: dict):
                                "thumbnail1": "Thumb 1", "thumbnail2": "Thumb 2"}[v],
         key=f"ed_iwhich_{sid}",
     )
-    if st.button("🎨 Gen ảnh mới (xem trước)", key=f"ed_igen_{sid}",
+    if st.button("🎨 Gen ảnh mới (xem trước)", key=f"ed_igen_{sid}", disabled=not is_admin(),
                  use_container_width=True):
         started = time.time() - 1          # 1s of slack for clock skew across mounts
         try:
@@ -1107,7 +1187,7 @@ def edit_dialog(story: dict):
                 col.image(str(prev[stem]), caption=f"{label} (mới)",
                           use_container_width=True)
         ic = st.columns([1, 1])
-        if ic[0].button("✓ Dùng ảnh mới", key=f"ed_iok_{sid}",
+        if ic[0].button("✓ Dùng ảnh mới", key=f"ed_iok_{sid}", disabled=not is_admin(),
                         type="primary", use_container_width=True):
             try:
                 api_post(f"/stories/{sid}/images/accept", timeout=60)
@@ -1115,7 +1195,7 @@ def edit_dialog(story: dict):
                 st.rerun()
             except Exception as e:
                 st.error(f"Lỗi: {e}")
-        if ic[1].button("✕ Bỏ, giữ ảnh cũ", key=f"ed_ino_{sid}",
+        if ic[1].button("✕ Bỏ, giữ ảnh cũ", key=f"ed_ino_{sid}", disabled=not is_admin(),
                         use_container_width=True):
             try:
                 api_post(f"/stories/{sid}/images/discard", timeout=60)
@@ -1245,7 +1325,7 @@ def view_library():
                 st.rerun()
                 st.stop()
             if act[1].button("Sửa", key=f"edit{s['id']}", use_container_width=True,
-                             disabled=s["phase"] != "COMPLETE",
+                             disabled=s["phase"] != "COMPLETE" or not is_admin(),
                              help="Đổi tiêu đề / ảnh — chỉ khi truyện đã hoàn thành"):
                 edit_dialog(s)
             if zip_data:
@@ -1254,7 +1334,7 @@ def view_library():
                 act[2].button("Tải", key=f"zip_disabled{s['id']}", disabled=True, use_container_width=True)
             cms_url = st.session_state.get("cms_upload_url", "").strip()
             can_export = bool(zip_data and cms_url)
-            if act[3].button("CMS", key=f"cms{s['id']}", disabled=not can_export, use_container_width=True,
+            if act[3].button("CMS", key=f"cms{s['id']}", disabled=not can_export or not is_admin(), use_container_width=True,
                              help=None if cms_url else "Nhập CMS upload URL trong Cài đặt"):
                 try:
                     upload_zip_to_cms(cms_url, s, zip_data)
@@ -1373,7 +1453,7 @@ def view_detail():
         if running and stop_requested:
             st.button("⏳ Đang dừng...", use_container_width=True, disabled=True)
         elif running:
-            if st.button("⏸ Dừng gen", use_container_width=True):
+            if st.button("⏸ Dừng gen", disabled=not is_admin(), use_container_width=True):
                 try:
                     api_post(f"/stories/{sid}/stop")
                     st.toast("Đã yêu cầu dừng. Pipeline sẽ dừng sau bước hiện tại.")
@@ -1382,7 +1462,7 @@ def view_detail():
                 except requests.HTTPError as e:
                     st.error(f"{e.response.status_code}: {e.response.text}")
         elif d["phase"] != "COMPLETE":
-            if st.button("▶️ Tiếp tục gen", type="primary", use_container_width=True):
+            if st.button("▶️ Tiếp tục gen", type="primary", disabled=not is_admin(), use_container_width=True):
                 try:
                     api_post(f"/stories/{sid}/run")
                     st.toast("Đã khởi động lại pipeline.")
@@ -1397,13 +1477,13 @@ def view_detail():
         else:
             dl[0].button("⬇️ Tải truyện (.zip)", use_container_width=True, disabled=True)
 
-        if dl[1].button("🗑 Xóa truyện", disabled=bool(running), use_container_width=True, help="Dừng gen trước khi xóa truyện." if running else None):
+        if dl[1].button("🗑 Xóa truyện", disabled=bool(running) or not is_admin(), use_container_width=True, help="Dừng gen trước khi xóa truyện." if running else None):
             st.session_state["confirm_delete"] = sid
             st.rerun()
 
         if d["phase"] == "COMPLETE":
             try:
-                r = requests.get(f"{_base()}/stories/{sid}/export", timeout=30)
+                r = requests.get(f"{_base()}/stories/{sid}/export", timeout=30, headers=auth_headers())
                 if r.ok:
                     dl[2].download_button("⬇️ Bản thảo .md", r.content, file_name=f"{d.get('download_name') or d['slug']}.md", mime="text/markdown", use_container_width=True)
             except Exception:
@@ -1454,7 +1534,7 @@ def view_detail():
 
         # Regenerate controls — only meaningful once images exist (COMPLETE).
         if d["phase"] == "COMPLETE":
-            if st.button("🎨 Tạo lại ảnh", key="regen_toggle", use_container_width=True):
+            if st.button("🎨 Tạo lại ảnh", key="regen_toggle", disabled=not is_admin(), use_container_width=True):
                 st.session_state["show_regen"] = not st.session_state.get("show_regen", False)
 
             if st.session_state.get("show_regen"):
@@ -1495,15 +1575,15 @@ def view_detail():
                     except Exception as e:
                         st.error(f"Lỗi: {e}")
 
-                if st.button("↻ Tạo lại tất cả ảnh", key="rg_all",
+                if st.button("↻ Tạo lại tất cả ảnh", key="rg_all", disabled=not is_admin(),
                              type="primary", use_container_width=True):
                     _regen("all", "tất cả ảnh")
                 rc = st.columns(3, gap="small")
-                if rc[0].button("Bìa", key="rg_cover", use_container_width=True):
+                if rc[0].button("Bìa", key="rg_cover", disabled=not is_admin(), use_container_width=True):
                     _regen("cover", "ảnh bìa")
-                if rc[1].button("Thumb 1", key="rg_t1", use_container_width=True):
+                if rc[1].button("Thumb 1", key="rg_t1", disabled=not is_admin(), use_container_width=True):
                     _regen("thumbnail1", "thumbnail 1")
-                if rc[2].button("Thumb 2", key="rg_t2", use_container_width=True):
+                if rc[2].button("Thumb 2", key="rg_t2", disabled=not is_admin(), use_container_width=True):
                     _regen("thumbnail2", "thumbnail 2")
                 st.caption("Tạo lại Thumb 1/2 sẽ dùng **ảnh bìa hiện tại** làm tham chiếu "
                            "để giữ khuôn mặt nhân vật nhất quán.")
@@ -1513,7 +1593,7 @@ def view_detail():
         cc = st.columns([1, 1, 4])
         if cc[0].button("Xác nhận xóa", type="primary"):
             try:
-                requests.delete(f"{_base()}/stories/{sid}", timeout=30).raise_for_status()
+                requests.delete(f"{_base()}/stories/{sid}", timeout=30, headers=auth_headers()).raise_for_status()
                 st.session_state.pop("confirm_delete", None)
                 st.toast("Đã xóa truyện.")
                 go("library")
@@ -1586,7 +1666,7 @@ def view_settings():
     st.subheader("Kết nối API")
     new_base = st.text_input("Địa chỉ API", value=st.session_state.api_base, help="Mặc định http://localhost:8001/api.")
     c = st.columns(2)
-    if c[0].button("Lưu"):
+    if c[0].button("Lưu", disabled=not is_admin()):
         st.session_state.api_base = new_base
         st.toast("Đã lưu địa chỉ API.")
     if c[1].button("Kiểm tra kết nối"):
@@ -1600,7 +1680,7 @@ def view_settings():
         placeholder="https://cms.example.com/api/upload",
         help="Khi bấm Export ở Thư viện, playground sẽ POST file .zip lên URL này bằng multipart field `file`.",
     )
-    if st.button("Lưu CMS URL"):
+    if st.button("Lưu CMS URL", disabled=not is_admin()):
         try:
             saved = api_put("/settings/cms_upload_url", json={"value": cms_url})
             st.session_state.cms_upload_url = saved.get("value", "")
@@ -1616,7 +1696,7 @@ def view_settings():
         LANGUAGES,
         index=LANGUAGES.index(st.session_state.default_language) if st.session_state.default_language in LANGUAGES else 0,
     )
-    if st.button("Lưu mặc định"):
+    if st.button("Lưu mặc định", disabled=not is_admin()):
         st.session_state.default_language = dl
         st.toast("Đã lưu.")
 
