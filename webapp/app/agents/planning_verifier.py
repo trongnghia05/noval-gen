@@ -83,7 +83,7 @@ def _feedback_for(output: PlanningVerifierOutput, artifact: str) -> str:
 
 
 def _regenerate(session: Session, story: Story, artifact: str, feedback: str | None) -> None:
-    from .. import context_builder as cb
+    from ..services import context_builder as cb
 
     if artifact == "story_bible":
         if story.input_type == "REWRITE":

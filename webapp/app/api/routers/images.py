@@ -41,7 +41,7 @@ def _regen_images_job(story_id: int, which: str, notes: str, seed: int | None,
                       target: str, preview: bool):
     """Generate in the background, always clearing the running flag — a flag left set
     would leave the UI waiting for art that is never coming."""
-    from .. import image_generator
+    from ...services import image_generator
     try:
         with SessionLocal() as session:
             story = session.get(Story, story_id)
@@ -109,7 +109,7 @@ def regenerate_images(story_id: int, req: RegenImagesRequest,
                                       req.notes, req.seed, str(target), req.preview)
             return {"status": "started", "which": req.which, "preview": req.preview}
 
-        from .. import image_generator
+        from ...services import image_generator
         try:
             written = image_generator.generate(
                 session, story, target, only=req.which,
