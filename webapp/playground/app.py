@@ -191,6 +191,25 @@ def cover_for(story: dict):
     return poster_images(story).get("cover")
 
 
+@st.cache_data(show_spinner=False, max_entries=64)
+def _fetch_image(url: str) -> bytes:
+    """Cached so the three posters are not pulled from the bucket on every rerun —
+    Streamlit reruns on every interaction, and a download button needs its bytes up
+    front. The signed URL is stable inside its window, so this is one fetch per
+    image per window, not one per click."""
+    r = requests.get(url, timeout=60)
+    r.raise_for_status()
+    return r.content
+
+
+def img_bytes(ref) -> tuple[bytes, str]:
+    """(bytes, extension) for a poster, whether it is a signed URL or a local file."""
+    if isinstance(ref, str):
+        return _fetch_image(ref), ref.split("?", 1)[0].rsplit(".", 1)[-1].lower()
+    p = Path(ref)
+    return p.read_bytes(), p.suffix.lstrip(".").lower()
+
+
 def img_src(ref) -> str:
     """A value usable as an <img src>. A signed URL goes in as-is; a local Path has
     to be inlined as base64, because this app serves no static files of its own."""
@@ -1514,12 +1533,17 @@ def view_detail():
             dl_cols = st.columns(3, gap="medium")
             for col, (stem, label) in zip(dl_cols, (("cover", "Bìa"), ("thumbnail1", "Thumb 1"), ("thumbnail2", "Thumb 2"))):
                 if stem in imgs:
-                    p = imgs[stem]
+                    try:
+                        data, ext = img_bytes(imgs[stem])
+                    except Exception:  # noqa: BLE001 — an unreachable image must not
+                        col.button(f"⬇️ {label}", disabled=True,  # take the page down
+                                   use_container_width=True)
+                        continue
                     col.download_button(
                         f"⬇️ {label}",
-                        p.read_bytes(),
-                        file_name=f"{d.get('download_name') or d['slug']}-{stem}{p.suffix}",
-                        mime="image/" + p.suffix.lstrip(".").lower().replace("jpg", "jpeg"),
+                        data,
+                        file_name=f"{d.get('download_name') or d['slug']}-{stem}.{ext}",
+                        mime="image/" + ext.replace("jpg", "jpeg"),
                         key=f"dl_{stem}", use_container_width=True,
                     )
                 else:
