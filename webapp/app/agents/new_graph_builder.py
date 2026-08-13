@@ -736,19 +736,21 @@ def _in_scope(only_keys: set | None, *keys: str) -> bool:
 
 
 def _issue_keys(issues: list) -> set:
-    """Collect the node/edge keys the verifier flagged, expanding 'src→tgt' targets to
-    their endpoints too, so a re-enrich touches exactly the flagged items."""
-    keys: set = set()
-    for i in issues:
-        t = (getattr(i, "target", "") or "").strip()
-        if not t:
-            continue
-        keys.add(t)
-        if "→" in t:
-            a, b = t.split("→", 1)
-            keys.add(a.strip())
-            keys.add(b.strip())
-    return keys
+    """The keys the verifier flagged, exactly as it wrote them.
+
+    Targets are NOT expanded. An earlier version split 'C001→C003' into its two
+    endpoints as well, on the theory that this pinned down the flagged items — it did
+    the opposite. `_in_scope` matches an edge on either endpoint, so one flagged
+    relation dragged in every other relation touching either character, and since the
+    protagonist appears in nearly all of them a single issue rewrote the whole group:
+    38 of 39 edges re-enriched for 11 flagged. The clean ones came back broken and the
+    loop oscillated (12 → 10 → 6 → 12 → 15) instead of converging.
+
+    Nothing is lost by keeping targets verbatim: `_in_scope` is handed the endpoints
+    AND the composite key, so a bare 'C001' still selects everything touching C001
+    when the verifier means the whole character.
+    """
+    return {t for i in issues if (t := (getattr(i, "target", "") or "").strip())}
 
 
 def _render_enriched_group(session: Session, story: Story, group: str) -> str:
@@ -783,7 +785,11 @@ def _render_enriched_group(session: Session, story: Story, group: str) -> str:
     for e in edges:
         p = e.properties or {}
         if group == "arc_changes":
-            lines.append(f"[{e.source_key}] {char_map.get(e.source_key, e.source_key)} "
+            # Keyed per ARC-CHANGE, not per character. A lead owns twenty of these
+            # (one per chapter their arc moves), so a bare 'C001' target meant one
+            # flagged beat rewrote all twenty — including the nineteen that were fine.
+            lines.append(f"[{e.source_key}@ch{e.chapter_from}] "
+                         f"{char_map.get(e.source_key, e.source_key)} "
                          f"ch{e.chapter_from}: '{p.get('old_val','')}' → '{p.get('new_val','')}'")
         elif group == "relations":
             lines.append(f"[{e.source_key}→{e.target_key}] '{char_map.get(e.source_key, e.source_key)}' → "
@@ -988,8 +994,10 @@ def _enrich_arc_changes(
     for e in edges:
         p = e.properties or {}
         char_name = char_map.get(e.source_key, e.source_key)
+        # Same key shape the verifier is shown, so a target it reports comes straight
+        # back here and selects exactly the arc-change it meant.
         arc_lines.append(
-            f"[{e.source_key}] {char_name} ch{e.chapter_from}: "
+            f"[{e.source_key}@ch{e.chapter_from}] {char_name} ch{e.chapter_from}: "
             f"'{p.get('old_val','')}' → '{p.get('new_val','')}'"
         )
 
@@ -1000,8 +1008,9 @@ def _enrich_arc_changes(
         f"## ARC_CHANGES\n" + "\n".join(arc_lines)
     )
     if only_keys:
-        user_content += (f"\n\n## RE-ENRICH ONLY arc-changes of these characters: {', '.join(sorted(only_keys))}\n"
-                         "Return ONLY those; leave every other arc-change exactly as-is.")
+        user_content += (f"\n\n## RE-ENRICH ONLY THESE arc-changes: {', '.join(sorted(only_keys))}\n"
+                         "The keys are the bracketed ids above. Return ONLY those; "
+                         "leave every other arc-change exactly as-is.")
     if feedback:
         user_content += f"\n\n{feedback}"
     output: ArcChangeGroupEnrichOutput = _common.call_agent(
@@ -1023,7 +1032,11 @@ def _enrich_arc_changes(
             logger.warning("[%s] _enrich_arc_changes: no edge for (%s, ch%s)",
                            story.slug, surf.source_key, surf.chapter_from)
             continue
-        if not _in_scope(only_keys, surf.source_key):
+        # Both granularities: the composite key hits one arc-change, a bare character
+        # key still selects all of theirs — so a verifier that reports the old shape
+        # degrades to the previous behaviour instead of silently skipping the fix.
+        if not _in_scope(only_keys, surf.source_key,
+                         f"{surf.source_key}@ch{surf.chapter_from}"):
             continue
         props = dict(edge.properties or {})
         if surf.new_old_val: props["old_val"] = surf.new_old_val
