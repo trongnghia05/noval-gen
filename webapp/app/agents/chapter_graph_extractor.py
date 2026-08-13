@@ -25,12 +25,6 @@ from ..schemas import ChapterGraphOutput, EntityResolveOutput
 
 logger = logging.getLogger(__name__)
 
-# Edge types whose chapter IS the chapter being extracted, so the code can fill one in
-# when the model leaves it out. CAUSES and FORESHADOWS are absent deliberately: they
-# link events across chapters and carry no single chapter of their own.
-_CHAPTER_SCOPED = {"RELATION", "PARTICIPATES", "ARC_CHANGE", "LOCATED_AT",
-                   "OWNS", "MEMBER_OF", "INVOLVES", "EMBODIES"}
-
 # Titles / honorifics stripped before comparing two entity names, so "Alpha Theron"
 # and "Theron" normalise to the same key. Kept broad (fantasy / romance / sci-fi).
 _ENTITY_TITLES = {
@@ -356,22 +350,6 @@ def _extract_chapter(session: Session, story: Story, chapter_number: int, chapte
     session.flush()
 
     for edge in output.edges:
-        # The prompt asks for `chapter_from = chapter_number` and shows it filled in;
-        # the model returns null anyway — measured across two stories, 2 of 500-odd
-        # edges carried one. Everything downstream that reads it was working on
-        # nothing: source_graph_verifier selects a chapter's new edges with
-        # `chapter_from == chapter_number`, so it has been verifying the EVENT node
-        # while silently skipping every edge, and the arc-change enricher keys its
-        # write map on (source_key, chapter_from), collapsing 58 edges into 10 slots
-        # so most re-enrichments landed on the wrong edge.
-        #
-        # Same treatment the EVENT key already gets: a fact the code knows for certain
-        # is not worth asking the model for. CAUSES and FORESHADOWS are excluded on
-        # purpose — they link events ACROSS chapters, so one chapter number would be
-        # wrong for them.
-        if edge.chapter_from is None and edge.edge_type in _CHAPTER_SCOPED:
-            edge.chapter_from = chapter_number
-
         # Build DB properties dict from typed fields (fall back to properties dict for generic edges)
         if edge.edge_type == "ARC_CHANGE":
             db_props = {
