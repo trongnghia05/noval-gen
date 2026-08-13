@@ -16,7 +16,7 @@ Docker is the primary way to run this (no local Python required):
 cp .env.example .env        # set OPENROUTER_API_KEY, optionally MODEL_* overrides
 docker compose up -d --build
 docker compose logs -f api
-docker compose down          # add -v to also wipe the SQLite + graph volumes
+docker compose down          # add -v to also wipe the Postgres + graph volumes
 ```
 
 The API is at **`http://localhost:8001/docs`** (port 8001 on host → 8000 in container). Use the Swagger UI to call `POST /api/stories`, then `POST /api/stories/{id}/run` to generate the whole novel in the background (poll `GET /api/stories/{id}` for progress), or `POST /api/stories/{id}/advance` to step through it manually.
@@ -31,7 +31,7 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
 
-**DB schema changes require `docker compose down -v`** — there is no migration system. The SQLite file lives at `/data/novelgen.db` inside the container, persisting across `docker compose down` but not `-v`. The CSV knowledge graph files live at `/data/graphs/{story_id}/` (same `novelgen-data` volume).
+**DB schema changes go through Alembic** — add a revision under `migrations/versions/` and run `docker compose exec api alembic upgrade head`. Do NOT reach for `docker compose down -v`: it wipes every story. The database is Postgres, in the `pgdata` named volume (inspect it over SQL, not by browsing files); `DATABASE_URL` is set in `docker-compose.yml` and overrides anything in `.env`. The CSV knowledge graph files still live on the host at `webapp/data/graphs/{story_id}/`.
 
 There is no test suite or linter configured in this sub-project yet.
 
@@ -64,7 +64,7 @@ Two load-bearing invariants in `_decide_next_step`, both apply to whichever path
 `POST /stories/{id}/run` is the primary way to generate a full novel now — it kicks off a LangGraph `StateGraph` in a FastAPI `BackgroundTasks` job and returns immediately; poll `GET /stories/{id}` (now includes `is_running`) for progress. This replaced the old model of a client repeatedly `POST`-ing `/advance` in a loop (that endpoint still works standalone, for manual single-stepping).
 
 - The graph is a `router` node with conditional edges to one node per step (same names `_decide_next_step` returns); every work node edges back to `router`, and `complete` edges to `END`. Each node opens its own `SessionLocal()`, calls the matching `orchestrator._STEP_EXECUTORS[step]`, commits, closes.
-- **No LangGraph checkpointer** — SQLite stays the only state store. Re-invoking the graph after a crash just re-derives "what's next" from `Story.phase`/`Chapter.status`, same as `/advance` always did. `recursion_limit` is set to 10000 (default 25 is nowhere near enough — a 25-chapter novel is 100+ router hops).
+- **No LangGraph checkpointer** — Postgres stays the only state store. Re-invoking the graph after a crash just re-derives "what's next" from `Story.phase`/`Chapter.status`, same as `/advance` always did. `recursion_limit` is set to 10000 (default 25 is nowhere near enough — a 25-chapter novel is 100+ router hops).
 - **Auto-retry**: `graph._run_step_with_retry` catches `openai.APIError` (429/5xx/auth) and retries with backoff (5s/20s/60s) — this is what the old bash-loop-with-manual-retry gotcha needed. On retry it re-derives the step via `_decide_next_step` rather than blindly re-invoking the same executor, because a step can partially commit before failing (`write_chapter` commits the chapter, *then* summarizes it — a summarizer failure must not re-run `chapter_writer` on an already-`done` chapter).
 - **`Story.is_running`**: guards against starting a second concurrent run for the same story; `POST /run` 409s if already running or already `COMPLETE`. Reset to `False` in a `try/finally` in `_run_story_background` regardless of success or exception, so a crash never leaves a story permanently locked.
 - Exhausted retries (e.g. a real auth/rate-limit failure) propagate out of `run_story_to_completion`, are logged, and leave the DB exactly where the last successful commit left it — safe to resume with another `POST /run` (or `/advance` for manual stepping) once the underlying issue is fixed.
@@ -201,4 +201,4 @@ The single source of truth is the graph; every reskin/repair is either determini
 - **EVENT node keys are canonical `E{chapter:03d}`**: `chapter_graph_extractor` overrides whatever id the LLM emits and remaps the chapter's edges/triggers, because `context_builder` subgraph lookups, `source_graph_verifier`, `chapter_writer`, and `quality_reviewer` all key on `E{N:03d}`. Don't reintroduce a code path that stores the raw LLM event id.
 - **REWRITE chapter-count remap unhandled**: see "Known limitation" under the REWRITE graph pipeline — `total_chapters != source_chapter_count` (user-requested compression/expansion) misaligns graph grounding. Degrades gracefully, not yet fixed.
 - **JSON-mode + thinking needs headroom**: `chapter_blueprinter` truncated its blueprint JSON mid-string (unterminated-string parse failure → whole run crashed at a mid-novel chapter) at `max_tokens=4096` because Gemini's thinking tokens ate the budget. Raised to 16384. Any JSON agent with `thinking=True` needs generous `max_tokens`, well above the visible output size.
-- **No migration system**: DB schema changes require `docker compose down -v`. Any in-progress story data is lost.
+- **Schema changes need an Alembic revision**, not `docker compose down -v` — that command drops every story. `alembic upgrade head` runs against the Postgres in the `pgdata` volume.
