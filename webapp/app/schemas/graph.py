@@ -364,9 +364,9 @@ class ArcChangeGroupEnrichOutput(BaseModel):
 
 
 class RelationSurfaceOut(BaseModel):
-    source_key: str = Field(description="the source character node")
-    target_key: str = Field(description="the target character node")
-    chapter_from: int | None = Field(description="the chapter this relationship begins")
+    source_key: str = Field(description="the source character's node_key EXACTLY as in [brackets], e.g. C001 — NOT the character name")
+    target_key: str = Field(description="the target character's node_key EXACTLY as in [brackets], e.g. C005 — NOT the character name")
+    chapter_from: int | None = Field(description="the integer after 'ch' on the input line (the chapter this relationship begins)")
     new_rel_type: str = Field(description="friendship|rivalry|love|family|mentor|debt|alliance|betrayal|distrust")
     new_label: str = Field(description="a short description of the relationship (new world)")
 
@@ -377,8 +377,8 @@ class RelationGroupEnrichOutput(BaseModel):
 
 
 class CausesSurfaceOut(BaseModel):
-    source_key: str = Field(description="the causing event node")
-    target_key: str = Field(description="the resulting event node")
+    source_key: str = Field(description="the causing event's node_key EXACTLY as in [brackets], e.g. E003 — NOT the event label")
+    target_key: str = Field(description="the resulting event's node_key EXACTLY as in [brackets], e.g. E007 — NOT the event label")
     new_mechanism: str = Field(description="the causal mechanism (new world)")
     new_label: str = Field("", description="a short label for the link")
 

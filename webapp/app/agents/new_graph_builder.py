@@ -1090,9 +1090,14 @@ def _enrich_relations(
             p = e.properties or {}
             src = char_map.get(e.source_key, e.source_key)
             tgt = char_map.get(e.target_key, e.target_key)
+            # Bind each name to its node_key inline (source_key={name}); do NOT write
+            # a bare "'src' → 'tgt'" name arrow — it mirrors the source/target shape and
+            # the model then returns the NAMES as source_key/target_key, so the edge
+            # lookup misses and the relation never enriches.
             rel_lines.append(
                 f"[{e.source_key}→{e.target_key}] ch{e.chapter_from} "
-                f"'{src}' → '{tgt}' | rel_type:{p.get('rel_type','')} | label:{e.label}"
+                f"| {e.source_key}={src}, {e.target_key}={tgt} "
+                f"| rel_type:{p.get('rel_type','')} | label:{e.label}"
             )
 
         user_content = (
@@ -1163,8 +1168,11 @@ def _enrich_causes(
         p = e.properties or {}
         src_label = event_map.get(e.source_key, e.source_key)
         tgt_label = event_map.get(e.target_key, e.target_key)
+        # Bind each event label to its node_key inline; no bare "'x' causes 'y'"
+        # label pair (the model would return the LABELS as source_key/target_key
+        # and the edge lookup would miss).
         cause_lines.append(
-            f"[{e.source_key}→{e.target_key}] '{src_label}' causes '{tgt_label}' "
+            f"[{e.source_key}→{e.target_key}] {e.source_key}={src_label} causes {e.target_key}={tgt_label} "
             f"| mechanism: {p.get('mechanism','')} | label: {e.label}"
         )
 
