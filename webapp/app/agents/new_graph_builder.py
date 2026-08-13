@@ -994,10 +994,14 @@ def _enrich_arc_changes(
     for e in edges:
         p = e.properties or {}
         char_name = char_map.get(e.source_key, e.source_key)
-        # Same key shape the verifier is shown, so a target it reports comes straight
-        # back here and selects exactly the arc-change it meant.
+        # source_key is the bare node_key in [brackets]; chapter_from is the number
+        # after 'ch'. Do NOT fold them into one "C001@ch3" token here — the model
+        # then returns the character NAME as source_key and a null chapter, so every
+        # (source_key, chapter_from) edge lookup misses and 0 arc-changes enrich.
+        # Re-enrich targeting still works: the composite key is rebuilt in code from
+        # the model's source_key + chapter_from when calling _in_scope.
         arc_lines.append(
-            f"[{e.source_key}@ch{e.chapter_from}] {char_name} ch{e.chapter_from}: "
+            f"[{e.source_key}] {char_name} ch{e.chapter_from}: "
             f"'{p.get('old_val','')}' → '{p.get('new_val','')}'"
         )
 

@@ -352,8 +352,8 @@ class EventGroupEnrichOutput(BaseModel):
 
 
 class ArcChangeSurfaceOut(BaseModel):
-    source_key: str = Field(description="the character node (a self-loop ARC_CHANGE)")
-    chapter_from: int | None = Field(description="the chapter the change happens in")
+    source_key: str = Field(description="the character's node_key EXACTLY as in [brackets], e.g. C001 — NOT the character name")
+    chapter_from: int | None = Field(description="the integer after 'ch' on the input line (the chapter the change happens in)")
     new_old_val: str = Field(description="the prior state (new world)")
     new_new_val: str = Field(description="the subsequent state (new world)")
 
