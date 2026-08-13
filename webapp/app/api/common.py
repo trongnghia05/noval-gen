@@ -10,8 +10,6 @@ from ..db.models import Story, StoryImage
 from ..core import storage
 
 
-
-
 def story_output_dir(story: Story):
     """This story's export dir, resolved via the same ownership marker the compiler
     uses so a slug collision can't point at another story's folder."""
@@ -22,17 +20,14 @@ def story_output_dir(story: Story):
     return OUTPUT_BASE / folder
 
 
-
 def story_image_dir(story: Story):
-    return _story_output_dir(story) / "image"
-
+    return story_output_dir(story) / "image"
 
 
 def preview_dir(story: Story):
     """Where a regenerated set waits to be accepted. A dot-prefixed name so the
     poster readers, which glob `image/*`, never pick it up as live art."""
-    return _story_image_dir(story) / ".preview"
-
+    return story_image_dir(story) / ".preview"
 
 
 def image_urls(session, story_id: int, state: str) -> dict[str, str]:
