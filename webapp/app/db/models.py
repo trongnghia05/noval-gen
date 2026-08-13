@@ -66,6 +66,13 @@ class Story(Base):
     summary = Column(Text)                # back-cover blurb, 120-180 words
     cast_blurbs = Column(JSON, default=list)  # [{name, role, blurb}] for the export
 
+    # Poster-regeneration job state. It used to be published as marker files
+    # (.running / .error) inside the output dir, which worked only because the
+    # playground had that dir mounted and could watch it. Object storage cannot be
+    # mounted, so the state moves here and the UI asks the API for it.
+    image_job_running = Column(Boolean, default=False)
+    image_job_error = Column(Text)
+
     created_at = Column(DateTime, default=_utcnow)
     updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
 
@@ -186,6 +193,41 @@ class ChapterTrace(Base):
     created_at = Column(DateTime, default=_utcnow)
 
     __table_args__ = (UniqueConstraint("story_id", "chapter_number", name="uq_chapter_trace"),)
+
+
+class StoryImage(Base):
+    """One poster image in object storage.
+
+    The art used to live only as files under output/<slug>/image/, where the
+    filesystem was doing four separate jobs: holding the bytes, saying which set is
+    live (the `.preview/` directory), telling the UI which file was newly generated
+    (mtime), and keying the zip cache (also mtime). Object storage replaces only the
+    first of those, so the other three move onto this row: `state`, and `updated_at`.
+
+    `object_key` carries a per-version random suffix, so a regenerated image lands on
+    a NEW key. A fixed key would keep the signed URL byte-identical and the browser
+    would keep serving the old picture from cache after new art was approved.
+    """
+
+    __tablename__ = "story_images"
+
+    id = Column(Integer, primary_key=True)
+    story_id = Column(Integer, ForeignKey("stories.id"), nullable=False)
+    stem = Column(String, nullable=False)   # cover | thumbnail1 | thumbnail2
+    state = Column(String, nullable=False, default="live")  # live | preview
+    object_key = Column(String, nullable=False)
+    width = Column(Integer)
+    height = Column(Integer)
+    content_type = Column(String)
+    created_at = Column(DateTime, default=_utcnow)
+    updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
+
+    # One live and at most one preview per stem. Accepting a preview is then an
+    # UPDATE of `state` inside one transaction, instead of a loop of file moves that
+    # could half-fail and leave a mixed set of old and new art.
+    __table_args__ = (
+        UniqueConstraint("story_id", "stem", "state", name="uq_story_image"),
+    )
 
 
 class ContinuityLog(Base):

@@ -5,6 +5,7 @@ Run: streamlit run app.py
 from __future__ import annotations
 
 import html as _html
+import hashlib
 import base64
 import io
 import json
@@ -80,61 +81,58 @@ def api_online() -> bool:
 _IMG_EXTS = ("webp", "png", "jpg", "jpeg")
 
 
-def poster_images(slug: str) -> dict[str, Path]:
-    img_dir = OUTPUT_DIR / slug / "image"
+STEMS = (("cover", "Bìa"), ("thumbnail1", "Thumb 1"), ("thumbnail2", "Thumb 2"))
+
+# Art lives in a bucket, and the API hands out signed URLs for it: `story["images"]`
+# and `story["preview_images"]`, minted per request because they expire. When no
+# bucket is configured those come back empty and the helpers below fall back to the
+# files under the mounted output dir, which is how this app always used to read them.
+# st.image() takes a URL string or a Path either way, so callers do not care which.
+
+
+def _local_images(slug: str, sub: str = "") -> dict[str, Path]:
+    d = OUTPUT_DIR / slug / "image" / sub if sub else OUTPUT_DIR / slug / "image"
     out: dict[str, Path] = {}
-    if img_dir.is_dir():
-        for stem in ("cover", "thumbnail1", "thumbnail2"):
+    if d.is_dir():
+        for stem, _ in STEMS:
             for ext in _IMG_EXTS:
-                p = img_dir / f"{stem}.{ext}"
+                p = d / f"{stem}.{ext}"
                 if p.exists():
                     out[stem] = p
                     break
     return out
 
 
-STEMS = (("cover", "Bìa"), ("thumbnail1", "Thumb 1"), ("thumbnail2", "Thumb 2"))
+def poster_images(story: dict) -> dict:
+    """The live set: {stem: signed URL} from the API, or {stem: Path} from disk."""
+    return story.get("images") or _local_images(story["slug"])
 
 
-def _preview_root(slug: str) -> Path:
-    return OUTPUT_DIR / slug / "image" / ".preview"
+def preview_images(story: dict) -> dict:
+    """The regenerated set waiting to be accepted."""
+    return story.get("preview_images") or _local_images(story["slug"], ".preview")
 
 
-def preview_images(slug: str, newer_than: float = 0.0) -> dict[str, Path]:
-    """The regenerated set waiting to be accepted, in image/.preview/.
+def preview_status(story: dict) -> tuple[bool, str]:
+    """(still generating, error message).
 
-    `newer_than` filters to files written after a given moment. The preview folder is
-    seeded with copies of the current art (so a lone thumbnail still has a cover to
-    match faces against, and so accepting is a straight move of a complete set) — the
-    timestamp is what separates a freshly generated poster from one of those copies.
+    Came off `.running` / `.error` marker files while the art was on a mounted disk;
+    now it is two columns on the story row, because a bucket cannot be mounted and
+    watched the way a folder could.
     """
-    d = _preview_root(slug)
-    out: dict[str, Path] = {}
-    if d.is_dir():
-        for stem, _ in STEMS:
-            for ext in _IMG_EXTS:
-                p = d / f"{stem}.{ext}"
-                if p.exists() and p.stat().st_mtime >= newer_than:
-                    out[stem] = p
-                    break
-    return out
+    return bool(story.get("image_job_running")), story.get("image_job_error") or ""
 
 
-def preview_status(slug: str) -> tuple[bool, str]:
-    """(still generating, error message) — read straight off the marker files the
-    API writes, since this app already has the output folder mounted."""
-    d = _preview_root(slug)
-    err = d / ".error"
-    return (d / ".running").exists(), (
-        err.read_text(encoding="utf-8", errors="ignore") if err.exists() else ""
-    )
+def cover_for(story: dict):
+    return poster_images(story).get("cover")
 
 
-def cover_for(slug: str) -> Path | None:
-    return poster_images(slug).get("cover")
-
-
-def image_data_uri(path: Path) -> str:
+def img_src(ref) -> str:
+    """A value usable as an <img src>. A signed URL goes in as-is; a local Path has
+    to be inlined as base64, because this app serves no static files of its own."""
+    if isinstance(ref, str):
+        return ref
+    path = Path(ref)
     mime = "image/jpeg" if path.suffix.lower() in (".jpg", ".jpeg") else f"image/{path.suffix.lstrip('.').lower()}"
     return f"data:{mime};base64,{base64.b64encode(path.read_bytes()).decode('ascii')}"
 
@@ -148,23 +146,30 @@ def output_text(slug: str, name: str) -> str | None:
     return None
 
 
-def _image_stamp(slug: str) -> int:
-    """Newest mtime among the story's poster files, or 0 if it has none.
+def _image_stamp(story: dict) -> str:
+    """A token that changes exactly when the poster art changes, and not otherwise.
 
-    The zip now carries image/ as well as the prose, so the chapter count alone is
-    no longer enough to key the cache: regenerating the art leaves the count
-    unchanged and would keep serving a zip with the old covers in it.
+    The zip carries image/ as well as the prose, so the chapter count alone cannot
+    key the cache: regenerating the art leaves the count unchanged and would keep
+    serving a zip with the old covers in it. Used to be the newest file mtime.
+
+    With signed URLs, the PATH part is what carries the version (each new image gets
+    a new object key) while the query string carries the expiry and would otherwise
+    churn every window and bust this cache for no reason — so only the path counts.
     """
-    d = OUTPUT_DIR / slug / "image"
-    if not d.is_dir():
-        return 0
-    return max((int(p.stat().st_mtime) for p in d.glob("*") if p.is_file()), default=0)
+    refs = poster_images(story)
+    if not refs:
+        return "0"
+    parts = sorted(str(r).split("?", 1)[0] for r in refs.values())
+    if not story.get("images"):  # local files: fall back to mtimes
+        parts = sorted(str(int(Path(r).stat().st_mtime)) for r in refs.values())
+    return hashlib.sha1("|".join(parts).encode()).hexdigest()[:12]
 
 
-def cached_story_zip(story_id: int, chapters_done: int, slug: str = "") -> bytes | None:
+def cached_story_zip(story_id: int, chapters_done: int, story: dict | None = None) -> bytes | None:
     if chapters_done <= 0:
         return None
-    zkey = f"zip_{story_id}_{chapters_done}_{_image_stamp(slug) if slug else 0}"
+    zkey = f"zip_{story_id}_{chapters_done}_{_image_stamp(story) if story else '0'}"
     if zkey not in st.session_state:
         try:
             r = requests.get(f"{_base()}/stories/{story_id}/download-zip", timeout=180)
@@ -1026,7 +1031,7 @@ def edit_dialog(story: dict):
 
     # ── Images ───────────────────────────────────────────────────────────────
     st.markdown("#### Ảnh")
-    live, prev = poster_images(story["slug"]), preview_images(story["slug"])
+    live, prev = poster_images(story), preview_images(story)
     if not live:
         st.caption("Chưa có ảnh nào.")
     else:
@@ -1059,16 +1064,18 @@ def edit_dialog(story: dict):
         except Exception as e:
             st.error(f"Lỗi: {e}")
         else:
-            # Draw into one placeholder and keep redrawing it. Each poster appears the
-            # moment it lands on disk, so a finished image stops spinning while the
+            # Draw into one placeholder and keep redrawing it. Each poster appears as
+            # soon as it is stored, so a finished image stops spinning while the
             # others carry on — instead of one spinner covering all three for two
-            # minutes with no sign of which is done.
+            # minutes with no sign of which is done. One API read per pass gives both
+            # the art and the job state, so the two can never disagree.
             wanted = [s for s, _ in STEMS] if which == "all" else [which]
             slot = st.empty()
             deadline = time.time() + 900
             while time.time() < deadline:
-                fresh = preview_images(story["slug"], newer_than=started)
-                running, err = preview_status(story["slug"])
+                snap = api_get(f"/stories/{sid}")
+                fresh = preview_images(snap)
+                running, err = preview_status(snap)
                 with slot.container():
                     cols = st.columns(3)
                     for col, (stem, label) in zip(cols, STEMS):
@@ -1213,15 +1220,15 @@ def view_library():
         words, target = ((d.get("current_words") or 0), (d.get("target_words") or 0)) if d else (0, 0)
         pct_row = done / total_ch if total_ch else 0.0
 
-        rows.append((s, run_state, done, total_ch, words, target, pct_row))
+        rows.append((s, d, run_state, done, total_ch, words, target, pct_row))
 
     header = st.columns([2.15, .85, .9, 1.05, .72, .95, .72, 3.0], gap="medium")
     for col, label in zip(header, ("Truyện", "Truyện gốc", "Trạng thái", "Phase", "Chương", "Số từ", "Tiến độ", "Thao tác")):
         col.markdown(f"<div class='table-head'>{label}</div>", unsafe_allow_html=True)
 
-    for s, run_state, done, total_ch, words, target, pct_row in rows:
+    for s, d, run_state, done, total_ch, words, target, pct_row in rows:
         src = _html.escape(s.get("source_title") or "—") if s.get("input_type") == "REWRITE" else "—"
-        zip_data = cached_story_zip(s["id"], done, s["slug"])
+        zip_data = cached_story_zip(s["id"], done, d)
         c = st.columns([2.15, .85, .9, 1.05, .72, .95, .72, 3.0], gap="medium")
         c[0].markdown(f"<div class='row-cell story-cell'><div class='table-title truncate'>{_html.escape(s['title'])}</div></div>", unsafe_allow_html=True)
         c[1].markdown(f"<div class='row-cell'><div class='lib-src source-cell truncate'>{src}</div></div>", unsafe_allow_html=True)
@@ -1316,7 +1323,7 @@ def view_detail():
         unsafe_allow_html=True,
     )
 
-    imgs = poster_images(d["slug"])
+    imgs = poster_images(d)
     control_col, image_col = st.columns([1.45, 1], gap="large")
     with control_col:
         st.markdown("<div class='panel-title'>Tiến trình gen</div>", unsafe_allow_html=True)
@@ -1360,7 +1367,7 @@ def view_detail():
                 unsafe_allow_html=True,
             )
 
-        zip_data = cached_story_zip(sid, done, d["slug"])
+        zip_data = cached_story_zip(sid, done, d)
 
         st.markdown("<div class='action-rule'></div>", unsafe_allow_html=True)
         if running and stop_requested:
@@ -1417,7 +1424,7 @@ def view_detail():
             for stem, label in (("cover", "Bìa"), ("thumbnail1", "Thumb 1"), ("thumbnail2", "Thumb 2")):
                 if stem in imgs:
                     tiles.append(
-                        f"<div class='art-tile'><img class='art-img' src='{image_data_uri(imgs[stem])}' alt='{label}'>"
+                        f"<div class='art-tile'><img class='art-img' src='{img_src(imgs[stem])}' alt='{label}'>"
                         f"<div class='art-label'>{label}</div></div>"
                     )
                 else:

@@ -17,8 +17,9 @@ from pathlib import Path
 from PIL import Image, ImageOps
 from sqlalchemy.orm import Session
 
+from . import storage
 from .config import AGENT_MODELS, IMAGE_MODEL, PROVIDER
-from .db.models import Character, Story
+from .db.models import Character, Story, StoryImage
 from .llm_json import generate_structured
 from .prompts.loader import load_prompt
 from .schemas import ImagePromptSetOut, ImagePromptVerifyOut, NovelMetadataOut
@@ -804,14 +805,74 @@ def _existing_image_bytes(out_dir, stem: str) -> bytes | None:
     return None
 
 
+def _live_image_bytes(session: Session, story: Story, out_dir, stem: str) -> bytes | None:
+    """The live image's bytes, from storage when configured and from disk otherwise.
+
+    Load-bearing for face consistency: redrawing one thumbnail feeds the current
+    cover back to the model as the identity reference, so the same people come back.
+    Reading it from disk after the art moved to object storage would silently return
+    None and every regenerated thumbnail would come back with different faces.
+    """
+    if storage.enabled():
+        row = (
+            session.query(StoryImage)
+            .filter_by(story_id=story.id, stem=stem, state="live")
+            .one_or_none()
+        )
+        return storage.get_bytes(row.object_key) if row else None
+    return _existing_image_bytes(out_dir, stem)
+
+
+def _persist_image(session: Session, story: Story, stem: str, data: bytes,
+                   w: int, h: int, out_dir, preview: bool) -> None:
+    """Store one finished image and record it, or write a file when there is no bucket."""
+    if not storage.enabled():
+        (Path(out_dir) / f"{stem}.{_FORMAT}").write_bytes(data)
+        # Drop the same image in any other format left over from an earlier run, so a
+        # folder never ends up with both cover.png and cover.webp.
+        for other in _SAVE_ARGS:
+            if other != _FORMAT:
+                (Path(out_dir) / f"{stem}.{other}").unlink(missing_ok=True)
+        return
+
+    state = "preview" if preview else "live"
+    key = storage.object_key(story.id, stem, _FORMAT)
+    storage.put(key, data, f"image/{_FORMAT}")
+
+    row = (
+        session.query(StoryImage)
+        .filter_by(story_id=story.id, stem=stem, state=state)
+        .one_or_none()
+    )
+    superseded = row.object_key if row else None
+    if row is None:
+        row = StoryImage(story_id=story.id, stem=stem, state=state)
+        session.add(row)
+    row.object_key = key
+    row.width, row.height = w, h
+    row.content_type = f"image/{_FORMAT}"
+    session.flush()
+    # Only after the row points at the new key, so a crash in between leaves an
+    # orphaned object rather than a row pointing at something already deleted.
+    if superseded and superseded != key:
+        storage.delete(superseded)
+
+
 def generate(session: Session, story: Story, out_dir,
              meta: NovelMetadataOut | None = None, only: str | None = None,
-             notes: str = "", seed: int | None = None) -> list[str]:
-    """Generate cover + 2 thumbnails into out_dir. Best-effort; returns filenames written.
+             notes: str = "", seed: int | None = None, preview: bool = False) -> list[str]:
+    """Generate cover + 2 thumbnails. Best-effort; returns the stems written.
+
+    Art goes to object storage when a bucket is configured, and to `out_dir` as files
+    otherwise — `out_dir` is still required for that fallback and for callers that
+    stage art outside a story's own folder.
+
+    preview: write as the pending set rather than the live one, so the current art
+    stays untouched until someone accepts the new set.
 
     only: None/"all" regenerates every image; or one of "cover"/"thumbnail1"/
     "thumbnail2" to regenerate just that one. When a thumbnail is regenerated
-    without the cover, the existing cover on disk is loaded as the identity
+    without the cover, the current live cover is loaded as the identity
     reference so the same faces carry over.
 
     notes: free-text steering for this run ("warmer, put her in red", "thumb2:
@@ -841,7 +902,7 @@ def generate(session: Session, story: Story, out_dir,
     # Regenerating only a thumbnail: reuse the existing cover as the identity
     # reference so the same faces carry over (the cover isn't being redrawn).
     if "cover" not in targets:
-        cover_ref = _existing_image_bytes(out_dir, "cover")
+        cover_ref = _live_image_bytes(session, story, out_dir, "cover")
         if cover_ref is None:
             logger.warning("[%s] regenerate %s: no existing cover to use as reference",
                            story.slug, targets)
@@ -895,12 +956,9 @@ def generate(session: Session, story: Story, out_dir,
             continue
         img = Image.open(io.BytesIO(chosen)).convert("RGB")
         img = ImageOps.fit(img, (w, h), method=Image.LANCZOS, centering=centering)
-        img.save(out_dir / filename, **_SAVE_ARGS[_FORMAT])
-        # Drop the same image in any other format left over from an earlier run, so a
-        # folder never ends up with both cover.png and cover.webp.
-        for other in _SAVE_ARGS:
-            if other != _FORMAT:
-                (out_dir / f"{stem}.{other}").unlink(missing_ok=True)
+        buf = io.BytesIO()
+        img.save(buf, **_SAVE_ARGS[_FORMAT])
+        _persist_image(session, story, stem, buf.getvalue(), w, h, out_dir, preview)
         if is_cover:
             cover_ref = chosen  # reference for thumbnail character consistency
         written.append(filename)

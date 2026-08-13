@@ -73,5 +73,24 @@ IMAGE_MODEL = os.getenv("IMAGE_MODEL", "gemini-3-pro-image")
 # generate_content 404s there, so a metadata probe is not proof a region works.
 IMAGE_LOCATION = os.getenv("IMAGE_LOCATION", "global")
 
-DB_URL = os.getenv("DATABASE_URL", "sqlite:///./novelgen.db")
+# Postgres. docker-compose sets DATABASE_URL and overrides anything in .env; the
+# default below only applies to a bare local run against a Postgres on the host.
+# It is deliberately NOT a sqlite:// fallback any more: a silent switch to a local
+# file gave an app with no schema (Alembic migrates Postgres) and a confusing empty
+# database, rather than a connection error naming the real problem.
+DB_URL = os.getenv("DATABASE_URL", "postgresql+psycopg://novel:novel@localhost:5432/novelgen")
 OUTPUT_BASE = Path(os.getenv("OUTPUT_DIR", "/data/output"))
+
+# Object storage for poster art. Empty bucket name = storage disabled, and every
+# caller falls back to the local output dir — so a checkout with no GCS access
+# still runs. Auth is the SAME service account Vertex already uses
+# (GOOGLE_APPLICATION_CREDENTIALS); no separate credential.
+GCS_BUCKET = os.getenv("GCS_BUCKET", "")
+
+# How long a signed image URL stays valid. Also the rounding window: an expiry of
+# `now + TTL` would differ on every call, which changes the URL string, which
+# defeats the browser cache and re-downloads every poster on every Streamlit
+# rerun. Rounding the deadline down to a multiple of TTL makes the URL stable
+# within the window, so the browser caches it — while a NEW image still gets a
+# new URL, because the object key itself carries a version suffix.
+GCS_URL_TTL = int(os.getenv("GCS_URL_TTL", "7200"))  # seconds

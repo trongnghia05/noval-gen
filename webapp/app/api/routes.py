@@ -26,9 +26,11 @@ from ..db.models import (
     Story,
     StoryGraphEdge,
     StoryGraphNode,
+    StoryImage,
     WorldState,
 )
 from ..db.session import SessionLocal
+from .. import storage
 from ..slug import generate_title, slugify
 
 # Every table that carries a story_id — deleted (children first) when a story is
@@ -36,7 +38,7 @@ from ..slug import generate_title, slugify
 _CHILD_MODELS = (
     ChapterSummary, ChapterTrace, ChapterVerifyLog, PlanningVerifyLog, WorldState,
     StateLog, Foreshadowing, Chapter, Character, StoryGraphNode, StoryGraphEdge,
-    ContinuityLog, SmartPlannerState,
+    ContinuityLog, SmartPlannerState, StoryImage,
 )
 
 router = APIRouter()
@@ -212,7 +214,10 @@ def delete_story(story_id: int):
         session.delete(story)
         session.commit()
 
-    # Files (best-effort — DB row is already gone).
+    # Files and objects (best-effort — the DB rows are already gone).
+    if storage.enabled():
+        # Everything under the story's own prefix, so the preview set goes too.
+        storage.delete_prefix(f"{story_id}/")
     shutil.rmtree(csv_graph.GRAPH_BASE / str(story_id), ignore_errors=True)
     # Only remove an output folder this story actually owns (marker file), so a
     # slug collision never deletes another story's export.
@@ -352,29 +357,35 @@ def _preview_dir(story: Story):
     return _story_image_dir(story) / ".preview"
 
 
-# Progress is published as marker FILES rather than through an endpoint, because the
-# playground already mounts the output dir read-only: it can watch a poster appear the
-# moment it is written and needs no polling API to do it.
+# Progress used to be published as marker FILES, which worked only because the
+# playground had the output dir mounted and could watch them appear. Object storage
+# cannot be mounted, so the state lives on the story row and the UI reads it from
+# GET /stories/{id} like everything else.
 def _regen_images_job(story_id: int, which: str, notes: str, seed: int | None,
-                      target: str, marker: str):
-    """Generate in the background, clearing the marker whatever happens — a marker
-    left behind would leave the UI waiting for art that is never coming."""
+                      target: str, preview: bool):
+    """Generate in the background, always clearing the running flag — a flag left set
+    would leave the UI waiting for art that is never coming."""
     from .. import image_generator
-    mark = Path(marker)
     try:
         with SessionLocal() as session:
             story = session.get(Story, story_id)
             if story:
                 image_generator.generate(session, story, Path(target), only=which,
-                                         notes=notes, seed=seed)
-    except Exception as exc:  # noqa: BLE001 — the UI reads this file to show the error
+                                         notes=notes, seed=seed, preview=preview)
+                session.commit()
+    except Exception as exc:  # noqa: BLE001 — the UI reads this to show the error
         logger.exception("[story %s] background image regen failed", story_id)
-        try:
-            mark.with_name(".error").write_text(str(exc)[:500], encoding="utf-8")
-        except OSError:
-            pass
+        with SessionLocal() as session:
+            story = session.get(Story, story_id)
+            if story:
+                story.image_job_error = str(exc)[:500]
+                session.commit()
     finally:
-        mark.unlink(missing_ok=True)
+        with SessionLocal() as session:
+            story = session.get(Story, story_id)
+            if story:
+                story.image_job_running = False
+                session.commit()
 
 
 @router.get("/stories/{story_id}/download-zip")
@@ -423,12 +434,21 @@ def download_zip(story_id: int):
             if summ.exists():
                 z.writestr("summarize.txt", summ.read_text(encoding="utf-8", errors="ignore"))
 
-            # Poster art, kept at the same path it has on disk so the zip unpacks
-            # into the layout the export dir already uses. Written as bytes, not
-            # text — these are WebP/PNG.
-            for img in sorted((out_dir / "image").glob("*")):
-                if img.is_file():
-                    z.writestr(f"image/{img.name}", img.read_bytes())
+            # Poster art, kept under image/ so the zip unpacks into the layout the
+            # export dir already uses, whether the bytes came from a bucket or a
+            # folder. Written as bytes, not text — these are WebP/PNG.
+            if storage.enabled():
+                for row in (session.query(StoryImage)
+                            .filter_by(story_id=story_id, state="live")
+                            .order_by(StoryImage.stem).all()):
+                    data = storage.get_bytes(row.object_key)
+                    if data:
+                        ext = row.object_key.rsplit(".", 1)[-1]
+                        z.writestr(f"image/{row.stem}.{ext}", data)
+            else:
+                for img in sorted((out_dir / "image").glob("*")):
+                    if img.is_file():
+                        z.writestr(f"image/{img.name}", img.read_bytes())
 
             # Per-chapter reproducibility traces from the DB, each under trace/.
             for t in (session.query(ChapterTrace)
@@ -471,52 +491,112 @@ def regenerate_images(story_id: int, req: RegenImagesRequest,
         target = image_dir
         if req.preview:
             target = _preview_dir(story)
-            shutil.rmtree(target, ignore_errors=True)
-            target.mkdir(parents=True, exist_ok=True)
-            # Seed the preview with the current art. Two reasons: regenerating one
-            # thumbnail needs the cover present as an identity reference, and it makes
-            # the preview a COMPLETE set, so accepting it is a straight move.
-            for p in image_dir.glob("*"):
-                if p.is_file():
-                    shutil.copy2(p, target / p.name)
+            if not storage.enabled():
+                # File mode only. With a bucket the preview set is its own set of
+                # rows, and the identity reference is read from the LIVE row — so
+                # there is nothing to seed and nothing to copy.
+                shutil.rmtree(target, ignore_errors=True)
+                target.mkdir(parents=True, exist_ok=True)
+                for p in image_dir.glob("*"):
+                    if p.is_file():
+                        shutil.copy2(p, target / p.name)
+            else:
+                # Replacing an unaccepted preview: drop the previous one first so a
+                # partial regeneration cannot leave a mixed set behind.
+                _drop_preview(session, story)
 
         if req.background:
-            marker = target / ".running"
-            (target / ".error").unlink(missing_ok=True)
-            marker.write_text(req.which, encoding="utf-8")
+            story.image_job_running = True
+            story.image_job_error = None
+            session.commit()
             background_tasks.add_task(_regen_images_job, story_id, req.which,
-                                      req.notes, req.seed, str(target), str(marker))
+                                      req.notes, req.seed, str(target), req.preview)
             return {"status": "started", "which": req.which, "preview": req.preview}
 
         from .. import image_generator
         try:
             written = image_generator.generate(
                 session, story, target, only=req.which,
-                notes=req.notes, seed=req.seed,
+                notes=req.notes, seed=req.seed, preview=req.preview,
             )
+            session.commit()
         except Exception as exc:  # noqa: BLE001 — surface any gen failure to the client
             logger.exception("[%s] regenerate-images failed", story.slug)
             raise HTTPException(500, f"image generation failed: {exc}")
     return {"which": req.which, "written": written, "preview": req.preview}
 
 
+def _image_urls(session, story_id: int, state: str) -> dict[str, str]:
+    """{stem: signed URL} for one set. Empty when there is no bucket — the playground
+    then falls back to reading the files it has mounted."""
+    if not storage.enabled():
+        return {}
+    rows = session.query(StoryImage).filter_by(story_id=story_id, state=state).all()
+    return {r.stem: storage.signed_url(r.object_key) for r in rows}
+
+
+def _drop_preview(session, story: Story) -> int:
+    """Delete the pending set — rows and objects. Returns how many went."""
+    rows = session.query(StoryImage).filter_by(story_id=story.id, state="preview").all()
+    for row in rows:
+        storage.delete(row.object_key)
+        session.delete(row)
+    session.flush()
+    return len(rows)
+
+
 @router.post("/stories/{story_id}/images/accept")
 def accept_preview_images(story_id: int):
-    """Replace the live art with the previewed set, then drop the preview."""
+    """Replace the live art with the previewed set, then drop the preview.
+
+    With a bucket this is one UPDATE inside one transaction. The file version was a
+    loop of moves that could half-fail and leave a set that was part new, part old.
+    """
     with SessionLocal() as session:
         story = session.get(Story, story_id)
         if not story:
             raise HTTPException(404, "story not found")
-        preview, image_dir = _preview_dir(story), _story_image_dir(story)
-        files = [p for p in preview.glob("*") if p.is_file()] if preview.is_dir() else []
-        if not files:
+
+        if not storage.enabled():
+            preview, image_dir = _preview_dir(story), _story_image_dir(story)
+            files = [p for p in preview.glob("*") if p.is_file()] if preview.is_dir() else []
+            if not files:
+                raise HTTPException(409, "no preview images to accept")
+            image_dir.mkdir(parents=True, exist_ok=True)
+            for p in files:
+                shutil.move(str(p), str(image_dir / p.name))
+            shutil.rmtree(preview, ignore_errors=True)
+            logger.info("[%s] accepted %d preview image(s)", story.slug, len(files))
+            return {"accepted": [p.name for p in files]}
+
+        pending = session.query(StoryImage).filter_by(story_id=story.id, state="preview").all()
+        if not pending:
             raise HTTPException(409, "no preview images to accept")
-        image_dir.mkdir(parents=True, exist_ok=True)
-        for p in files:
-            shutil.move(str(p), str(image_dir / p.name))
-        shutil.rmtree(preview, ignore_errors=True)
-        logger.info("[%s] accepted %d preview image(s)", story.slug, len(files))
-        return {"accepted": [p.name for p in files]}
+
+        # The keys being retired, collected before the rows are repointed. Deleting
+        # them only after the commit means a crash mid-way leaves an unreferenced
+        # object rather than a row pointing at an object that is already gone.
+        retired = [
+            r.object_key
+            for r in session.query(StoryImage)
+                       .filter(StoryImage.story_id == story.id,
+                               StoryImage.state == "live",
+                               StoryImage.stem.in_([p.stem for p in pending])).all()
+        ]
+        for row in (session.query(StoryImage)
+                    .filter(StoryImage.story_id == story.id,
+                            StoryImage.state == "live",
+                            StoryImage.stem.in_([p.stem for p in pending])).all()):
+            session.delete(row)
+        session.flush()
+        for row in pending:
+            row.state = "live"
+        session.commit()
+
+        for key in retired:
+            storage.delete(key)
+        logger.info("[%s] accepted %d preview image(s)", story.slug, len(pending))
+        return {"accepted": [p.stem for p in pending]}
 
 
 @router.post("/stories/{story_id}/images/discard")
@@ -526,6 +606,10 @@ def discard_preview_images(story_id: int):
         story = session.get(Story, story_id)
         if not story:
             raise HTTPException(404, "story not found")
+        if storage.enabled():
+            n = _drop_preview(session, story)
+            session.commit()
+            return {"status": "discarded", "dropped": n}
         shutil.rmtree(_preview_dir(story), ignore_errors=True)
         return {"status": "discarded"}
 
@@ -572,6 +656,14 @@ def get_story(story_id: int):
             "current_words": story.current_words,
             "target_words": story.target_words,
             "words_per_chapter": story.words_per_chapter,
+            # Signed, time-limited URLs — minted per request, never stored, because
+            # they expire. What is stored is the object key on story_images.
+            "images": _image_urls(session, story_id, "live"),
+            "preview_images": _image_urls(session, story_id, "preview"),
+            # Replaces the .running / .error marker files the playground used to read
+            # off the mounted output dir, which object storage cannot provide.
+            "image_job_running": bool(story.image_job_running),
+            "image_job_error": story.image_job_error or "",
         }
 
 
