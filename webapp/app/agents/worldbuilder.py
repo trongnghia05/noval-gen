@@ -24,8 +24,14 @@ story-bible.md:
         )
     if feedback:
         user_content += f"{_common.FEEDBACK_HEADER}{feedback}\n"
+    # 8192 was the last JSON agent left at the old budget, and it broke: thinking tokens
+    # count against the same limit, so a bigger graph going in leaves less room to write
+    # with, and the world bible was cut off mid-string ~16k chars in. Real ones run
+    # 10-21k characters, and the graph fed in here reached 99k once the content
+    # truncations came out. 32768 matches character_developer, whose output is
+    # comparable in size.
     world: WorldBibleOut = _common.call_agent(
         "worldbuilder", user_content=user_content, schema=WorldBibleOut,
-        max_tokens=8192, thinking=True,
+        max_tokens=32768, thinking=True,
     )
     return json.dumps(world.model_dump(), ensure_ascii=False, indent=2)
